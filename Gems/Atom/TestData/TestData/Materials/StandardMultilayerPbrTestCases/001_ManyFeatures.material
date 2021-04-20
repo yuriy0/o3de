@@ -11,7 +11,7 @@
                 0.12039368599653244,
                 1.0
             ],
-            "textureMap": "TestData/Textures/cc0/bark1col.jpg"
+            "textureMap": "TestData/Textures/cc0/bark1_col.jpg"
         },
         "layer1_emissive": {
             "color": [
@@ -34,11 +34,11 @@
         "layer1_parallax": {
             "enable": true,
             "factor": 0.02500000037252903,
-            "textureMap": "TestData/Textures/cc0/bark1disp2.jpg"
+            "textureMap": "TestData/Textures/cc0/bark1_disp.jpg"
         },
         "layer1_roughness": {
             "lowerBound": 0.010100999847054482,
-            "textureMap": "TestData/Textures/cc0/bark1roughness.jpg"
+            "textureMap": "TestData/Textures/cc0/bark1_roughness.jpg"
         },
         "layer1_specularF0": {
             "factor": 0.5099999904632568,
