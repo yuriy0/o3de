@@ -62,6 +62,14 @@ ShaderResourceGroup MaterialSrg : SRG_PerMaterial
     float3 m_scatterDistance;
     Texture2D m_subsurfaceScatteringInfluenceMap;
     uint m_subsurfaceScatteringInfluenceMapUvIndex;
+    bool m_multiplyScatterDistanceByAlbedo;
+
+    // Parameters for dual specular
+    float m_dualSpecularF0Multiplier;
+    float m_dualSpecularF0Addition;
+    float m_dualSpecularRoughnessMultiplier;
+    float m_dualSpecularRoughnessAddition;
+    float m_dualSpecularContribution;
 
     // Parameters for transmission
     

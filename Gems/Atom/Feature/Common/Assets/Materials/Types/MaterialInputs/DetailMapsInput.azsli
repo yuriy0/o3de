@@ -38,8 +38,8 @@ bool m_detail_normal_flipX;                   \
 bool m_detail_normal_flipY;                   \
                                               \
 float3x3 m_detailUvMatrix;                    \
-float3x3 m_detailUvMatrixInverse;
-
+float3x3 m_detailUvMatrixInverse;             \
+float4 m_pad; // [GFX TODO][ATOM-14595] This is a workaround for a data stomping bug. Remove once it's fixed.
 
 #define COMMON_OPTIONS_DETAIL_MAPS(prefix)   \
 option bool o_detail_blendMask_useTexture;   \
