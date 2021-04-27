@@ -19,6 +19,11 @@
                 "description": "The constant f0 represents the specular reflectance at normal incidence (Fresnel 0 Angle). Used to adjust reflectance of non-metal surfaces."
             },
             {
+                "id": "dualSpecular",
+                "displayName": "Dual Specular",
+                "description": "Enables a second specular lobe in the BRDF."
+            },
+            {
                 "id": "normal",
                 "displayName": "Normal",
                 "description": "Properties related to configuring surface normal."
@@ -317,6 +322,84 @@
                     }
                 }
             ],
+            "dualSpecular": [
+                {
+                    "id": "enableDualSpecular",
+                    "displayName": "Dual Specular",
+                    "description": "Enable second specular lobe calculation in the BRDF.",
+                    "type": "Bool",
+                    "defaultValue": true,
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_enableDualSpecular"
+                    }
+                },
+                {
+                    "id": "dualSpecularContribution",
+                    "displayName": "    Dual Specular Contribution",
+                    "description": "How much the second specular lobe contributes to the overall specular response. Value is used to lerp between primary and secondary specular lobes.",
+                    "type": "float",
+                    "defaultValue": 0.15,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_dualSpecularContribution"
+                    }
+                },
+                {
+                    "id": "dualSpecularF0Multiplier",
+                    "displayName": "    Specular F0 Multiplier",
+                    "description": "Initial specular F0 will be multiplied by this value to obtain the specular F0 for the second specular lobe.",
+                    "type": "float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "max": 4.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_dualSpecularF0Multiplier"
+                    }
+                },
+                {
+                    "id": "dualSpecularF0Addition",
+                    "displayName": "    Specular F0 Add",
+                    "description": "This will be added to the result of the specular F0 multiplication to obtain the final specular F0 for the second specular lobe.",
+                    "type": "float",
+                    "defaultValue": 0.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_dualSpecularF0Addition"
+                    }
+                },
+                {
+                    "id": "dualSpecularRoughnessMultiplier",
+                    "displayName": "    Roughness Multiplier",
+                    "description": "Initial roughness will be multiplied by this value to obtain the roughness for the second specular lobe.",
+                    "type": "float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "max": 4.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_dualSpecularRoughnessMultiplier"
+                    }
+                },
+                {
+                    "id": "dualSpecularRoughnessAddition",
+                    "displayName": "    Roughness Add",
+                    "description": "This will be added to the result of the roughness multiplication to obtain the final roughness for the second specular lobe.",
+                    "type": "float",
+                    "defaultValue": 0.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_dualSpecularRoughnessAddition"
+                    }
+                }
+            ],
             "normal": [
                 {
                     "id": "textureMap",
@@ -538,6 +621,17 @@
                     "defaultValue": 8,
                     "min": 0.0,
                     "softMax": 20.0
+                },
+                {
+                    "id": "multiplyScatterDistanceByAlbedo",
+                    "displayName": "    Modulate with Albedo",
+                    "description": "Modulate the scatter distance by the skin albedo",
+                    "type": "Bool",
+                    "defaultValue": false,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_multiplyScatterDistanceByAlbedo"
+                    }
                 },
                 {
                     "id": "quality",
