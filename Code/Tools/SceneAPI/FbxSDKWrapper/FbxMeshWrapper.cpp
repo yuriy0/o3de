@@ -31,6 +31,7 @@ namespace AZ
 
         FbxMeshWrapper::~FbxMeshWrapper()
         {
+            m_fbxMesh = nullptr;
         }
 
         void FbxMeshWrapper::Destroy()

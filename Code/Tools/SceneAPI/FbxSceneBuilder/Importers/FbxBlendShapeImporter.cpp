@@ -112,7 +112,7 @@ namespace AZ
                                 blendShapeResult = AddAttributeDataNodeWithContexts(dataPopulated);
                             }
                             combinedBlendShapeResult += blendShapeResult;
-                            //mesh.get()->Destroy();
+                            mesh.get()->Destroy();
                         }
                         else
                         {
