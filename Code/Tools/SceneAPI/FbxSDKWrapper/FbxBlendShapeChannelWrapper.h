@@ -33,7 +33,7 @@ namespace AZ
 
             //While not strictly true that the target shapes are meshes, for the purposes of the engine's
             //current runtime they must be meshes. 
-            virtual AZStd::shared_ptr<const FbxMeshWrapper> GetTargetShape(int index) const;
+            virtual AZStd::shared_ptr<FbxMeshWrapper> GetTargetShape(int index) const;
 
         protected:
             FbxBlendShapeChannelWrapper() = default;

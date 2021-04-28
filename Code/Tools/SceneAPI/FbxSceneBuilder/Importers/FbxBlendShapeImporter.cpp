@@ -75,12 +75,12 @@ namespace AZ
                     for (int channelIndex = 0; channelIndex < blendShapeChannelCount; ++channelIndex)
                     {
                         //extract the mesh and build a blendshape data object.
-                        AZStd::shared_ptr<const FbxSDKWrapper::FbxBlendShapeChannelWrapper> blendShapeChannel = fbxBlendShape->GetBlendShapeChannel(channelIndex);
+                        AZStd::shared_ptr<FbxSDKWrapper::FbxBlendShapeChannelWrapper> blendShapeChannel = fbxBlendShape->GetBlendShapeChannel(channelIndex);
 
                         int shapeCount = blendShapeChannel->GetTargetShapeCount();
 
                         //We do not support percentage blends at this time. Take only the final shape. 
-                        AZStd::shared_ptr<const FbxSDKWrapper::FbxMeshWrapper> mesh = blendShapeChannel->GetTargetShape(shapeCount - 1);
+                        AZStd::shared_ptr<FbxSDKWrapper::FbxMeshWrapper> mesh = blendShapeChannel->GetTargetShape(shapeCount - 1);
 
                         if (mesh)
                         {
@@ -112,6 +112,7 @@ namespace AZ
                                 blendShapeResult = AddAttributeDataNodeWithContexts(dataPopulated);
                             }
                             combinedBlendShapeResult += blendShapeResult;
+                            mesh.get()->Destroy();
                         }
                         else
                         {

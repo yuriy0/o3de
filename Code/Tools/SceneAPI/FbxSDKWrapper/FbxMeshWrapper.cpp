@@ -34,6 +34,11 @@ namespace AZ
             m_fbxMesh = nullptr;
         }
 
+        void FbxMeshWrapper::Destroy()
+        {
+            m_fbxMesh->Destroy();
+        }
+
         const char* FbxMeshWrapper::GetName() const
         {
             return m_fbxMesh->GetName();
