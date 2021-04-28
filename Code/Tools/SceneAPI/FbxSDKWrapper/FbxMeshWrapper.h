@@ -34,6 +34,8 @@ namespace AZ
             FbxMeshWrapper(FbxMesh* fbxMesh);
             virtual ~FbxMeshWrapper();
 
+            virtual void Destroy();
+
             virtual const char* GetName() const;
 
             virtual int GetDeformerCount() const;

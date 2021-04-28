@@ -45,7 +45,7 @@ namespace AZ
 
         //While not strictly true that the target shapes are meshes, for the purposes of the engine's
         //current runtime they must be meshes. 
-        AZStd::shared_ptr<const FbxMeshWrapper> FbxBlendShapeChannelWrapper::GetTargetShape(int index) const
+        AZStd::shared_ptr<FbxMeshWrapper> FbxBlendShapeChannelWrapper::GetTargetShape(int index) const
         {
             //we need to create a duplicate FbxMesh from the base mesh and the target data
             //FbxMeshWrapper needs an FbxMesh to point to so we are generating one

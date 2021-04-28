@@ -33,7 +33,7 @@ namespace AZ
             //Technically Fbx returns a FbxGeometry off this interface, but we only support meshes in the engine runtime.
             virtual AZStd::shared_ptr<const FbxMeshWrapper> GetGeometry() const;
             virtual int GetBlendShapeChannelCount() const;
-            virtual AZStd::shared_ptr<const FbxBlendShapeChannelWrapper> GetBlendShapeChannel(int index) const;
+            virtual AZStd::shared_ptr<FbxBlendShapeChannelWrapper> GetBlendShapeChannel(int index) const;
 
         protected:
             FbxBlendShapeWrapper() = default;

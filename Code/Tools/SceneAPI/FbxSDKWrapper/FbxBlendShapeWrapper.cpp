@@ -58,7 +58,7 @@ namespace AZ
             return m_fbxBlendShape->GetBlendShapeChannelCount();
         }
 
-        AZStd::shared_ptr<const FbxBlendShapeChannelWrapper> FbxBlendShapeWrapper::GetBlendShapeChannel(int index) const
+        AZStd::shared_ptr<FbxBlendShapeChannelWrapper> FbxBlendShapeWrapper::GetBlendShapeChannel(int index) const
         {
             FbxBlendShapeChannel* fbxBlendShapeChannel = m_fbxBlendShape->GetBlendShapeChannel(index);
             if (fbxBlendShapeChannel)
