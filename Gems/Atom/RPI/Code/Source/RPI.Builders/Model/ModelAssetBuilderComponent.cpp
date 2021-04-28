@@ -886,15 +886,30 @@ namespace AZ
         void ModelAssetBuilderComponent::PadVerticesForSkinning(ProductMeshContentList& productMeshList)
         {
             // Check if this is a skinned mesh
-            if (!productMeshList.empty() && !productMeshList[0].m_skinWeights.empty())
+            if (!productMeshList.empty())
             {
-                // First, do a pass to see if any mesh has morphed colors
+                // First, do a pass to see if this is a skinned model
+                // and if any mesh has morphed colors
+                bool isSkinnedModel = false;
                 bool hasMorphedColors = false;
-                for (ProductMeshContent& productMesh : productMeshList)
+                size_t skinInfluencesPerVertex = 0;
+                for (const auto& mesh : productMeshList)
                 {
-                    if (productMesh.m_hasMorphedColors)
+                    if (!mesh.m_skinWeights.empty())
+                    {
+                        isSkinnedModel = true;
+                        size_t vertexCount = mesh.m_positions.size() / PositionFloatsPerVert;
+                        skinInfluencesPerVertex = mesh.m_skinWeights.size() / vertexCount;
+                    }
+                    if (mesh.m_hasMorphedColors)
                     {
                         hasMorphedColors = true;
+                    }
+
+                    if (isSkinnedModel && hasMorphedColors)
+                    {
+                        // No need to loop through any more meshes once we know
+                        // it is skinned and has morphed colors
                         break;
                     }
                 }
@@ -903,8 +918,18 @@ namespace AZ
                 {
                     size_t vertexCount = productMesh.m_positions.size() / PositionFloatsPerVert;
 
-                    // Skinned meshes require that positions, normals, tangents, bitangents, all exist and have the same number
+                    // Skinned meshes require that weights, positions, normals, tangents, bitangents, all exist and have the same number
                     // of total elements. Pad buffers with missing data to make them align with positions and normals
+                    if (productMesh.m_skinWeights.empty())
+                    {
+                        productMesh.m_skinWeights.resize(vertexCount * skinInfluencesPerVertex, 0.0f);
+                        AZ_Warning(s_builderName, false, "Mesh '%s' is missing skin weights and no defaults were generated. Skinned meshes require weigths. Dummy weights will be inserted, which may result in rendering artifacts.", productMesh.m_name.GetCStr());
+                    }
+                    if (productMesh.m_skinJointIndices.empty())
+                    {
+                        productMesh.m_skinJointIndices.resize(vertexCount * skinInfluencesPerVertex, 0);
+                        AZ_Warning(s_builderName, false, "Mesh '%s' is missing joint ids and no defaults were generated. Skinned meshes require joint ids. Dummy joint ids will be inserted, which may result in rendering artifacts.", productMesh.m_name.GetCStr());
+                    }
                     if (productMesh.m_tangents.empty())
                     {
                         productMesh.m_tangents.resize(vertexCount * TangentFloatsPerVert, 1.0f);
