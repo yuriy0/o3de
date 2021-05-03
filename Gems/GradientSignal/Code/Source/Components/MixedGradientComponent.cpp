@@ -168,6 +168,7 @@ namespace GradientSignal
     void MixedGradientComponent::GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType& services)
     {
         services.push_back(AZ_CRC("GradientService", 0x21c18d23));
+        services.push_back(AZ_CRC("GradientTransformService", 0x8c8c5ecc));
     }
 
     void MixedGradientComponent::GetIncompatibleServices(AZ::ComponentDescriptor::DependencyArrayType& services)
@@ -231,6 +232,7 @@ namespace GradientSignal
 
         GradientRequestBus::Handler::BusConnect(GetEntityId());
         MixedGradientRequestBus::Handler::BusConnect(GetEntityId());
+        GradientTransformRequestBus::Handler::BusConnect(GetEntityId());
     }
 
     void MixedGradientComponent::Deactivate()
@@ -238,6 +240,7 @@ namespace GradientSignal
         m_dependencyMonitor.Reset();
         GradientRequestBus::Handler::BusDisconnect();
         MixedGradientRequestBus::Handler::BusDisconnect();
+        GradientTransformRequestBus::Handler::BusDisconnect();
     }
 
     bool MixedGradientComponent::ReadInConfig(const AZ::ComponentConfig* baseConfig)
@@ -258,6 +261,64 @@ namespace GradientSignal
             return true;
         }
         return false;
+    }
+
+    void MixedGradientComponent::TransformPositionToUVW(const AZ::Vector3 & inPosition, AZ::Vector3 & outUVW, const bool shouldNormalizeOutput, bool & wasPointRejected) const
+    {
+        wasPointRejected = true;
+        auto targetEnt = GetLayerEntityForGradientTransform();
+        if (targetEnt.IsValid())
+        {
+            GradientTransformRequestBus::Event(
+                targetEnt,
+                &GradientTransformRequests::TransformPositionToUVW,
+                inPosition, outUVW, shouldNormalizeOutput, wasPointRejected);
+        }
+    }
+
+    void MixedGradientComponent::GetGradientLocalBounds(AZ::Aabb& bounds) const
+    {
+        bounds.SetNull();
+        auto targetEnt = GetLayerEntityForGradientTransform();
+        if (targetEnt.IsValid())
+        {
+            GradientTransformRequestBus::Event(
+                targetEnt,
+                &GradientTransformRequests::GetGradientLocalBounds,
+                bounds);
+        }
+    }
+
+    void MixedGradientComponent::GetGradientEncompassingBounds(AZ::Aabb& bounds) const
+    {
+        bounds.SetNull();
+        auto targetEnt = GetLayerEntityForGradientTransform();
+        if (targetEnt.IsValid())
+        {
+            GradientTransformRequestBus::Event(
+                targetEnt,
+                &GradientTransformRequests::GetGradientEncompassingBounds,
+                bounds);
+        }
+    }
+
+    AZ::EntityId MixedGradientComponent::GetLayerEntityForGradientTransform() const
+    {
+        if (m_configuration.m_layers.empty()) return AZ::EntityId();
+        auto& ls = m_configuration.m_layers;
+
+        // First try to find an 'Initialize' layer
+        auto it = AZStd::find_if(ls.begin(), ls.end(), [](const MixedGradientLayer& layer) {
+            return layer.m_enabled && layer.m_operation == MixedGradientLayer::MixingOperation::Initialize;
+        });
+
+        // Then try to find any enabled layer
+        if (it == ls.end())
+        {
+            it = AZStd::find_if(ls.begin(), ls.end(), [](const MixedGradientLayer& layer) { return layer.m_enabled; });
+        }
+
+        return it != ls.end() ? it->m_gradientSampler.m_gradientId : AZ::EntityId();
     }
 
     float MixedGradientComponent::GetValue(const GradientSampleParams& sampleParams) const

@@ -51,9 +51,11 @@ namespace LmbrCentral
         if (auto serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
         {
             serializeContext->Class<EditorSplineComponent, EditorComponentBase>()
-                ->Version(2)
+                ->Version(4)
                 ->Field("Visible", &EditorSplineComponent::m_visibleInEditor)
+                ->Field("GameView", &EditorSplineComponent::m_visibleInGameView)
                 ->Field("Configuration", &EditorSplineComponent::m_splineCommon)
+                ->Field("DisplayConfiguration", &EditorSplineComponent::m_display)
                 ->Field("ComponentMode", &EditorSplineComponent::m_componentModeDelegate)
                 ;
 
@@ -69,9 +71,12 @@ namespace LmbrCentral
                         ->Attribute(AZ::Edit::Attributes::HelpPageURL, "http://docs.aws.amazon.com/console/lumberyard/userguide/spline-component")
                         ->Attribute(AZ::Edit::Attributes::AutoExpand, true)
                     ->DataElement(AZ::Edit::UIHandlers::Default, &EditorSplineComponent::m_visibleInEditor, "Visible", "Always display this shape in the editor viewport")
+                    ->DataElement(AZ::Edit::UIHandlers::CheckBox, &EditorSplineComponent::m_visibleInGameView, "Game View", "Display the shape while in Game mode")
                     ->DataElement(AZ::Edit::UIHandlers::Default, &EditorSplineComponent::m_splineCommon, "Configuration", "Spline Configuration")
                         //->Attribute(AZ::Edit::Attributes::Visibility, AZ::Edit::PropertyVisibility::ShowChildrenOnly) // disabled - prevents ChangeNotify attribute firing correctly
                         ->Attribute(AZ::Edit::Attributes::ChangeNotify, &EditorSplineComponent::SplineChanged)
+                    ->DataElement(AZ::Edit::UIHandlers::Default, &EditorSplineComponent::m_display, "Display Configuration", "Configuration for debug display in editor and game")
+                        ->Attribute(AZ::Edit::Attributes::AutoExpand, true)
                     ->DataElement(AZ::Edit::UIHandlers::Default, &EditorSplineComponent::m_componentModeDelegate, "Component Mode", "Spline Component Mode")
                         ->Attribute(AZ::Edit::Attributes::Visibility, AZ::Edit::PropertyVisibility::ShowChildrenOnly)
                         ;
@@ -196,38 +201,13 @@ namespace LmbrCentral
         if (auto component = gameEntity->CreateComponent<SplineComponent>())
         {
             component->m_splineCommon = m_splineCommon;
-        }
-    }
-
-    static void DrawSpline(
-        const AZ::Spline& spline, const size_t begin, const size_t end,
-        const AZ::Transform& worldFromLocal, AzFramework::DebugDisplayRequests& debugDisplay)
-    {
-        const size_t granularity = spline.GetSegmentGranularity();
-
-        for (size_t vertIndex = begin; vertIndex < end; ++vertIndex)
-        {
-            AZ::Vector3 p1 = worldFromLocal.TransformPoint(spline.GetVertex(vertIndex - 1));
-            for (size_t granularityStep = 1; granularityStep <= granularity; ++granularityStep)
+            if (m_visibleInGameView)
             {
-                const AZ::Vector3 p2 = worldFromLocal.TransformPoint(spline.GetPosition(
-                    AZ::SplineAddress(vertIndex - 1, granularityStep / static_cast<float>(granularity))));
-                debugDisplay.DrawLine(p1, p2);
-                p1 = p2;
+                if (SplineDebugDisplayComponent* debugComponent = gameEntity->CreateComponent<SplineDebugDisplayComponent>())
+                {
+                    debugComponent->m_display = m_display;
+                }
             }
-        }
-    }
-
-    static void DrawVertices(
-        const AZ::Spline& spline, const AZ::Transform& worldFromLocal,
-        const AzFramework::CameraState& cameraState,
-        const size_t begin, const size_t end, AzFramework::DebugDisplayRequests& debugDisplay)
-    {
-        for (size_t vertIndex = begin; vertIndex < end; ++vertIndex)
-        {
-            const AZ::Vector3& worldPosition = worldFromLocal.TransformPoint(spline.GetVertex(vertIndex));
-            debugDisplay.DrawBall(
-                worldPosition, 0.075f * AzToolsFramework::CalculateScreenToWorldMultiplier(worldPosition, cameraState));
         }
     }
 
@@ -269,35 +249,9 @@ namespace LmbrCentral
 
         const bool inComponentMode = m_componentModeDelegate.AddedToComponentMode();
 
-        // render spline
-        if (spline->RTTI_IsTypeOf(AZ::LinearSpline::RTTI_Type()) || spline->RTTI_IsTypeOf(AZ::BezierSpline::RTTI_Type()))
-        {
-            DrawSpline(
-                *spline, 1, spline->IsClosed() ? vertexCount + 1 : vertexCount,
-                m_cachedUniformScaleTransform, debugDisplay);
-
-            if (!inComponentMode)
-            {
-                DrawVertices(*spline, m_cachedUniformScaleTransform, cameraState, 0, vertexCount, debugDisplay);
-            }
-        }
-        else if (spline->RTTI_IsTypeOf(AZ::CatmullRomSpline::RTTI_Type()))
-        {
-            // the minimum number of control points for a Catmull-Rom spline is 4; do not attempt to render the spline
-            // unless this condition is met
-            if (spline->GetVertexCount() >= 4)
-            {
-                // a Catmull-Rom spline uses the first and last points as control points only, omit them from display
-                DrawSpline(
-                    *spline, spline->IsClosed() ? 1 : 2, spline->IsClosed() ? vertexCount + 1 : vertexCount - 1,
-                    m_cachedUniformScaleTransform, debugDisplay);
-            }
-
-            if (!inComponentMode)
-            {
-                DrawVertices(*spline, m_cachedUniformScaleTransform, cameraState, 1, vertexCount - 1, debugDisplay);
-            }
-        }
+        debugDisplay.PushMatrix(m_cachedUniformScaleTransform);
+        m_display.Draw(*spline, m_cachedUniformScaleTransform, debugDisplay, !inComponentMode);
+        debugDisplay.PopMatrix();
 
         if (inComponentMode)
         {

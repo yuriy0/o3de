@@ -67,6 +67,8 @@ namespace LmbrCentral
         bool IsPointInside(const AZ::Vector3& point) override;
         float DistanceSquaredFromPoint(const AZ::Vector3& point) override;
         bool IntersectRay(const AZ::Vector3& src, const AZ::Vector3& dir, float& distance) override;
+        AZ::Vector3 GenerateRandomPointInside(AZ::RandomDistributionType randomDistribution) override;
+        ShapeTriangulation GetShapeTriangulation() override;
 
         // PolygonShapeShapeComponentRequestBus::Handler
         AZ::PolygonPrismPtr GetPolygonPrism() override;
@@ -97,14 +99,20 @@ namespace LmbrCentral
         class PolygonPrismIntersectionDataCache
             : public IntersectionTestDataCache<AZ::PolygonPrism>
         {
+            PolygonPrismIntersectionDataCache();
+
             void UpdateIntersectionParamsImpl(const AZ::Transform& currentTransform,
                 const AZ::PolygonPrism& polygonPrism,
                 const AZ::Vector3& currentNonUniformScale = AZ::Vector3::CreateOne()) override;
 
             friend PolygonPrismShape;
 
-            AZ::Aabb m_aabb; ///< Aabb of polygon prism shape.
-            AZStd::vector<AZ::Vector3> m_triangles; ///< Triangles comprising the polygon prism shape (for intersection testing).
+            AZ::Aabb m_aabb;                                 ///< Aabb of polygon prism shape.
+            AZStd::vector<AZ::Vector3> m_triangles;          ///< Triangles comprising the polygon prism shape (for intersection testing).
+            AZStd::vector<float>       m_triangleAreas;      ///< The areas of triangles of just the prism face (2D polygon).
+            AZStd::vector<float>       m_triangleAreasCDF;   ///< The CDF of the triangle areas (viewing the areas as a distribution)
+            float                      m_polygonArea;        ///< The area of the 2D polygon
+            ShapeTriangulation         m_triangulation;      ///< Optimized triangulation (omitting zero-area faces)
         };
 
         AZ::PolygonPrismPtr m_polygonPrism; ///< Reference to the underlying polygon prism data.

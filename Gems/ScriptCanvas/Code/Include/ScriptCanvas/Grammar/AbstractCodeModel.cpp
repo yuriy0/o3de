@@ -246,6 +246,9 @@ namespace ScriptCanvas
                 }
             }
 
+            // While pre-parsing graph variables, set variable info mapping on runtime inputs
+            auto& runtimeVariableInfo = m_runtimeInputs.m_runtimeVariableInfo;
+
             for (auto& sourceVariable : sortedVariables)
             {
                 auto datum = sourceVariable->GetDatum();
@@ -254,7 +257,16 @@ namespace ScriptCanvas
                 auto variable = AddMemberVariable(*datum, sourceVariable->GetVariableName(), sourceVariable->GetVariableId());
                 variable->m_isExposedToConstruction = sourceVariable->IsComponentProperty();
                 // also, all nodeables with !empty editor data have to be exposed
-                // \todo future optimizations will involve checking equality against a default constructed object   
+                // \todo future optimizations will involve checking equality against a default constructed object
+
+                // Store variable source info
+                runtimeVariableInfo.emplace(
+                    sourceVariable->GetVariableName(),
+                    VariableSourceInfo{
+                        variable->m_name,
+                        sourceVariable->GetDataType().GetAZType()
+                    }
+                );
             }
         }
 
@@ -1345,6 +1357,9 @@ namespace ScriptCanvas
 
         bool AbstractCodeModel::ExecutionContainsCyclesCheck(const Node& node, const Slot& outSlot)
         {
+            (void)(node, outSlot);
+            return false;
+            /*
             if (ExecutionContainsCycles(node, outSlot))
             {
                 AddError(nullptr, aznew Internal::ParseError(node.GetEntityId(), AZStd::string::format
@@ -1357,6 +1372,7 @@ namespace ScriptCanvas
             {
                 return false;
             }
+            */
         }
 
         AbstractCodeModel::ReturnValueConnections AbstractCodeModel::FindAssignments(ExecutionTreeConstPtr execution, const Slot& output)

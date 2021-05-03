@@ -107,6 +107,8 @@ namespace EMotionFX
         static void Reflect(AZ::ReflectContext* context);
 
     private:
+        void Update(AnimGraphInstance* animGraphInstance, float timePassedInSeconds) override;
+
         // the event handler
         class EMFX_API EventHandler
             : public AnimGraphInstanceEventHandler

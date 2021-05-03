@@ -218,7 +218,7 @@ AZ_POP_DISABLE_WARNING
         class IdHandler
             : public Interface
         {
-        private:
+        protected:
             using IdType = typename Traits::BusIdType;
 
         public:
@@ -289,7 +289,7 @@ AZ_POP_DISABLE_WARNING
                 return m_node.m_holder != nullptr;
             }
 
-        private:
+        protected:
             // Must be a member and not a base type so that Interface may be an incomplete type.
             typename ContainerType::HandlerNode m_node;
         };
@@ -301,7 +301,7 @@ AZ_POP_DISABLE_WARNING
         class MultiHandler
             : public Interface
         {
-        private:
+        protected:
             using IdType = typename Traits::BusIdType;
             using HandlerNode = typename ContainerType::HandlerNode;
 
@@ -368,7 +368,7 @@ AZ_POP_DISABLE_WARNING
                 return !m_handlerNodes.empty();
             }
 
-        private:
+        protected:
             AZStd::unordered_map<IdType, HandlerNode*, AZStd::hash<IdType>, AZStd::equal_to<IdType>, typename Traits::AllocatorType> m_handlerNodes;
         };
     } // namespace Internal

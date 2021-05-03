@@ -57,6 +57,9 @@ namespace LmbrCentral
         //! Get the target entity Id.
         virtual AZ::EntityId GetTargetEntityId() = 0;
 
+        //! Set the target entity Id.
+        virtual void SetTargetEntityId(AZ::EntityId) = 0;
+
         //! Get the transform offset.
         virtual AZ::Transform GetOffset() = 0;
     };

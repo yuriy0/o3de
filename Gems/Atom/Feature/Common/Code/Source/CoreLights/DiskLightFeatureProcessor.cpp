@@ -28,6 +28,14 @@
 #include <Atom/RPI.Public/Scene.h>
 #include <Atom/RPI.Public/View.h>
 
+
+#define AZ_Assert_Return(ret, expression, ...)\
+    if (!(expression))\
+    {\
+        AZ_Assert(false, __VA_ARGS__);\
+        return ret;\
+    }
+
 namespace AZ
 {
     namespace Render
@@ -100,7 +108,7 @@ namespace AZ
 
         DiskLightFeatureProcessor::LightHandle DiskLightFeatureProcessor::CloneLight(LightHandle sourceLightHandle)
         {
-            AZ_Assert(sourceLightHandle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::CloneLight().");
+            AZ_Assert_Return(LightHandle::Null, sourceLightHandle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::CloneLight().");
 
             LightHandle handle = AcquireLight();
             if (handle.IsValid())
@@ -149,7 +157,7 @@ namespace AZ
 
         void DiskLightFeatureProcessor::SetRgbIntensity(LightHandle handle, const PhotometricColor<PhotometricUnitType>& lightRgbIntensity)
         {
-            AZ_Assert(handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetRgbIntensity().");
+            AZ_Assert_Return(, handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetRgbIntensity().");
 
             auto transformedColor = AZ::RPI::TransformColor(lightRgbIntensity, AZ::RPI::ColorSpaceId::LinearSRGB, AZ::RPI::ColorSpaceId::ACEScg);
 
@@ -163,7 +171,7 @@ namespace AZ
 
         void DiskLightFeatureProcessor::SetPosition(LightHandle handle, const AZ::Vector3& lightPosition)
         {
-            AZ_Assert(handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetPosition().");
+            AZ_Assert_Return(, handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetPosition().");
 
             AZStd::array<float, 3>& position = m_diskLightData.GetData(handle.GetIndex()).m_position;
             lightPosition.StoreToFloat3(position.data());
@@ -174,7 +182,7 @@ namespace AZ
 
         void DiskLightFeatureProcessor::SetDirection(LightHandle handle, const AZ::Vector3& lightDirection)
         {
-            AZ_Assert(handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetDirection().");
+            AZ_Assert_Return(, handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetDirection().");
 
             AZStd::array<float, 3>& direction = m_diskLightData.GetData(handle.GetIndex()).m_direction;
             lightDirection.StoreToFloat3(direction.data());
@@ -185,7 +193,7 @@ namespace AZ
 
         void DiskLightFeatureProcessor::SetAttenuationRadius(LightHandle handle, float attenuationRadius)
         {
-            AZ_Assert(handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetAttenuationRadius().");
+            AZ_Assert_Return(, handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetAttenuationRadius().");
 
             attenuationRadius = AZStd::max<float>(attenuationRadius, 0.001f); // prevent divide by zero.
             DiskLightData& light = m_diskLightData.GetData(handle.GetIndex());
@@ -204,7 +212,7 @@ namespace AZ
 
         void DiskLightFeatureProcessor::SetDiskRadius(LightHandle handle, float radius)
         {
-            AZ_Assert(handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetDiskRadius().");
+            AZ_Assert_Return(, handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetDiskRadius().");
             
             DiskLightData& light = m_diskLightData.GetData(handle.GetIndex());
             light.m_diskRadius = radius;
@@ -215,7 +223,7 @@ namespace AZ
 
         void DiskLightFeatureProcessor::SetConstrainToConeLight(LightHandle handle, bool useCone)
         {
-            AZ_Assert(handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetDiskRadius().");
+            AZ_Assert_Return(, handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetDiskRadius().");
 
             uint32_t& flags = m_diskLightData.GetData(handle.GetIndex()).m_flags;
             useCone ? flags |= DiskLightData::Flags::UseConeAngle : flags &= ~DiskLightData::Flags::UseConeAngle;
@@ -225,7 +233,7 @@ namespace AZ
         
         void DiskLightFeatureProcessor::SetConeAngles(LightHandle handle, float innerRadians, float outerRadians)
         {
-            AZ_Assert(handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetConeAngles().");
+            AZ_Assert_Return(, handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetConeAngles().");
             
             ValidateAndSetConeAngles(handle, innerRadians, outerRadians);
             UpdateShadow(handle);
@@ -255,7 +263,7 @@ namespace AZ
 
         void DiskLightFeatureProcessor::SetDiskData(LightHandle handle, const DiskLightData& data)
         {
-            AZ_Assert(handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetDiskData().");
+            AZ_Assert_Return(, handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetDiskData().");
 
             m_diskLightData.GetData(handle.GetIndex()) = data;
             m_deviceBufferNeedsUpdate = true;
@@ -301,12 +309,12 @@ namespace AZ
         template <typename Functor, typename ParamType>
         void DiskLightFeatureProcessor::SetShadowSetting(LightHandle handle, Functor&& functor, ParamType&& param)
         {
-            AZ_Assert(handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetShadowSetting().");
+            AZ_Assert_Return(, handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetShadowSetting().");
             
             DiskLightData& light = m_diskLightData.GetData(handle.GetIndex());
             ShadowId shadowId = ShadowId(light.m_shadowIndex);
 
-            AZ_Assert(shadowId.IsValid(), "Attempting to set a shadow property when shadows are not enabled.");
+            AZ_Assert_Return(, shadowId.IsValid(), "Attempting to set a shadow property when shadows are not enabled.");
             if (shadowId.IsValid())
             {
                 AZStd::invoke(AZStd::forward<Functor>(functor), m_shadowFeatureProcessor, shadowId, AZStd::forward<ParamType>(param));

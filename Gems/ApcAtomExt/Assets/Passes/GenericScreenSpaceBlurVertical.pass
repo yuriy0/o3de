@@ -1,0 +1,30 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "GenericScreenSpaceBlurVerticalPassTemplate",
+            "PassClass": "GenericScreenSpaceBlurChildPass",
+            "Slots": [
+                {
+                    "Name": "Input",
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "Output",
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "RenderTarget"
+                }
+            ],
+            "PassData": {
+                "$type": "FullscreenTrianglePassData",
+                "ShaderAsset": {
+                    "FilePath": "Shaders/GenericScreenSpaceBlurVertical.shader"
+                },
+                "PipelineViewTag": "MainCamera"
+            }
+        }
+    }
+}

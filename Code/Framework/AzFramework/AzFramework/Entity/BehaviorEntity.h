@@ -43,6 +43,7 @@ namespace AzFramework
     private:
         AZ::ComponentId m_id = AZ::InvalidComponentId;
     };
+    class BehaviorComponent;
 
     /**
      * A wrapper around calls to AZ::Entity, for use within the BehaviorContext.
@@ -129,6 +130,11 @@ namespace AzFramework
         void Deactivate();
 
         /**
+        * @copydoc AZ::Entity::~Entity()
+        */
+        void Destroy();
+
+        /**
          * Creates a component and attaches it to the entity.
          * You cannot add a component to an entity when the entity is activated.
          * @param componentTypeId Type ID of component to create.
@@ -154,6 +160,24 @@ namespace AzFramework
         * @return A vector with the IDs of all components registered with the entity.
         */
         AZStd::vector<BehaviorComponentId> GetComponents() const;
+
+        /**
+         * Gets all components registered with the entity.
+         * @return A vector with all components registered with the entity.
+         */
+        AZStd::vector<BehaviorComponent> GetComponentValues() const;
+
+        /**
+        * @copydoc AZ::Entity::Modify()
+        */
+        bool Modify(const AZStd::vector<BehaviorComponentId>& componentsToRemove,
+                    const AZStd::vector<BehaviorComponent>& componentsToAdd);
+
+        /**
+         * Gets all components registered with the entity.
+         * @return A vector with the IDs of all components registered with the entity.
+         */
+        BehaviorComponent GetComponent(BehaviorComponentId componentId) const;
 
         /**
          * Finds the first component of the requested component type.
@@ -210,7 +234,10 @@ namespace AzFramework
          */
         bool GetComponentConfiguration(BehaviorComponentId componentId, AZ::ComponentConfig& outComponentConfig) const;
 
+        bool operator==(const BehaviorEntity& rhs) const;
+
     private:
+        friend class BehaviorComponent;
 
         /**
          * Get a pointer to the entity.
@@ -239,5 +266,41 @@ namespace AzFramework
         bool GetValidComponent(BehaviorComponentId componentId, AZ::Component** outComponent, AZStd::string* outErrorMessage) const;
 
         AZ::EntityId m_entityId;
+    };
+
+    /**
+    * A wrapper around AZ::Component
+    */
+    class BehaviorComponent
+    {
+    public:
+        AZ_RTTI(BehaviorComponent, "{CB831A54-858A-4E0A-B25E-11174CDBA319}");
+        AZ_CLASS_ALLOCATOR(BehaviorComponent, AZ::SystemAllocator, 0);
+        static void Reflect(AZ::ReflectContext* context);
+
+        BehaviorComponent() = default;
+        explicit BehaviorComponent(AZ::Component* id);
+        explicit BehaviorComponent(AZ::EntityId ent, AZ::ComponentId id);
+        explicit BehaviorComponent(BehaviorEntity ent, AZ::ComponentId id);
+        explicit BehaviorComponent(AZ::EntityId ent, BehaviorComponentId id);
+        explicit BehaviorComponent(BehaviorEntity ent, BehaviorComponentId id);
+
+        operator AZ::Component*() const;
+        bool operator==(const BehaviorComponent& rhs) const;
+        bool IsValid() const;
+        AZStd::string ToString() const;
+
+        bool SetConfiguration(const AZ::ComponentConfig& componentConfig);
+        bool GetConfiguration(AZ::ComponentConfig& outComponentConfig) const;
+        void Activate();
+        void Deactivate();
+        BehaviorEntity GetEntity();
+        AZ::EntityId GetEntityId();
+        BehaviorComponentId GetId();
+        AZ::Uuid GetType();
+        AZStd::string GetTypeName();
+    private:
+        BehaviorComponentId m_id;
+        BehaviorEntity m_ent;
     };
 } // namespace AzFramework

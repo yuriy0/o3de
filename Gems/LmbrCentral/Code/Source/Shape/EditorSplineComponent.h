@@ -108,5 +108,7 @@ namespace LmbrCentral
 
         AzToolsFramework::EntityAccentType m_accentType = AzToolsFramework::EntityAccentType::None; ///< State of the entity selection in the viewport.
         bool m_visibleInEditor = true; ///< Visible in the editor viewport.
+        bool m_visibleInGameView = false;
+        SplineDisplay m_display;
     };
 } // namespace LmbrCentral

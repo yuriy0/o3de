@@ -25,6 +25,7 @@
 #include <SceneAPIExt/Rules/MotionRangeRule.h>
 #include <SceneAPIExt/Rules/MotionAdditiveRule.h>
 #include <SceneAPIExt/Rules/MotionSamplingRule.h>
+#include <SceneAPIExt/Rules/IMotionZeroRule.h>
 #include <RCExt/Motion/MotionDataBuilder.h>
 #include <RCExt/ExportContexts.h>
 
@@ -307,6 +308,19 @@ namespace EMotionFX
                     bindSpaceLocalTransform = nodeBone->GetWorldTransform();
                 }
 
+                // When this bone is the root bone, try to apply the MotionZero rule
+                AZStd::function<void(SceneAPIMatrixType&)> offsetKeyframeTm = [](SceneAPIMatrixType&) {};
+                if (boneNodeIndex == rootBoneNodeIndex) {
+                    if (auto zeroRule = motionGroup.GetRuleContainerConst().FindFirstByType<Rule::IMotionZeroRule>()) {
+                        auto startBoneInvTransform = animation->GetKeyFrame(startFrame).GetInverseFull().GetOrthogonalized();
+                        if (zeroRule->CreateOffsetTransform(startBoneInvTransform)) {
+                            offsetKeyframeTm = [startBoneInvTransform](SceneAPIMatrixType& tm) {
+                                tm = startBoneInvTransform * tm;
+                            };
+                        }
+                    }
+                }
+
                 // Get the time step and make sure it didn't change compared to other joint animations.
                 const double timeStep = animation->GetTimeStepBetweenFrames();
                 lowestTimeStep = AZ::GetMin<double>(timeStep, lowestTimeStep);
@@ -332,7 +346,11 @@ namespace EMotionFX
                         // For additive motion, we stores the relative transform.
                         boneTransform = sampleFrameTransformInverse * boneTransform;
                     }
-                    
+
+                    // Merge this with 'AdditiveRule'?
+                    // The semantics are very similar, but 'IMotionZeroRule' zeroes only the root bone transform
+                    offsetKeyframeTm(boneTransform);
+
                     SceneAPIMatrixType boneTransformNoScale(boneTransform);
                     const AZ::Vector3 position = coordSysConverter.ConvertVector3(boneTransform.GetTranslation());
                     const AZ::Quaternion rotation = coordSysConverter.ConvertQuaternion(AZ::Quaternion::CreateFromMatrix3x4(boneTransformNoScale));

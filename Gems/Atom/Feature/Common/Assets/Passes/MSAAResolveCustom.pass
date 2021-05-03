@@ -10,7 +10,8 @@
                 {
                     "Name": "Input",
                     "SlotType": "Input",
-                    "ScopeAttachmentUsage": "Shader"
+                    "ScopeAttachmentUsage": "Shader",
+                    "ShaderInputName": "inputTexture"
                 },
                 {
                     "Name": "Output",

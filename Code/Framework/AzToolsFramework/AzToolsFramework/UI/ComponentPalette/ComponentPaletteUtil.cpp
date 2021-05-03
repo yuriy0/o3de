@@ -123,9 +123,11 @@ namespace AzToolsFramework
             const AzToolsFramework::ComponentFilter& componentFilter,
             const AZStd::vector<AZ::ComponentServiceType>& serviceFilter,
             const AZStd::vector<AZ::ComponentServiceType>& incompatibleServiceFilter,
-            ComponentDataTable &componentDataTable,
-            ComponentIconTable &componentIconTable)
+            ComponentDataTable *componentDataTable,
+            ComponentIconTable *componentIconTable)
         {
+            if (!componentDataTable && !componentIconTable) return;
+
             AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
             serializeContext->EnumerateDerived<AZ::Component>(
                 [&](const AZ::SerializeContext::ClassData* componentClass, const AZ::Uuid& knownType) -> bool
@@ -154,12 +156,18 @@ namespace AzToolsFramework
                                 }
                             }
 
-                            AZStd::string componentIconPath;
-                            EBUS_EVENT_RESULT(componentIconPath, AzToolsFramework::EditorRequests::Bus, GetComponentEditorIcon, componentClass->m_typeId, nullptr);
-                            componentIconTable[componentClass] = QString::fromUtf8(componentIconPath.c_str());
+                            if (componentIconTable)
+                            {
+                                AZStd::string componentIconPath;
+                                EBUS_EVENT_RESULT(componentIconPath, AzToolsFramework::EditorRequests::Bus, GetComponentEditorIcon, componentClass->m_typeId, nullptr);
+                                (*componentIconTable)[componentClass] = QString::fromUtf8(componentIconPath.c_str());
+                            }
                         }
 
-                        componentDataTable[categoryName][componentName] = componentClass;
+                        if (componentDataTable)
+                        {
+                            (*componentDataTable)[categoryName][componentName] = componentClass;
+                        }
                     }
 
                     return true;
@@ -170,8 +178,8 @@ namespace AzToolsFramework
             AZ::SerializeContext* serializeContext,
             const AzToolsFramework::ComponentFilter& componentFilter,
             const AZStd::vector<AZ::ComponentServiceType>& serviceFilter,
-            ComponentDataTable& componentDataTable,
-            ComponentIconTable& componentIconTable)
+            ComponentDataTable* componentDataTable,
+            ComponentIconTable* componentIconTable)
         {
             const AZStd::vector<AZ::ComponentServiceType> incompatibleServices;
             BuildComponentTables(serializeContext, componentFilter, serviceFilter, incompatibleServices, componentDataTable, componentIconTable);

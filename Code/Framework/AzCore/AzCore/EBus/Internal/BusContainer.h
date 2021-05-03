@@ -84,6 +84,9 @@ namespace AZ
         }                                                                                       \
     } while(false)
 
+        // Tag type to indicate that the default handler holder should be used
+        struct DefaultHandlerHolder_tag {};
+
         // Default impl, used when there are multiple addresses and multiple handlers
         template <typename Interface, typename Traits, EBusAddressPolicy addressPolicy = Traits::AddressPolicy, EBusHandlerPolicy handlerPolicy = Traits::HandlerPolicy>
         struct EBusContainer
@@ -94,8 +97,15 @@ namespace AZ
 
             using CallstackEntry = AZ::Internal::CallstackEntry<Interface, Traits>;
 
-            // This struct will hold the handlers per address
-            struct HandlerHolder;
+            struct DefaultHandlerHolder;
+
+            // This struct will hold the handler per address
+            using HandlerHolder = AZStd::conditional_t<
+                AZStd::is_same_v<typename Traits::HandlerHolder, DefaultHandlerHolder_tag>,
+                DefaultHandlerHolder,
+                typename Traits::HandlerHolder
+            >;
+
             // This struct will hold each handler
             using HandlerNode = HandlerNode<Interface, Traits, HandlerHolder>;
             // Defines how handler holders are stored (will be some sort of map-like structure from id -> handler holder)
@@ -621,6 +631,27 @@ namespace AZ
                     }
                 }
                 template <class Callback>
+                static void EnumerateHandlersWithId(Callback&& callback)
+                {
+                    if (auto* context = Bus::GetContext())
+                    {
+                        typename Bus::Context::DispatchLockGuard lock(context->m_contextMutex);
+
+                        auto& addresses = context->m_buses.m_addresses;
+                        auto addressIt = addresses.begin();
+                        auto addressesEnd = addresses.end();
+                        while (addressIt != addressesEnd)
+                        {
+                            auto curAddress = addressIt++;
+                            auto closure = [&callback, busId = curAddress->m_busId](auto* h) { return callback(h, busId); };
+                            if (!context->m_buses.EnumerateHandlersImpl(context, *curAddress, closure))
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+                template <class Callback>
                 static void EnumerateHandlersPtr(const BusPtr& ptr, Callback&& callback)
                 {
                     if (auto* context = Bus::GetContext())
@@ -682,19 +713,19 @@ namespace AZ
                 busPtr = &FindOrCreateHandlerHolder(id);
             }
 
-            struct HandlerHolder
+            struct DefaultHandlerHolder
             {
                 ContainerType& m_busContainer;
                 IdType m_busId;
                 typename HandlerStorage::StorageType m_handlers;
                 AZStd::atomic_uint m_refCount{ 0 };
 
-                HandlerHolder(ContainerType& storage, const IdType& id)
+                DefaultHandlerHolder(ContainerType& storage, const IdType& id)
                     : m_busContainer(storage)
                     , m_busId(id)
                 { }
 
-                HandlerHolder(HandlerHolder&& rhs)
+                DefaultHandlerHolder(DefaultHandlerHolder&& rhs)
                     : m_busContainer(rhs.m_busContainer)
                     , m_busId(rhs.m_busId)
                     , m_handlers(AZStd::move(rhs.m_handlers))
@@ -703,11 +734,11 @@ namespace AZ
                     rhs.m_refCount.store(0);
                 }
 
-                HandlerHolder(const HandlerHolder&) = delete;
-                HandlerHolder& operator=(const HandlerHolder&) = delete;
-                HandlerHolder& operator=(HandlerHolder&&) = delete;
+                DefaultHandlerHolder(const DefaultHandlerHolder&) = delete;
+                DefaultHandlerHolder& operator=(const DefaultHandlerHolder&) = delete;
+                DefaultHandlerHolder& operator=(DefaultHandlerHolder&&) = delete;
 
-                ~HandlerHolder() = default;
+                ~DefaultHandlerHolder() = default;
 
                 // Returns true if this HandlerHolder actually has handers.
                 // This will return false when this id is Bind'ed to, but there are no handlers.
@@ -775,8 +806,15 @@ namespace AZ
 
             using CallstackEntry = AZ::Internal::CallstackEntry<Interface, Traits>;
 
+            struct DefaultHandlerHolder;
+
             // This struct will hold the handler per address
-            struct HandlerHolder;
+            using HandlerHolder = AZStd::conditional_t<
+                AZStd::is_same_v<typename Traits::HandlerHolder, DefaultHandlerHolder_tag>,
+                DefaultHandlerHolder,
+                typename Traits::HandlerHolder
+            >;
+
             // This struct will hold each handler
             using HandlerNode = HandlerNode<Interface, Traits, HandlerHolder>;
             // Defines how handler holders are stored (will be some sort of map-like structure from id -> handler holder)
@@ -1219,7 +1257,7 @@ namespace AZ
                 busPtr = &FindOrCreateHandlerHolder(id);
             }
 
-            struct HandlerHolder
+            struct DefaultHandlerHolder
             {
                 ContainerType& m_busContainer;
                 IdType m_busId;
@@ -1228,12 +1266,12 @@ namespace AZ
                 Interface* m_interface = nullptr;
                 AZStd::atomic_uint m_refCount{ 0 };
 
-                HandlerHolder(ContainerType& storage, const IdType& id)
+                DefaultHandlerHolder(ContainerType& storage, const IdType& id)
                     : m_busContainer(storage)
                     , m_busId(id)
                 { }
 
-                HandlerHolder(HandlerHolder&& rhs)
+                DefaultHandlerHolder(DefaultHandlerHolder&& rhs)
                     : m_busContainer(rhs.m_busContainer)
                     , m_busId(rhs.m_busId)
                     , m_handler(AZStd::move(rhs.m_handler))
@@ -1243,11 +1281,11 @@ namespace AZ
                     rhs.m_refCount.store(0);
                 }
 
-                HandlerHolder(const HandlerHolder&) = delete;
-                HandlerHolder& operator=(const HandlerHolder&) = delete;
-                HandlerHolder& operator=(HandlerHolder&&) = delete;
+                DefaultHandlerHolder(const DefaultHandlerHolder&) = delete;
+                DefaultHandlerHolder& operator=(const DefaultHandlerHolder&) = delete;
+                DefaultHandlerHolder& operator=(DefaultHandlerHolder&&) = delete;
 
-                ~HandlerHolder() = default;
+                ~DefaultHandlerHolder() = default;
 
                 // Returns true if this HandlerHolder actually has handers.
                 // This will return false when this id is Bind'ed to, but there are no handlers.
@@ -1317,8 +1355,15 @@ namespace AZ
 
             using CallstackEntry = AZ::Internal::CallstackEntry<Interface, Traits>;
 
-            // This struct will hold the handlers per address
-            struct HandlerHolder;
+            struct DefaultHandlerHolder;
+
+            // This struct will hold the handler per address
+            using HandlerHolder = AZStd::conditional_t<
+                AZStd::is_same_v<typename Traits::HandlerHolder, DefaultHandlerHolder_tag>,
+                DefaultHandlerHolder,
+                typename Traits::HandlerHolder
+            >;
+
             // This struct will hold each handler
             using HandlerNode = HandlerNode<Interface, Traits, HandlerHolder>;
             // Defines how handlers are stored per address (will be some sort of list)

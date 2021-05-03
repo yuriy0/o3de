@@ -18,6 +18,7 @@
 #include <EditorWhiteBoxEdgeModifierBus.h>
 #include <EditorWhiteBoxPolygonModifierBus.h>
 #include <QScopedPointer>
+#include <AzCore/std/containers/variant.h>
 
 namespace AZ
 {

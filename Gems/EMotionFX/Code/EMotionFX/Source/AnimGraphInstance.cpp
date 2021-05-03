@@ -17,6 +17,7 @@
 #include <EMotionFX/Source/AnimGraphManager.h>
 #include <EMotionFX/Source/AnimGraphPosePool.h>
 #include <EMotionFX/Source/AnimGraphStateMachine.h>
+#include <EMotionFX/Source/AnimGraphPlaySpeedModifier.h>
 #include <EMotionFX/Source/Attachment.h>
 #include <EMotionFX/Source/BlendTreeMotionFrameNode.h>
 #include <EMotionFX/Source/EMotionFXConfig.h>
@@ -134,6 +135,12 @@ namespace EMotionFX
 
         // unregister from the animgraph
         mAnimGraph->RemoveAnimGraphInstance(this);
+
+        // Remove this pointer from all play speed modifiers
+        {
+            MCore::LockGuard _(mPlaySpeedModifiersMutex);
+            for (auto& m : mPlaySpeedModifiers) { m->m_owner = nullptr; }
+        }
     }
 
 
@@ -868,6 +875,15 @@ namespace EMotionFX
             mSnapshot->Restore(*this);
         }
 
+        // Apply play speed modifiers
+        {
+            MCore::LockGuard _(mPlaySpeedModifiersMutex);
+            float timePassedInSeconds_clock = timePassedInSeconds;
+            for (auto& mod : mPlaySpeedModifiers) {
+                ((mod)->*mod->Modify)(timePassedInSeconds, timePassedInSeconds_clock);
+            }
+        }
+
         // pass 1: update (bottom up), update motion timers etc
         // pass 2: topdown update (top down), syncing happens here (adjusts motion/node timers again)
         // pass 3: postupdate (bottom up), processing the motion events events and update motion extraction deltas
@@ -875,7 +891,13 @@ namespace EMotionFX
 
         // reset the output is ready flags, so we return cached copies of the outputs, but refresh/recalculate them
         AnimGraphNode* rootNode = GetRootNode();
+        AnimGraphNodeData* rootNodeUniqueData = rootNode->FindOrCreateUniqueNodeData(this);
 
+        // Increment anim graph instance playtime
+        rootNodeUniqueData->SetCurrentPlayTime(rootNodeUniqueData->GetCurrentPlayTime() + timePassedInSeconds);
+        rootNodeUniqueData->SetDuration(0.f);
+        
+        // reset the output is ready flags, so we return cached copies of the outputs, but refresh/recalculate them
         ResetFlagsForAllObjects();
 
         if (GetEMotionFX().GetIsInEditorMode())
@@ -895,7 +917,6 @@ namespace EMotionFX
         rootNode->PerformUpdate(this, timePassedInSeconds);
 
         // perform a top-down update, starting from the root and going downwards to the leaf nodes
-        AnimGraphNodeData* rootNodeUniqueData = rootNode->FindOrCreateUniqueNodeData(this);
         rootNodeUniqueData->SetGlobalWeight(1.0f); // start with a global weight of 1 at the root
         rootNodeUniqueData->SetLocalWeight(1.0f); // start with a local weight of 1 at the root
         rootNode->PerformTopDownUpdate(this, timePassedInSeconds);

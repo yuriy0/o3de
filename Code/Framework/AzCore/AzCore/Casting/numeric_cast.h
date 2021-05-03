@@ -67,6 +67,11 @@
 #define AZ_NUMERIC_ASSERT(expr, ...) void(0)
 #endif
 
+// APC TODO: is this still needed?
+// #pragma warning(push)
+// #pragma warning(disable : 4800) // forcing value to bool 'true' or 'false' (performance warning)
+// #pragma warning(disable : 4267) // conversion from 'X' to 'Y', possible loss of data
+
 #pragma push_macro("max")
 #undef max
 
@@ -310,3 +315,6 @@ inline constexpr AZ::NumericCasted<FromType> aznumeric_caster(FromType value)
 }
 
 #pragma pop_macro("max")
+
+// APC TODO: still needed?
+// #pragma warning(pop)

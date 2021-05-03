@@ -17,6 +17,7 @@
 #include <AzCore/Math/IntersectSegment.h>
 #include <AzCore/Math/Transform.h>
 #include <AzCore/Math/VectorConversions.h>
+#include <AzCore/Math/Random.h>
 #include <AzCore/Serialization/EditContext.h>
 #include <AzCore/std/smart_ptr/make_shared.h>
 #include <AzFramework/Entity/EntityDebugDisplayBus.h>
@@ -25,6 +26,7 @@
 #include <Shape/ShapeDisplay.h>
 #include <ISystem.h>
 #include <IRenderAuxGeom.h>
+#include <random>
 
 namespace LmbrCentral
 {
@@ -34,12 +36,15 @@ namespace LmbrCentral
         const AZStd::vector<AZ::Vector2>& vertices,
         const float height,
         const AZ::Vector3& nonUniformScale,
-        AZStd::vector<AZ::Vector3>& meshTriangles)
+        AZStd::vector<AZ::Vector3>& meshTriangles,
+        AZStd::vector<float>* pMeshTriangleAreas = nullptr,
+        AZStd::vector<float>* pMeshTriangleAreasCdf = nullptr,
+        float* pMeshTotalPolygonArea = nullptr
+        )
     {
         // must have at least one triangle
         if (vertices.size() < 3)
         {
-            meshTriangles.clear();
             return;
         }
 
@@ -106,6 +111,25 @@ namespace LmbrCentral
             else
             {
                 quadTriangles(p1, p2, p3, p4, sideIt);
+            }
+        }
+
+        // Compute areas
+        if (pMeshTriangleAreas) {
+            pMeshTriangleAreas->resize_no_construct(halfTriangleCount / 3);
+            pMeshTriangleAreasCdf->resize_no_construct(halfTriangleCount / 3);
+
+            *pMeshTotalPolygonArea = 0.f;
+
+            for (size_t vert = 0; vert < halfTriangleCount; vert += 3) {
+                auto aToB = meshTriangles[vert + 1] - meshTriangles[vert];
+                auto aToC = meshTriangles[vert + 2] - meshTriangles[vert];
+
+                size_t face = vert / 3;
+                (*pMeshTriangleAreas)[face] = 0.5f * (aToB.GetX() * aToC.GetY() - aToB.GetY() * aToC.GetX());
+
+                *pMeshTotalPolygonArea += (*pMeshTriangleAreas)[face];
+                (*pMeshTriangleAreasCdf)[face] = *pMeshTotalPolygonArea;
             }
         }
     }
@@ -385,6 +409,82 @@ namespace LmbrCentral
         return PolygonPrismUtil::IntersectRay(m_intersectionDataCache.m_triangles, m_currentTransform, src, dir, distance);
     }
 
+    template<class Floating, class Gen>
+    AZStd::function<Floating(Floating, Floating)> GetDistributionGenerator(AZ::RandomDistributionType randomDistribution, Gen& gen) {
+        switch(randomDistribution)
+        {
+        case AZ::RandomDistributionType::Normal:
+        {
+            return [&gen](Floating minVal, Floating maxVal) {
+                const float halfRange = Floating(0.5) * ::abs(maxVal - minVal);
+                const float standardDeviation = ::sqrt(halfRange);
+                std::normal_distribution<Floating> dist(Floating(0.0), standardDeviation);
+                return AZ::GetClamp(dist(gen) + minVal + halfRange, minVal, maxVal);
+            };
+        }
+        break;
+        case AZ::RandomDistributionType::UniformReal:
+        {
+            return [&gen](Floating minVal, Floating maxVal) {
+                std::uniform_real_distribution<Floating> dist(minVal, maxVal);
+                return dist(gen);
+            };
+        }
+        break;
+        default:
+        AZ_Error("GetDistributionGenerator", false, "Unsupported random distribution type.");
+        return [](Floating, Floating) { return (Floating)0.0; };
+        break;
+        }
+    }
+
+    // Based on http://www.cs.princeton.edu/~funk/tog02.pdf
+    template<class Dist>
+    AZ::Vector3 RandomPointOnTriangle(const AZ::Vector3* vertices, const Dist& dist) {
+        float r1 = dist(0.f, 1.f), r2 = dist(0.f, 1.f);
+        float r_r1 = sqrtf(r1);
+
+        return (1 - r_r1) * vertices[0] + (r_r1 * (1 - r2)) * vertices[1] + (r_r1 * r2) * vertices[2];
+    }
+
+    AZ::Vector3 PolygonPrismShape::GenerateRandomPointInside(AZ::RandomDistributionType randomDistribution) {
+        (void)randomDistribution;
+        AZ_Assert(randomDistribution == AZ::RandomDistributionType::UniformReal, "PolygonPrismShape::GenerateRandomPointInside - only UniformReal distribution supported!");
+
+        m_intersectionDataCache.UpdateIntersectionParams(m_currentTransform, *m_polygonPrism);
+
+        std::default_random_engine gen;
+        gen.seed(std::random_device()());
+        auto dist = GetDistributionGenerator<float>(randomDistribution, gen);
+
+        // Pick a random polygon based on their weights
+        float k = dist(0.f, m_intersectionDataCache.m_polygonArea);
+        size_t selIx = 0;
+        for (auto& cumArea : m_intersectionDataCache.m_triangleAreasCDF) {
+            if (k <= cumArea) { break; }
+            selIx++;
+        }
+
+        // Generate a random point on the polygon face
+        AZ::Vector3 randomPoint = RandomPointOnTriangle(&m_intersectionDataCache.m_triangles[selIx * 3], dist);
+
+        // Generate a random height
+        randomPoint.SetZ(dist(0.f, m_polygonPrism->GetHeight()));
+
+        // Transform point to worldspace
+        return m_currentTransform.TransformPoint(randomPoint);
+    }
+
+    ShapeTriangulation PolygonPrismShape::GetShapeTriangulation() {
+        m_intersectionDataCache.UpdateIntersectionParams(m_currentTransform, *m_polygonPrism);
+        return m_intersectionDataCache.m_triangulation;
+    }
+
+    PolygonPrismShape::PolygonPrismIntersectionDataCache::PolygonPrismIntersectionDataCache()
+    {
+        m_triangulation.isExact = true;
+    }
+
     void PolygonPrismShape::PolygonPrismIntersectionDataCache::UpdateIntersectionParamsImpl(
         const AZ::Transform& currentTransform, const AZ::PolygonPrism& polygonPrism,
         const AZ::Vector3& currentNonUniformScale)
@@ -392,7 +492,27 @@ namespace LmbrCentral
         m_aabb = PolygonPrismUtil::CalculateAabb(polygonPrism, currentTransform);
         GenerateSolidPolygonPrismMesh(
             polygonPrism.m_vertexContainer.GetVertices(),
-            polygonPrism.GetHeight(), currentNonUniformScale, m_triangles);
+            polygonPrism.GetHeight(), currentNonUniformScale,
+            m_triangles,
+            &m_triangleAreas, &m_triangleAreasCDF, &m_polygonArea);
+
+        // Compute optimized triangulation
+        // If the height is zero, omit the side face triangles; otherwise use all triangles
+        size_t triangulationSize =
+              AZ::IsClose(polygonPrism.GetHeight(), 0.f, FLT_EPSILON)
+            ? m_triangleAreas.size()
+            : m_triangles.size() / 3; // NB: m_triangles is actually triangle vertices
+
+        m_triangulation.triangles.resize_no_construct(triangulationSize);
+
+        // HACK! assumes that Triangle is layed out as three vertices in memory
+        auto inTriangles = reinterpret_cast<Triangle*>(m_triangles.begin());
+
+        for (AZ::u16 triIx = 0; triIx < triangulationSize; triIx++) {
+            Triangle& tri = m_triangulation.triangles[triIx];
+            tri = inTriangles[triIx];
+            for (AZ::Vector3& v : tri.vertices) { v = currentTransform.TransformPoint(v); }
+        }
     }
 
     void DrawPolygonPrismShape(

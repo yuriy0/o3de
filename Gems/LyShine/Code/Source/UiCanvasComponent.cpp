@@ -4238,6 +4238,11 @@ UiCanvasComponent* UiCanvasComponent::FixupPostLoad(AZ::Entity* canvasEntity, AZ
     }
 
     AZ::Entity* rootElement = canvasComponent->GetRootElement();
+    if (!rootElement)
+    {
+        AZ_Error("LyShine", false, "Canvas component has bad root element entityID");
+        return nullptr;
+    }
 
     UiElementComponent* elementComponent = rootElement->FindComponent<UiElementComponent>();
     AZ_Assert(elementComponent, "No element component found on root element entity");

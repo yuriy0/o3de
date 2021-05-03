@@ -91,6 +91,7 @@
 #include "AnimGraphParameterAction.h"
 #include "AnimGraphFollowerParameterAction.h"
 #include "AnimGraphSymbolicFollowerParameterAction.h"
+#include "AnimGraphMotionEventAction.h"
 #include "Allocators.h"
 
 namespace EMotionFX
@@ -147,6 +148,7 @@ namespace EMotionFX
         AnimGraphFollowerParameterAction::Reflect(context);
         AnimGraphSymbolicFollowerParameterAction::Reflect(context);
         AnimGraphTriggerAction::Reflect(context);
+        AnimGraphMotionEventAction::Reflect(context);
 
         // Blend tree
         BlendTree::Reflect(context);
@@ -264,6 +266,7 @@ namespace EMotionFX
             azrtti_typeid<AnimGraphParameterAction>(),
             azrtti_typeid<AnimGraphFollowerParameterAction>(),
             azrtti_typeid<AnimGraphSymbolicFollowerParameterAction>(),
+			azrtti_typeid<AnimGraphMotionEventAction>(),
             azrtti_typeid<BlendTreeRotationLimitNode>(),
             azrtti_typeid<BlendTreeRotationMath2Node>()
         };

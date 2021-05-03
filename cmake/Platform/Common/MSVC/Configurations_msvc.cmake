@@ -109,7 +109,6 @@ ly_append_configurations_options(
         /O2             # Maximinize speed, equivalent to /Og /Oi /Ot /Oy /Ob2 /GF /Gy
         /Zc:inline      # Removes unreferenced functions or data that are COMDATs or only have internal linkage
         /Zc:wchar_t     # Use compiler native wchar_t
-        /Zi             # Generate debugging information (no Edit/Continue)
     COMPILATION_RELEASE
         /Ox             # Full optimization
         /Ob2            # Inline any suitable function
@@ -123,7 +122,6 @@ ly_append_configurations_options(
         /OPT:REF            # Eliminates functions and data that are never referenced
         /OPT:ICF            # Perform identical COMDAT folding. Redundant COMDATs can be removed from the linker output
         /INCREMENTAL:NO
-        /DEBUG              # Generate pdbs
     LINK_NON_STATIC_RELEASE
         /OPT:REF # Eliminates functions and data that are never referenced
         /OPT:ICF # Perform identical COMDAT folding. Redundant COMDATs can be removed from the linker output
@@ -131,21 +129,56 @@ ly_append_configurations_options(
 )
 
 set(LY_BUILD_WITH_INCREMENTAL_LINKING_DEBUG TRUE CACHE BOOL "Indicates if incremental linking is used in debug configurations (default = TRUE)")
-if(LY_BUILD_WITH_INCREMENTAL_LINKING_DEBUG)
-    ly_append_configurations_options(
-        COMPILATION_DEBUG
-            /ZI         # Enable Edit/Continue
-    )
-else()
-    # Disable incremental linking
-    ly_append_configurations_options(
-        COMPILATION_DEBUG
-            /Zi         # Generate debugging information (no Edit/Continue). Edit/Continue requires incremental linking
-        LINK_NON_STATIC_DEBUG
-            /DEBUG      # Despite the documentation states /Zi implies /DEBUG, without it, stack traces are not expanded
-            /INCREMENTAL:NO
 
-    )    
+
+set(LY_OVERRIDE_DEBUG_SYMBOLS NotSet CACHE STRING "Indicates if the build output will include debug symbols (by default, decide based on configuration type")
+set_property(CACHE LY_OVERRIDE_DEBUG_SYMBOLS PROPERTY STRINGS NotSet Enable Disable)
+
+if (LY_OVERRIDE_DEBUG_SYMBOLS STREQUAL "NotSet")
+	ly_append_configurations_options(
+		COMPILATION_PROFILE
+			/Zi
+		LINK_NON_STATIC_PROFILE
+			/DEBUG
+	)
+
+elseif (LY_OVERRIDE_DEBUG_SYMBOLS STREQUAL "Enable")
+	ly_append_configurations_options(
+		COMPILATION_PROFILE
+			/Zi
+		COMPILATION_RELEASE
+			/Zi
+		LINK_NON_STATIC_PROFILE
+			/DEBUG
+		LINK_NON_STATIC_RELEASE
+			/DEBUG
+	)
+
+elseif (LY_OVERRIDE_DEBUG_SYMBOLS STREQUAL "Disable")
+	# Do nothing
+
+else()
+	message(FATAL_ERROR "Invalid value for LY_OVERRIDE_DEBUG_SYMBOLS: ${LY_OVERRIDE_DEBUG_SYMBOLS}")
+endif()
+
+
+
+if (NOT LY_OVERRIDE_DEBUG_SYMBOLS STREQUAL "Disable")
+	if(LY_BUILD_WITH_INCREMENTAL_LINKING_DEBUG)
+		ly_append_configurations_options(
+			COMPILATION_DEBUG
+				/ZI # Generate debugging information (no Edit/Continue)
+		)
+	else()
+		# Disable incremental linking
+		ly_append_configurations_options(
+			COMPILATION_DEBUG
+				/Zi # Generate debugging information (no Edit/Continue). Edit/Continue requires incremental linking
+			LINK_NON_STATIC_DEBUG
+				/DEBUG      # Despite the documentation states /Zi implies /DEBUG, without it, stack traces are not expanded
+				/INCREMENTAL:NO
+		)    
+	endif()
 endif()
 
 if(CMAKE_GENERATOR MATCHES "Visual Studio 15")

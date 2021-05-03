@@ -23,6 +23,7 @@
 #include <SceneAPIExt/Behaviors/MotionGroupBehavior.h>
 #include <SceneAPIExt/Groups/MotionGroup.h>
 #include <SceneAPIExt/Rules/MotionScaleRule.h>
+#include <SceneAPIExt/Rules/MotionZeroRule.h>
 #include <SceneAPIExt/Rules/MotionCompressionSettingsRule.h>
 #include <SceneAPIExt/Rules/MotionRangeRule.h>
 #include <SceneAPIExt/Rules/MorphTargetRule.h>
@@ -41,6 +42,7 @@ namespace EMotionFX
             {
                 Group::MotionGroup::Reflect(context);
                 Rule::MotionScaleRule::Reflect(context);
+                Rule::MotionZeroRule::Reflect(context);
                 Rule::MotionCompressionSettingsRule::Reflect(context);
                 Rule::MorphTargetRuleReadOnly::Reflect(context);
                 Rule::MotionAdditiveRule::Reflect(context);
@@ -105,6 +107,10 @@ namespace EMotionFX
                     if (existingRules.find(Rule::MotionSamplingRule::TYPEINFO_Uuid()) == existingRules.end())
                     {
                         modifiers.push_back(Rule::MotionSamplingRule::TYPEINFO_Uuid());
+                    }
+                    if (existingRules.find(Rule::MotionZeroRule::TYPEINFO_Uuid()) == existingRules.end())
+                    {
+                        modifiers.push_back(Rule::MotionZeroRule::TYPEINFO_Uuid());
                     }
                 }
             }

@@ -16,21 +16,120 @@
 #include <GridMate/Serialize/MathMarshal.h>
 #include <GridMate/Serialize/CompressionMarshal.h>
 
+#include <AzCore/std/containers/variant.h>
+
+
 namespace EMotionFX
 {
     namespace Integration
     {
         namespace Network
         {
+            /* Wrapper around AZStd::string for optimized marshalling of AnimGraph String parameter values
+             */
+            class AnimGraphString
+            {
+            public:
+                AnimGraphString() = default;
+                AnimGraphString(AZStd::string_view s) : str(s) {}
+
+                AZStd::string str;
+
+                inline bool operator==(const AnimGraphString& other) const { return str == other.str; }
+                inline bool operator!=(const AnimGraphString& other) const { return !(*this == other); }
+            };
+        }
+    }
+}
+
+namespace GridMate
+{
+    /**
+    Marshaller for monostate. It stores no data, so do nothing for read and write.
+    */
+    template<typename X>
+    class Marshaler<EMotionFX::Integration::Network::AnimGraphString, X>
+    {
+    public:
+        using Type = EMotionFX::Integration::Network::AnimGraphString;
+        AZ_TYPE_INFO_LEGACY(Marshaler, "{52D236CB-D528-4DB5-BC0F-EAE10395A1AC}", Type, X);
+
+        // Writes a fixed-size string - increase this if necessary!
+        static const AZStd::size_t MarshalSize = 64;
+
+        inline void Marshal(WriteBuffer& wb, const Type& x) const {
+            const auto& s = x.str;
+            AZ_Error("EMotionFX", s.size() <= MarshalSize,
+                     "AnimGraph string parameter '%s' is too long to send over network! "
+                     "Maximum support size=%llu, actual size=%llu. "
+                     "Note: You may increase this size by changing AnimGraphNetSyncTypes.h source file.",
+                     s.c_str(), MarshalSize, s.size()
+            );
+
+            const PackedSize sizeBefore = wb.GetExactSize();
+
+            const size_t stringDataSz = AZ::GetMin(s.size(), MarshalSize);
+            wb.WriteRaw(s.data(), stringDataSz);
+            if (stringDataSz < MarshalSize) {
+                const size_t paddingSz = MarshalSize - stringDataSz;
+                for (auto i = 0; i < paddingSz; ++i) { wb.Write<AZ::u8>(0); }
+            }
+
+            const PackedSize sizeAfter = wb.GetExactSize();
+            const PackedSize sizeDelta = sizeAfter - sizeBefore;
+            AZ_Assert(sizeDelta == PackedSize{MarshalSize},
+                      "AnimGraphString::Marshal - internal error, expected to write %llu bytes but wrote %llu + %llu bits",
+                      MarshalSize, sizeDelta.GetBytes(), sizeDelta.GetAdditionalBits()
+            );
+        }
+        inline void Unmarshal(Type& x, ReadBuffer& rb) const {
+            const PackedSize sizeBefore = rb.Read();
+
+            char rawData[MarshalSize+1]{};
+            rawData[MarshalSize] = 0;
+            rb.ReadRaw(rawData, MarshalSize);
+            x.str = rawData;
+
+            const PackedSize sizeAfter = rb.Read();
+            const PackedSize sizeDelta = sizeAfter - sizeBefore;
+            AZ_Assert(sizeDelta == PackedSize{MarshalSize},
+                        "AnimGraphString::Unmarshal - internal error, expected to read %llu bytes but read %llu + %llu bits",
+                        MarshalSize, sizeDelta.GetBytes(), sizeDelta.GetAdditionalBits()
+            );
+        }
+    };
+
+    /**
+    Marshaller specialization for AnimGraphString
+    */
+    template<typename X>
+    class Marshaler<AZStd::monostate, X>
+    {
+    public:
+        using Type = AZStd::monostate;
+        AZ_TYPE_INFO_LEGACY(Marshaler, "{2306A3E0-D534-4B61-BED3-1DFEF453B8B1}", AZStd::monostate, X);
+        static const AZStd::size_t MarshalSize = 0;
+
+        void Marshal(WriteBuffer&, const Type&) const {}
+        void Unmarshal(Type&, ReadBuffer&) const {}
+    };
+}
+
+namespace EMotionFX
+{
+    namespace Integration
+    {
+        namespace Network
+        {
+            using AnimParameterImpl = AZStd::variant<AZStd::monostate, float, bool, AZ::Vector2, AZ::Vector3, AZ::Quaternion, AnimGraphString>;
+
             /**
              * \brief A general storage for an anim graph parameter.
              */
             class AnimParameter
+                : public AnimParameterImpl
             {
             public:
-                /**
-                 * \brief String type is not supported because one should not be syncing strings over the network.
-                 */
                 enum class Type : AZ::u8
                 {
                     Unsupported,
@@ -39,93 +138,52 @@ namespace EMotionFX
                     Vector2,
                     Vector3,
                     Quaternion,
+                    String,
+                    COUNT
                 };
 
-                /**
-                 * \brief A storage for all possible supported types in @AnimGraphNetSyncComponent
-                 */
-                union Value
+                AnimParameter() : AnimParameterImpl(AZStd::monostate{}) {}
+
+                AnimParameter(Type t)
+                    : AnimParameterImpl(GetValueForIndex(t))
+                {}
+
+                template<Type Ix, class... Args>
+                void Assign(Args&&... args)
                 {
-                    Value()
-                    {
-                        q = AZ::Quaternion::CreateZero();
-                    }
-
-                    float f;
-                    bool b = false;
-                    AZ::Vector2 v2;
-                    AZ::Vector3 v3;
-                    AZ::Quaternion q;
-                };
-
-                AnimParameter() : m_type(Type::Unsupported) {}
-
-                Type m_type;
-                Value m_value;
-
-                AnimParameter(const AnimParameter& other)
-                {
-                    m_type = other.m_type;
-                    CopyValue(other);
+                    static_cast<AnimParameterImpl*>(this)->emplace<(size_t)Ix>(AZStd::forward<Args>(args)...);
                 }
 
-                AnimParameter& operator=(const AnimParameter& other)
+                void Set(Type t)
                 {
-                    m_type = other.m_type;
-                    CopyValue(other);
-
-                    return *this;
+                    *static_cast<AnimParameterImpl*>(this) = GetValueForIndex(t);
                 }
 
-                friend bool operator==(const AnimParameter& lhs, const AnimParameter& rhs)
-                {
-                    if (lhs.m_type != rhs.m_type)
-                    {
-                        return false;
-                    }
+                AnimParameter(const AnimParameter& other) = default;
+                AnimParameter& operator=(const AnimParameter& other) = default;
 
-                    switch (lhs.m_type)
-                    {
-                    case Type::Float:
-                        return lhs.m_value.f == rhs.m_value.f;
-                    case Type::Bool:
-                        return lhs.m_value.b == rhs.m_value.b;
-                    case Type::Vector2:
-                        return lhs.m_value.v2 == rhs.m_value.v2;
-                    case Type::Vector3:
-                        return lhs.m_value.v3 == rhs.m_value.v3;
-                    case Type::Quaternion:
-                        return lhs.m_value.q == rhs.m_value.q;
-                    default:
-                        return true;
-                    }
+                inline friend bool operator==(const AnimParameter& lhs, const AnimParameter& rhs)
+                {
+                    return static_cast<const AnimParameterImpl&>(lhs) == static_cast<const AnimParameterImpl&>(rhs);
                 }
 
             private:
-                void CopyValue(const AnimParameter& other)
+                inline static AnimParameterImpl GetValueForIndex(Type t)
                 {
-                    switch (m_type)
+                    static const AZStd::array<AnimParameterImpl, size_t(Type::COUNT)> values =
                     {
-                    case Type::Float:
-                        m_value.f = other.m_value.f;
-                        break;
-                    case Type::Bool:
-                        m_value.b = other.m_value.b;
-                        break;
-                    case Type::Vector2:
-                        m_value.v2 = other.m_value.v2;
-                        break;
-                    case Type::Vector3:
-                        m_value.v3 = other.m_value.v3;
-                        break;
-                    case Type::Quaternion:
-                        m_value.q = other.m_value.q;
-                        break;
-                    default:
-                        break;
-                    }
-                }
+                        AnimParameterImpl(AZStd::in_place_index_t<size_t(Type::Unsupported)>{}),
+                        AnimParameterImpl(AZStd::in_place_index_t<size_t(Type::Float)>{}),
+                        AnimParameterImpl(AZStd::in_place_index_t<size_t(Type::Bool)>{}),
+                        AnimParameterImpl(AZStd::in_place_index_t<size_t(Type::Vector2)>{}),
+                        AnimParameterImpl(AZStd::in_place_index_t<size_t(Type::Vector3)>{}),
+                        AnimParameterImpl(AZStd::in_place_index_t<size_t(Type::Quaternion)>{}),
+                        AnimParameterImpl(AZStd::in_place_index_t<size_t(Type::String)>{}),
+                    };
+                    return values[(size_t)t];
+                };
             };
+
 
             /**
              * \brief Custom GridMate throttler. See GridMate:: @BasicThrottle
@@ -156,58 +214,16 @@ namespace EMotionFX
             public:
                 void Marshal(GridMate::WriteBuffer& wb, const AnimParameter& parameter)
                 {
-                    wb.Write(AZ::u8(parameter.m_type));
-
-                    switch (parameter.m_type)
-                    {
-                    case AnimParameter::Type::Float:
-                        wb.Write(parameter.m_value.f);
-                        break;
-                    case AnimParameter::Type::Bool:
-                        wb.Write(parameter.m_value.b);
-                        break;
-                    case AnimParameter::Type::Vector2:
-                        wb.Write(parameter.m_value.v2);
-                        break;
-                    case AnimParameter::Type::Vector3:
-                        wb.Write(parameter.m_value.v3);
-                        break;
-                    case AnimParameter::Type::Quaternion:
-                        wb.Write(parameter.m_value.q);
-                        break;
-                    default:
-                        // other types are not supported
-                        break;
-                    }
+                    wb.Write(AZ::u8(parameter.index()));
+                    AZStd::visit([&wb](const auto& val) { wb.Write(val); }, parameter);
                 }
 
                 void Unmarshal(AnimParameter& parameter, GridMate::ReadBuffer& rb)
                 {
                     AZ::u8 type;
                     rb.Read(type);
-                    parameter.m_type = static_cast<AnimParameter::Type>(type);
-
-                    switch (parameter.m_type)
-                    {
-                    case AnimParameter::Type::Float:
-                        rb.Read(parameter.m_value.f);
-                        break;
-                    case AnimParameter::Type::Bool:
-                        rb.Read(parameter.m_value.b);
-                        break;
-                    case AnimParameter::Type::Vector2:
-                        rb.Read(parameter.m_value.v2);
-                        break;
-                    case AnimParameter::Type::Vector3:
-                        rb.Read(parameter.m_value.v3);
-                        break;
-                    case AnimParameter::Type::Quaternion:
-                        rb.Read(parameter.m_value.q);
-                        break;
-                    default:
-                        // other types are not supported
-                        break;
-                    }
+                    parameter.Set(AnimParameter::Type(type));
+                    AZStd::visit([&rb](auto& val) { rb.Read(val); }, parameter);
                 }
             };
             

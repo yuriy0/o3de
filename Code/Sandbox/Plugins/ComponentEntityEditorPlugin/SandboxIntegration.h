@@ -282,6 +282,7 @@ private:
     bool IsNewViewportInteractionModelEnabled() override;
 
     // Context menu handlers.
+    void ContextMenu_ReplaceWithSlice(AzToolsFramework::EntityIdList entities);
     void ContextMenu_NewEntity();
     AZ::EntityId ContextMenu_NewLayer();
     void ContextMenu_SaveLayers(const AZStd::unordered_set<AZ::EntityId>& layers);

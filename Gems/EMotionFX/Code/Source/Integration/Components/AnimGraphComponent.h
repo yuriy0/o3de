@@ -30,11 +30,14 @@ namespace EMotionFX
 {
     namespace Integration
     {
+        void SendGenericAnimGraphParameterChangeEvent(AZ::EntityId entityId, AnimGraphInstance* animGraph, const AZStd::any& prev, const AZStd::any& current, AZ::u32 parameterIndex);
+
         class AnimGraphComponent
             : public AZ::Component
             , private AZ::Data::AssetBus::MultiHandler
             , private ActorComponentNotificationBus::Handler
             , private AnimGraphComponentRequestBus::Handler
+			, private AnimGraphNodeRequestBus::Handler
             , private AnimGraphComponentNotificationBus::Handler
             , private AnimGraphComponentNetworkRequestBus::Handler
         {
@@ -108,7 +111,12 @@ namespace EMotionFX
             //////////////////////////////////////////////////////////////////////////
             // AnimGraphComponentRequestBus::Handler
             EMotionFX::AnimGraphInstance* GetAnimGraphInstance() override;
+            AnimGraphPlaySpeedModifierPtr AddPlayspeedModifier(float modifier) override;
             AZ::u32 FindParameterIndex(const char* parameterName) override;
+            void SetParameter(AZ::u32 parameterIndex, AZStd::any value) override;
+            AZStd::any GetParameter(AZ::u32 parameterIndex) override;
+            void SetNamedParameter(const char* parameterName, AZStd::any value) override;
+            AZStd::any GetNamedParameter(const char* parameterName) override;
             const char* FindParameterName(AZ::u32 parameterIndex) override;
             void SetParameterFloat(AZ::u32 parameterIndex, float value) override;
             void SetParameterBool(AZ::u32 parameterIndex, bool value) override;
@@ -142,7 +150,22 @@ namespace EMotionFX
             bool GetVisualizeEnabled() override;
             void SyncAnimGraph(AZ::EntityId leaderEntityId) override;
             void DesyncAnimGraph(AZ::EntityId leaderEntityId) override;
+			void SetMotionSet(const AZStd::string& motionSetName) override;
             //////////////////////////////////////////////////////////////////////////
+
+            //////////////////////////////////////////////////////////////////////////
+            // AnimGraphNodeRequestBus::Handler
+			AZ::u64 GetNodeIdByName(const char* nodeName) override;
+
+			float GetDuration(const char* nodeName) override;
+			float GetPlaytime(const char* nodeName) override;
+			float GetPlayspeed(const char* nodeName) override;
+
+			void SetPlayTime(const char* nodeName, float playtime) override;
+			void SetPlaySpeed(const char* nodeName, float playtime) override;
+
+			void Rewind(const char* nodeName) override;
+			//////////////////////////////////////////////////////////////////////////
 
             //////////////////////////////////////////////////////////////////////////
             // ActorComponentNotificationBus::Handler
@@ -210,6 +233,8 @@ namespace EMotionFX
             // Helper functions to wrap special logic required for EMFX anim graph ref-counting.
             void AnimGraphInstancePostCreate();
             void AnimGraphInstancePreDestroy();
+            
+            void SendParameterChangeEvent(const AZStd::any& prev, const AZStd::any& current, AZ::u32 parameterIndex);
 
             Configuration                               m_configuration;        ///< Component configuration.
 
@@ -220,3 +245,7 @@ namespace EMotionFX
     } // namespace Integration
 } // namespace EMotionFX
 
+namespace AZ {
+    using AnimGraphPlaySpeedModifier = EMotionFX::AnimGraphPlaySpeedModifier;
+    AZ_TYPE_INFO_SPECIALIZE(AnimGraphPlaySpeedModifier, "{F610E856-A5E5-4ACB-91C0-CA53233A76FD}");
+}

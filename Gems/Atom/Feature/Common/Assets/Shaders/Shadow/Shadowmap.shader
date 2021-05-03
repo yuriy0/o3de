@@ -15,8 +15,7 @@
 
     "ProgramSettings":
     {
-      "EntryPoints":
-      [
+      "EntryPoints":      [
         {
           "name": "MainVS",
           "type": "Vertex"

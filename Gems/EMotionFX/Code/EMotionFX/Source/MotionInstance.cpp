@@ -478,7 +478,7 @@ namespace EMotionFX
         m_motion->GetEventTable()->ExtractEvents(oldTime, newTime, this, outBuffer);
     }
 
-    void MotionInstance::UpdateByTimeValues(float oldTime, float newTime, AnimGraphEventBuffer* outEventBuffer)
+    void MotionInstance::UpdateByTimeValues(float oldTime, float newTime, AnimGraphEventBuffer* outEventBuffer, AnimGraphInstance* animGraphInstance)
     {
         // Get the values in valid range.
         const float duration = GetDuration();
@@ -522,7 +522,56 @@ namespace EMotionFX
         // Extract the motion events.
         if (outEventBuffer)
         {
+            const auto initNumEvents = outEventBuffer->GetNumEvents();
             ExtractMotionEvents(inState, outState, *outEventBuffer);
+
+            // Fixup event times. ExtractMotionEvents sets event times relative to the motion duration,
+            // here those times are made relative to the anim graph instance start time
+            if (animGraphInstance)
+            {
+                auto rootNodeUniqueData = animGraphInstance->GetRootNode()->FindOrCreateUniqueNodeData(animGraphInstance);
+                const auto rootNodePlayTime = rootNodeUniqueData->GetCurrentPlayTime();
+                for (auto i = initNumEvents; i < outEventBuffer->GetNumEvents(); ++i)
+                {
+                    auto e = outEventBuffer->GetEvent(i);
+
+                    // Get the event time relative to the current moment in time
+                    if (m_playMode == PLAYMODE_FORWARD)
+                    {
+                        const bool isLoopedEvent = e.mTimeValue < oldTime;
+                        if (!isLoopedEvent)
+                        {
+                            // The clock event time is the time to run from oldTime to the motion event local time
+                            e.mTimeValue = e.mTimeValue - oldTime;
+                        }
+                        else
+                        {
+                            // The clock event time is the time to run from oldTime to t=duration (the end of the motion)
+                            // plus the time to run from the start of the motion (t=0) to the motion event local time
+                            e.mTimeValue = (duration - oldTime) + e.mTimeValue;
+                        }
+                    }
+                    else
+                    {
+                        const bool isLoopedEvent = e.mTimeValue > oldTime;
+                        if (!isLoopedEvent)
+                        {
+                            // The clock event time is the time to run backwards from oldTime to the motion event local time
+                            e.mTimeValue = -e.mTimeValue + oldTime;
+                        }
+                        else
+                        {
+                            // The clock event time is the time to run backwards from oldTime to t=0 (the start of the motion)
+                            // plus the time to run from the end of the motion (t=duration) to the motion event local time
+                            e.mTimeValue = (duration - e.mTimeValue) + oldTime;
+                        }
+                    }
+
+                    // Apply anim graph instance play time offset
+                    e.mTimeValue += rootNodePlayTime;
+                    outEventBuffer->SetEvent(i, e);
+                }
+            }
         }
     }
 

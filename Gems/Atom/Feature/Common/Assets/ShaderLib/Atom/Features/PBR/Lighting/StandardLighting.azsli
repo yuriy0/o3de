@@ -104,7 +104,7 @@ PbrLightingOutput GetPbrLightingOutput(Surface surface, LightingData lightingDat
     PbrLightingOutput lightingOutput;
 
     lightingOutput.m_diffuseColor = float4(lightingData.diffuseLighting, alpha);
-    lightingOutput.m_specularColor = float4(lightingData.specularLighting, 1.0);
+    lightingOutput.m_specularColor = float4(lightingData.specularLighting, alpha);
 
     // albedo, specularF0, roughness, and normals for later passes (specular IBL, Diffuse GI, SSR, AO, etc)
     lightingOutput.m_specularF0 = float4(surface.specularF0, surface.roughnessLinear);

@@ -72,6 +72,45 @@ namespace AZ
         }
     };
 
+	//////////////////////////////////////////////////////////////////////////
+	class BehaviorEntitySystemBusHandler : public EntitySystemBus::Handler, public BehaviorEBusHandler
+	{
+	public:
+		AZ_EBUS_BEHAVIOR_BINDER(BehaviorEntitySystemBusHandler, "{1E943EC1-252A-4F35-AD68-7329E4DD24C8}", AZ::SystemAllocator,
+								OnEntityInitialized, OnEntityDestruction, OnEntityDestroyed, OnEntityActivated, OnEntityDeactivated, OnEntityNameChanged
+		);
+
+		void OnEntityInitialized(const AZ::EntityId& id) override 
+		{
+			Call(FN_OnEntityInitialized, id);
+		}
+
+		void OnEntityDestruction(const AZ::EntityId& id) override 
+		{
+			Call(FN_OnEntityDestruction, id);
+		}
+
+		void OnEntityDestroyed(const AZ::EntityId& id) override 
+		{
+			Call(FN_OnEntityDestroyed, id);
+		}
+
+		void OnEntityActivated(const AZ::EntityId& id) override
+		{
+			Call(FN_OnEntityActivated, id);
+		}
+
+		void OnEntityDeactivated(const AZ::EntityId& id) override
+		{
+			Call(FN_OnEntityDeactivated, id);
+		}
+
+		void OnEntityNameChanged(const AZ::EntityId& id, const AZStd::string& name) override
+		{
+			Call(FN_OnEntityNameChanged, id, name);
+		}
+	};
+
     //=========================================================================
     // Entity
     // [5/31/2012]
@@ -237,6 +276,134 @@ namespace AZ
         SetState(State::Init);
     }
 
+    //=========================================================================
+    // EvaluateDependencies
+    //=========================================================================
+    //=========================================================================
+    // Modify
+    //=========================================================================
+    bool Entity::Modify(const ComponentArrayType& componentsToRemove,
+                        const ComponentArrayType& componentsToAdd)
+    {
+        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzCore);
+
+        if (componentsToAdd.size() == 0 && componentsToRemove.size() == 0) { return true; }
+
+        switch (m_state)
+        {
+        case State::Constructed:
+        case State::Init:
+        case State::Initializing:
+        case State::Activating:
+        case State::Deactivating:
+        {
+            // State invalid for this operation
+            AZ_Error("Entity", false, "Modify cannot apply - current state must be Active, is actually %d.", (int)m_state);
+            return false;
+        }
+
+        case State::Active:
+        {
+            AZ_Assert(m_isDependencyReady, "Entity::Modify - dependencies not satisfied but entity is active. (internal error)");
+
+            ComponentArrayType toDeactivate;
+            ComponentArrayType toActivate;
+            const ComponentArrayType originalComponents = ComponentArrayType(m_components);
+
+            // If the modification cannot proceed, reset to original state
+            // Assumes that while active the dependencies are always satisfied, so setting m_isDependencyReady to true
+            // is correct.
+            auto onFailure = [&](){ 
+                m_components = originalComponents;
+                m_isDependencyReady = true;
+                return false;
+            };
+
+            // Check for components to remove. Iterate over the components in dependency sort order
+            // to preserve the order in which these eventually must be deactivated.
+            {
+                AZ_PROFILE_SCOPE(AZ::Debug::ProfileCategory::AzCore, "Find to remove");
+                for (auto c_it = m_components.begin(); c_it != m_components.end(); /**/) { 
+                    ComponentArrayType::const_iterator it = AZStd::find(componentsToRemove.begin(), componentsToRemove.end(), *c_it);
+                    if (it != componentsToRemove.end()) { 
+                        InvalidateDependencies();
+                        toDeactivate.push_back(*c_it);
+                        c_it = m_components.erase(c_it);
+                    } else { 
+                        c_it++;
+                    }
+                }
+            }
+
+            // Check for components to add.
+            {
+                AZ_PROFILE_SCOPE(AZ::Debug::ProfileCategory::AzCore, "Find to add");
+                for (auto c : componentsToAdd) { 
+                    AZ_Assert(c, "Entity::Modify - components to add must not be null");
+                    if (!c) continue;
+                    ComponentArrayType::iterator it = AZStd::find(m_components.begin(), m_components.end(), c);
+                    if (c->GetEntity() != nullptr || it != m_components.end()) {
+                        return onFailure();
+                    } else { 
+                        InvalidateDependencies();
+                        toActivate.push_back(c);
+                        m_components.push_back(c);
+                    }
+                }
+            }
+
+            //check the dependencies.
+            DependencySortResult depSortResult;
+            {
+                AZ_PROFILE_SCOPE(AZ::Debug::ProfileCategory::AzCore, "EvaluateDependencies");
+                depSortResult = EvaluateDependencies();
+            }
+
+            if (depSortResult == DependencySortResult::Success) {
+                // Dependencies are satisfied, we can proceed with setting up the states of the components
+                // Components to remove must be deactivated in reverse order
+                for (auto it = toDeactivate.rbegin(); it != toDeactivate.rend(); ++it) { 
+                    Component* c = *it;
+                    {
+                        AZ_PROFILE_SCOPE_DYNAMIC(AZ::Debug::ProfileCategory::AzCore, "%s::Deactivate", c->RTTI_GetTypeName());
+                        c->Deactivate();
+                    }
+                    c->SetEntity(nullptr);
+                }
+
+                // Components to add must be deactivated in dependency sort order
+                for (auto it = m_components.begin(); it != m_components.end(); ++it) {
+                    if (AZStd::find(toActivate.begin(), toActivate.end(), *it) != toActivate.end()) { 
+                        Component* c = *it;
+                        c->m_id = InvalidComponentId;
+                        c->SetEntity(this);
+                        {
+                            AZ_PROFILE_SCOPE_DYNAMIC(AZ::Debug::ProfileCategory::AzCore, "%s::Init", c->RTTI_GetTypeName());
+                            c->Init();
+                        }
+                        {
+                            AZ_PROFILE_SCOPE_DYNAMIC(AZ::Debug::ProfileCategory::AzCore, "%s::Activate", c->RTTI_GetTypeName());
+                            c->Activate();
+                        }
+                    }
+                }
+            } else {
+                return onFailure();
+            }
+
+            return true;
+        }
+
+        default:
+        AZ_Assert(false, "Internal error: Unknown entity state %d!", (int)m_state);
+        return false;
+        }
+
+    }
+
+    //=========================================================================
+    // EvaluateDependencies
+    //=========================================================================
     Entity::DependencySortResult Entity::EvaluateDependencies()
     {
         DependencySortOutcome outcome = EvaluateDependenciesGetDetails();
@@ -816,6 +983,10 @@ namespace AZ
                 ->Attribute(AZ::Script::Attributes::Scope, AZ::Script::Attributes::ScopeFlags::Common)
                 ->Handler<BehaviorEntityBusHandler>()
                 ;
+
+			behaviorContext->EBus<EntitySystemBus>("EntitySystemBus")
+				->Handler<BehaviorEntitySystemBusHandler>()
+				;
 
             behaviorContext->Class<ComponentConfig>()
                 ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::List)

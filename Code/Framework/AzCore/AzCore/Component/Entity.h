@@ -169,6 +169,20 @@ namespace AZ
         //! entity. This function calls the Deactivate function of each component.
         virtual void Deactivate();
 
+        /**
+        * Modifies the components on the entity. If it is active, it is deactivated,
+        * the modifications performed, and then it is reactivated. If the modification
+        * would put the entity in an invalid state, the changes are rolled back. Note that
+        * an inactive entity is never in an invalid state, even if some of the requested modifications
+        * can't be performed.
+        *
+        * @param componentsToRemove Components which will be removed
+        * @param componentsToAdd Components which will be added
+        * @return true indicates that the requested work was done successfuly
+        */
+        virtual bool Modify(const ComponentArrayType& componentsToRemove,
+                            const ComponentArrayType& componentsToAdd);
+
         //! Creates a component and attaches the component to the entity. 
         //! You cannot add a component to an entity when the entity is 
         //! active or in a transition state. After the component is attached 

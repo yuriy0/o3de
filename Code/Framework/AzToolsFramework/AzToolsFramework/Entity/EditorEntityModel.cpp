@@ -715,11 +715,14 @@ namespace AzToolsFramework
     void EditorEntityModel::OnEntityStreamLoadBegin()
     {
         Reset();
+        m_loadingEntitiesFromStream = true;
     }
 
     void EditorEntityModel::OnEntityStreamLoadSuccess()
     {
         AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+
+        OnFinishedLoadingEntitiesFromStream();
 
         //block internal reorder event handling to avoid recursion since we're manually updating everything
         m_enableChildReorderHandler = false;
@@ -757,6 +760,7 @@ namespace AzToolsFramework
 
     void EditorEntityModel::OnEntityStreamLoadFailed()
     {
+        OnFinishedLoadingEntitiesFromStream();
         Reset();
     }
 
@@ -834,6 +838,18 @@ namespace AzToolsFramework
         m_queuedEntityAddsNotYetActivated.erase(activatedEntityId);
 
         // Once all queued entities have activated, add them all to the model.
+        if (!m_loadingEntitiesFromStream && m_queuedEntityAddsNotYetActivated.empty())
+        {
+            ProcessQueuedEntityAdds();
+        }
+    }
+
+    void EditorEntityModel::OnFinishedLoadingEntitiesFromStream()
+    {
+        m_loadingEntitiesFromStream = false;
+
+        // Check now if all registered, unprocessed entities are activated
+        // If so, process them now
         if (m_queuedEntityAddsNotYetActivated.empty())
         {
             ProcessQueuedEntityAdds();

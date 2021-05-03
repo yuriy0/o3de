@@ -1812,7 +1812,7 @@
                     "emissive.textureMapUv"
                 ]
             }
-        },
+        },/*
         {
             // Controls visibility for properties in the editor.
             // @param actions            - a list of actions that are executed in order. visibility will be set when triggerProperty hits the triggerValue.
@@ -1840,7 +1840,7 @@
                     "parallax.pdo"
                 ]
             }
-        },
+        },*/
         {
             "type": "UpdatePropertyVisibility",
             "args": {
@@ -2110,6 +2110,12 @@
             "type": "Lua",
             "args": {
                 "file": "MaterialInputs/DetailMapsCommonFunctor.lua"
+            }
+        },
+        {
+            "type": "Lua",
+            "args": {
+                "file": "StandardPBR_ParallaxState.lua"
             }
         }
     ],

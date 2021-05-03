@@ -25,7 +25,7 @@ namespace LmbrCentral
         if (serializeContext)
         {
             serializeContext->Class<EditorAttachmentComponent, EditorComponentBase>()
-                ->Version(1)
+                ->Version(2)
                 ->Field("Target ID", &EditorAttachmentComponent::m_targetId)
                 ->Field("Target Bone Name", &EditorAttachmentComponent::m_targetBoneName)
                 ->Field("Position Offset", &EditorAttachmentComponent::m_positionOffset)
@@ -33,6 +33,7 @@ namespace LmbrCentral
                 ->Field("Scale Offset", &EditorAttachmentComponent::m_scaleOffset)
                 ->Field("Attached Initially", &EditorAttachmentComponent::m_attachedInitially)
                 ->Field("Scale Source", &EditorAttachmentComponent::m_scaleSource)
+                ->Field("m_rotationSource", &EditorAttachmentComponent::m_rotationSource)
             ;
 
             AZ::EditContext* editContext = serializeContext->GetEditContext();
@@ -81,6 +82,13 @@ namespace LmbrCentral
                         ->EnumAttribute(AttachmentConfiguration::ScaleSource::WorldScale, "Use world scale")
                         ->EnumAttribute(AttachmentConfiguration::ScaleSource::TargetEntityScale, "Use target entity scale")
                         ->EnumAttribute(AttachmentConfiguration::ScaleSource::TargetBoneScale, "Use target bone scale")
+                    
+                    ->DataElement(AZ::Edit::UIHandlers::ComboBox, &EditorAttachmentComponent::m_rotationSource,
+                        "Rotation", "How object rotation should be determined. "
+                        "(See 'Scaling')")
+                        ->Attribute(AZ::Edit::Attributes::ChangeNotify, &EditorAttachmentComponent::OnScaleSourceChanged)
+                        ->EnumAttribute(AttachmentConfiguration::ScaleSource::TargetEntityScale, "Use target entity rotation")
+                        ->EnumAttribute(AttachmentConfiguration::ScaleSource::TargetBoneScale, "Use target bone rotation")
                     ;
             }
         }
@@ -117,6 +125,7 @@ namespace LmbrCentral
         configuration.m_targetOffset = GetTargetOffset();
         configuration.m_attachedInitially = m_attachedInitially;
         configuration.m_scaleSource = m_scaleSource;
+        configuration.m_rotationSource = m_rotationSource;
         return configuration;
     }
 

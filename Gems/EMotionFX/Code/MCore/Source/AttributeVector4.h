@@ -27,11 +27,12 @@ namespace MCore
      * This attribute represents one Vector4.
      */
     class MCORE_API AttributeVector4
-        : public Attribute
+        : public Attribute_tpl<AZ::Vector4, AttributeVector4>
     {
         AZ_CLASS_ALLOCATOR(AttributeVector4, AttributeAllocator, 0)
 
         friend class AttributeFactory;
+        using Base = Attribute_tpl<AZ::Vector4, AttributeVector4>;
     public:
         enum
         {
@@ -74,9 +75,9 @@ namespace MCore
         AZ::Vector4     mValue;     /**< The Vector4 value. */
 
         AttributeVector4()
-            : Attribute(TYPE_ID)                    { mValue.Set(0.0f, 0.0f, 0.0f, 0.0f); }
+            : Base(TYPE_ID)                    { mValue.Set(0.0f, 0.0f, 0.0f, 0.0f); }
         AttributeVector4(const AZ::Vector4& value)
-            : Attribute(TYPE_ID)
+            : Base(TYPE_ID)
             , mValue(value)     { }
         ~AttributeVector4() { }
 

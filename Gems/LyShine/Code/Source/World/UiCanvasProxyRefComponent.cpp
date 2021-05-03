@@ -53,6 +53,11 @@ void UiCanvasProxyRefComponent::OnCanvasRefChanged([[maybe_unused]] AZ::EntityId
     EBUS_EVENT_ID(GetEntityId(), UiCanvasRefNotificationBus, OnCanvasRefChanged, GetEntityId(), uiCanvasEntity);
 }
 
+void UiCanvasProxyRefComponent::OnCanvasLoadedIntoEntity(AZ::EntityId uiCanvasEntity)
+{
+    EBUS_EVENT_ID(GetEntityId(), UiCanvasAssetRefNotificationBus, OnCanvasLoadedIntoEntity, uiCanvasEntity);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // PUBLIC STATIC MEMBER FUNCTIONS
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,6 +107,7 @@ void UiCanvasProxyRefComponent::Activate()
 {
     UiCanvasRefBus::Handler::BusConnect(GetEntityId());
     UiCanvasProxyRefBus::Handler::BusConnect(GetEntityId());
+    UiCanvasAssetRefNotificationBus::Handler::BusConnect(m_canvasAssetRefEntityId);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -109,4 +115,5 @@ void UiCanvasProxyRefComponent::Deactivate()
 {
     UiCanvasProxyRefBus::Handler::BusDisconnect();
     UiCanvasRefBus::Handler::BusDisconnect();
+    UiCanvasAssetRefNotificationBus::Handler::BusDisconnect();
 }

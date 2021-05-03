@@ -127,7 +127,10 @@ namespace AZ
                         Vector3 meshPosition = fbxControlPoints[fbxControlPointIndex];
 
                         Vector3 meshVertexNormal;
-                        sourceMesh.GetPolygonVertexNormal(fbxPolygonIndex, vertexIndex, meshVertexNormal);
+                        if (!sourceMesh.GetPolygonVertexNormal(fbxPolygonIndex, vertexIndex, meshVertexNormal)) {
+                            AZ_Assert(false, "GetPolygonVertexNormal(%d, %d) failed!", fbxPolygonIndex, vertexIndex);
+                            return false;
+                        }
 
                         sceneSystem.SwapVec3ForUpAxis(meshPosition);
                         sceneSystem.ConvertUnit(meshPosition);
@@ -136,7 +139,16 @@ namespace AZ
 
                         // Add normal
                         sceneSystem.SwapVec3ForUpAxis(meshVertexNormal);
-                        meshVertexNormal.NormalizeSafe();
+                        if (AZ::IsClose(meshVertexNormal.GetLength(), 0.f)) {
+                            AZ_TracePrintf(AZ::SceneAPI::Utilities::WarningWindow,
+                                           "Normal at poly=%d, vertex=%d (=%f,%f,%f) is close to zero! This value will be ignored and replaced with (1,0,0)",
+                                           fbxPolygonIndex, vertexIndex,
+                                           (float)meshVertexNormal.GetX(), (float)meshVertexNormal.GetY(), (float)meshVertexNormal.GetZ()
+                            );
+                            meshVertexNormal = AZ::Vector3(1.f, 0.f, 0.f);
+                        } else {
+                            meshVertexNormal.Normalize();
+                        }
                         mesh->AddNormal(meshVertexNormal);
 
                         mesh->SetVertexIndexToControlPointIndexMap(meshVertexIndex, fbxControlPointIndex);

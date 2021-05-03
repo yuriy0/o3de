@@ -77,6 +77,7 @@ namespace ScriptCanvas
                     }
 
                     // Value
+                    if (m_sourceTypes.size() > 1)
                     {
                         Data::Type type = Data::FromAZType(m_sourceTypes[1]);
                         DataSlotConfiguration slotConfiguration;
@@ -142,6 +143,26 @@ namespace ScriptCanvas
                             AZ::Outcome<AZ::BehaviorValueParameter, AZStd::string> param1 = inputDatum->ToBehaviorValueParameter(*behaviorParameter);
                             paramIter->Set(param1.GetValue());
                             ++paramIter;
+                        }
+                        else if (Data::IsSetContainerType(GetSourceAZType()))
+                        {
+                            auto inputSlotIterator = m_inputSlots.begin();
+                            const Datum* keyDatum = FindDatum(*inputSlotIterator++);
+
+                            if (keyDatum)
+                            {
+                                // Container
+                                const AZ::BehaviorParameter* behaviorParameter = method->GetArgument(0);
+                                AZ::Outcome<AZ::BehaviorValueParameter, AZStd::string> param0 = containerDatum->ToBehaviorValueParameter(*behaviorParameter);
+                                paramIter->Set(param0.GetValue());
+                                ++paramIter;
+
+                                // Key
+                                behaviorParameter = method->GetArgument(1);
+                                AZ::Outcome<AZ::BehaviorValueParameter, AZStd::string> param1 = keyDatum->ToBehaviorValueParameter(*behaviorParameter);
+                                paramIter->Set(param1.GetValue());
+                                ++paramIter;
+                            }
                         }
                         else if (Data::IsMapContainerType(GetSourceAZType()))
                         {

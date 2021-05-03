@@ -108,9 +108,11 @@ namespace AzToolsFramework
 
     void PropertyStringLineEditCtrl::ConnectWidgets()
     {
-        connect(m_pLineEdit, SIGNAL(textChanged(const QString&)), this, SLOT(onChildLineEditValueChange(const QString&)));
-        connect(m_pLineEdit, &QLineEdit::editingFinished, this, [this]()
+        auto* lineEdit = static_cast<AzQtComponents::StyledLineEdit*>(m_pLineEdit);
+
+        connect(lineEdit, &AzQtComponents::StyledLineEdit::editingFinishedTextChanged, this, [this](const QString& value)
         {
+            emit onChildLineEditValueChange(value);
             PropertyEditorGUIMessages::Bus::Broadcast(&PropertyEditorGUIMessages::Bus::Handler::OnEditingFinished, this);
         });
     }

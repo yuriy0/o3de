@@ -90,6 +90,52 @@ namespace AzFramework
     }
 
     //=========================================================================
+    // SliceGameEntityOwnershipServiceRequestBus::InstantiateDynamicSliceBlocking
+    //=========================================================================
+    AZ::SliceComponent::SliceInstanceAddress SliceGameEntityOwnershipService::InstantiateDynamicSliceBlocking(
+        const AZ::Data::Asset<AZ::Data::AssetData>& asset,
+        const AZ::Transform& worldTransform, const AZ::IdUtils::Remapper<AZ::EntityId>::IdMapper& customIdMapper,
+        const AZStd::function<void(const AZ::SliceComponent::SliceInstanceAddress&)>& preInstantiate)
+    {
+        if (asset.GetId().IsValid())
+        {
+            const_cast<AZ::Data::Asset<AZ::Data::AssetData>&>(asset).QueueLoad();
+            while (asset.IsLoading()) {}
+            if (asset.IsReady())
+            {
+                AZ::SliceComponent::SliceInstanceAddress instance = GetRootAsset().Get()->GetComponent()->AddSlice(asset, customIdMapper);
+
+                if (instance.second) {
+                    AZ_Assert(instance.second->GetInstantiated(), "Failed to instantiate root slice!");
+
+                    if (instance.second->GetInstantiated() &&
+                        m_validateEntitiesCallback(instance.second->GetInstantiated()->m_entities))
+                    {
+                        // Call OnSlicePreInstantiate which sets world TM and handles world entity ID reference remapping
+                        OnSlicePreInstantiate(InstantiatingDynamicSliceInfo{ asset, worldTransform }, instance);
+
+                        // Handle user-defined preInstantiate callback
+                        if (preInstantiate) preInstantiate(instance);
+
+                        // Finally add the entities to the entity context
+                        HandleEntitiesAdded(instance.second->GetInstantiated()->m_entities);
+
+                        return instance;
+                    }
+                    else
+                    {
+                        // The prefab has already been added to the root slice. But we are disallowing the
+                        // instantiation. So we need to remove it
+                        GetRootAsset().Get()->GetComponent()->RemoveSlice(asset);
+                    }
+                }
+            }
+        }
+
+        return AZ::SliceComponent::SliceInstanceAddress(nullptr, nullptr);
+    }
+
+    //=========================================================================
     // SliceGameEntityOwnershipServiceRequestBus::CancelDynamicSliceInstantiation
     //=========================================================================
     void SliceGameEntityOwnershipService::CancelDynamicSliceInstantiation(const SliceInstantiationTicket& ticket)
@@ -170,25 +216,18 @@ namespace AzFramework
     //=========================================================================
     // SliceInstantiationResultBus::OnSlicePreInstantiate
     //=========================================================================
-    void SliceGameEntityOwnershipService::OnSlicePreInstantiate(const AZ::Data::AssetId& /*sliceAssetId*/, const AZ::SliceComponent::SliceInstanceAddress& sliceAddress)
+    void SliceGameEntityOwnershipService::OnSlicePreInstantiate(const InstantiatingDynamicSliceInfo& instantiating, const AZ::SliceComponent::SliceInstanceAddress& sliceAddress)
     {
-        const SliceInstantiationTicket ticket = *SliceInstantiationResultBus::GetCurrentBusId();
+        const AZ::SliceComponent::EntityList& entities = sliceAddress.GetInstance()->GetInstantiated()->m_entities;
 
-        auto instantiatingIter = m_instantiatingDynamicSlices.find(ticket);
-        if (instantiatingIter != m_instantiatingDynamicSlices.end())
+        // If the entity ownership service was loaded from a stream and Ids were remapped, fix up entity Ids in that slice that
+        // point to entities in the stream (i.e. level entities).
+        if (!GetLoadedEntityIdMap().empty())
         {
-            InstantiatingDynamicSliceInfo& instantiating = instantiatingIter->second;
-
-            const AZ::SliceComponent::EntityList& entities = sliceAddress.GetInstance()->GetInstantiated()->m_entities;
-
-            // If the entity ownership service was loaded from a stream and Ids were remapped, fix up entity Ids in that slice that
-            // point to entities in the stream (i.e. level entities).
-            if (!GetLoadedEntityIdMap().empty())
-            {
-                AZ::EntityUtils::SerializableEntityContainer instanceEntities;
-                instanceEntities.m_entities = entities;
-                AZ::IdUtils::Remapper<AZ::EntityId>::RemapIds(&instanceEntities,
-                    [this](const AZ::EntityId& originalId, bool isEntityId, const AZStd::function<AZ::EntityId()>&) -> AZ::EntityId
+            AZ::EntityUtils::SerializableEntityContainer instanceEntities;
+            instanceEntities.m_entities = entities;
+            AZ::IdUtils::Remapper<AZ::EntityId>::RemapIds(&instanceEntities,
+                [this](const AZ::EntityId& originalId, bool isEntityId, const AZStd::function<AZ::EntityId()>&) -> AZ::EntityId
                 {
                     if (!isEntityId)
                     {
@@ -203,22 +242,36 @@ namespace AzFramework
                     return originalId;
 
                 }, GetSerializeContext(), false);
-            }
+        }
 
-            // Set initial transform for slice root entity based on the requested root transform for the instance.
-            for (AZ::Entity* entity : entities)
+        // Set initial transform for slice root entity based on the requested root transform for the instance.
+        for (AZ::Entity* entity : entities)
+        {
+            auto* transformComponent = entity->FindComponent<AzFramework::TransformComponent>();
+            if (transformComponent)
             {
-                auto* transformComponent = entity->FindComponent<AzFramework::TransformComponent>();
-                if (transformComponent)
+                // Non-root entities will be positioned relative to their parents.
+                if (!transformComponent->GetParentId().IsValid())
                 {
-                    // Non-root entities will be positioned relative to their parents.
-                    if (!transformComponent->GetParentId().IsValid())
-                    {
-                        // Note: Root slice entity always has translation at origin, so this maintains scale & rotation.
-                        transformComponent->SetWorldTM(instantiating.m_transform * transformComponent->GetWorldTM());
-                    }
+                    // Note: Root slice entity always has translation at origin, so this maintains scale & rotation.
+                    transformComponent->SetWorldTM(instantiating.m_transform * transformComponent->GetWorldTM());
                 }
             }
+        }
+    }
+
+    //=========================================================================
+    // SliceInstantiationResultBus::OnSlicePreInstantiate
+    //=========================================================================
+    void SliceGameEntityOwnershipService::OnSlicePreInstantiate(const AZ::Data::AssetId& /*sliceAssetId*/, const AZ::SliceComponent::SliceInstanceAddress& sliceAddress)
+    {
+        const SliceInstantiationTicket ticket = *SliceInstantiationResultBus::GetCurrentBusId();
+
+        auto instantiatingIter = m_instantiatingDynamicSlices.find(ticket);
+        if (instantiatingIter != m_instantiatingDynamicSlices.end())
+        {
+            InstantiatingDynamicSliceInfo& instantiating = instantiatingIter->second;
+            OnSlicePreInstantiate(instantiating, sliceAddress);
         }
     }
 

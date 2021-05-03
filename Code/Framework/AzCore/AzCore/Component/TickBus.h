@@ -178,6 +178,11 @@ namespace AZ
          * Gets the time in seconds since the epoch.
          */
         virtual ScriptTimePoint GetTimeAtCurrentTick() = 0;
+
+        /**
+         * Gets the ID of the thread which executes tick events. This thread is also called the "main" thread.
+         */
+        virtual AZStd::thread_id GetTickThreadId() = 0;
     };
 
     /**

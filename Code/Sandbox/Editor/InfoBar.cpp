@@ -157,7 +157,8 @@ CInfoBar::CInfoBar(QWidget* parent)
 
     SetSpeedComboBox(cameraMoveSpeed);
 
-    ui->m_moveSpeed->setInsertPolicy(QComboBox::NoInsert);
+    ui->m_moveSpeed->setInsertPolicy(QComboBox::InsertAtBottom);
+    ui->m_moveSpeed->setDuplicatesEnabled(false);
 
     using namespace AzToolsFramework::ComponentModeFramework;
     EditorComponentModeNotificationBus::Handler::BusConnect(AzToolsFramework::GetEntityContextId());

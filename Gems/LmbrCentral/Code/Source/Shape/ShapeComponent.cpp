@@ -13,9 +13,14 @@
 #include "LmbrCentral_precompiled.h"
 #include <AzCore/RTTI/BehaviorContext.h>
 #include <LmbrCentral/Shape/ShapeComponentBus.h>
+#include <AzCore/Math/Random.h>
 
 namespace LmbrCentral
 {
+    struct RandomDistributionType_Holder {
+        AZ_TYPE_INFO(RandomDistributionType_Holder, "{EB7145DF-4DE4-4DED-A440-7401B379A686}");
+    };
+
     // BehaviorConext ShapeComponentNotificationsBus forwarder
     class BehaviorShapeComponentNotificationsBusHandler : public ShapeComponentNotificationsBus::Handler, public AZ::BehaviorEBusHandler
     {
@@ -42,6 +47,13 @@ namespace LmbrCentral
                 ->Event("DistanceFromPoint", &ShapeComponentRequestsBus::Events::DistanceFromPoint)
                 ->Event("DistanceSquaredFromPoint", &ShapeComponentRequestsBus::Events::DistanceSquaredFromPoint)
                 ->Event("GetEncompassingAabb", &ShapeComponentRequestsBus::Events::GetEncompassingAabb)
+                ->Event("IntersectRay", &ShapeComponentRequestsBus::Events::IntersectRay)
+                ->Event("GenerateRandomPointInside", &ShapeComponentRequestsBus::Events::GenerateRandomPointInside)
+                ;
+
+            behaviorContext->Class<RandomDistributionType_Holder>("RandomDistributionType")
+                ->Constant("Normal", BehaviorConstant(AZ::RandomDistributionType::Normal))
+                ->Constant("UniformReal", BehaviorConstant(AZ::RandomDistributionType::UniformReal))
                 ;
 
             behaviorContext->Enum<(int)ShapeComponentNotifications::ShapeChangeReasons::TransformChanged>("ShapeChangeReasons_TransformChanged")

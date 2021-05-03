@@ -1147,6 +1147,59 @@ namespace AZ
     //=========================================================================
     // SliceComponent::SliceReference::InstantiateInstance
     //=========================================================================
+    namespace {
+        struct ParentsSet {
+            // Only stores a key iff that key has a parent key
+            AZStd::unordered_set<AZ::EntityId> parents;
+
+            static AZ::Outcome<AZ::EntityId, void> GetParentMb(AZ::Entity* ent) {
+                // Find either a TransformComponent or an EditorTransformComponent
+                AZ::Component* tm = ent->FindComponent(AZ::TransformComponentTypeId);
+                if (!tm) { tm = ent->FindComponent(AZ::EditorTransformComponentTypeId); }
+                if (!tm) { return AZ::Failure(); }
+
+                // Cast the component to AZ::TransformInterface
+                AZ::TransformInterface* tmImpl = azrtti_cast<AZ::TransformInterface*>(tm);
+                if (!tmImpl) { return AZ::Failure(); }
+
+                auto parentId = tmImpl->GetParentId();
+                if (parentId.IsValid()) {
+                    return AZ::Success(parentId);
+                } else {
+                    return AZ::Failure();
+                }
+            }
+
+            ParentsSet(const AZStd::vector<AZ::Entity*>& ents) {
+                // All parents must come from the given set of entities
+                AZStd::unordered_set<AZ::EntityId> parentCands;
+                for (auto ent : ents) { parentCands.insert(ent->GetId()); };
+
+                for (auto ent : ents) {
+                    auto mbParent = GetParentMb(ent);
+                    if (mbParent.IsSuccess()) {
+                        // If this entity has a parent ID...
+                        auto parentId = mbParent.GetValue();
+                        if (parentCands.find(parentId) != parentCands.end()) {
+                            // and that parent ID is one of the other entities, insert this entity in the 'has parent' set
+                            parents.insert(ent->GetId());
+                        }
+                    }
+                }
+            }
+
+            // Returns the keys which have parents in this set but not in the other set
+            AZStd::unordered_set<AZ::EntityId> Diff(const ParentsSet& o) const {
+                AZStd::unordered_set<AZ::EntityId> ret;
+                for (auto thisIt = parents.begin(); thisIt != parents.end(); thisIt++) {
+                    auto otherIt = o.parents.find(*thisIt);
+                    if (otherIt == o.parents.end()) { ret.insert(*thisIt); }
+                }
+                return ret;
+            }
+        };
+    }
+
     void SliceComponent::SliceReference::InstantiateInstance(SliceInstance& instance, const AZ::ObjectStream::FilterDescriptor& filterDesc)
     {
         AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzCore);
@@ -1189,6 +1242,30 @@ namespace AZ
             DataPatch::FlagsMap targetDataFlags = instance.GetDataFlags().GetDataFlagsForPatching(&instance.GetEntityIdToBaseMap());
 
             instance.m_instantiated = dataPatch.Apply(&sourceObjects, dependentSlice->GetSerializeContext(), filterDesc, sourceDataFlags, targetDataFlags);
+
+            // If applying the data flags the source objects results in entity deletions, then
+            // do an additional check in case the deleted entities were those which have children -
+            // we should also delete children in that case.
+            // NB: This should likely be handled by DataPatch::Apply
+            {
+                ParentsSet outParents(instance.m_instantiated->m_entities);
+                ParentsSet srcParents(sourceObjects.m_entities);
+
+                auto diff = srcParents.Diff(outParents);
+                if (!diff.empty())
+                {
+                    auto& ents = instance.m_instantiated->m_entities;
+                    for (auto entIt = ents.begin(); entIt != ents.end(); )
+                    {
+                        auto entId = (*entIt)->GetId();
+                        if (diff.find(entId) != diff.end()) {
+                            entIt = ents.erase(entIt);
+                        } else {
+                            entIt++;
+                        }
+                    }
+                }
+            }
 
             if (!instance.m_instantiated)
             {

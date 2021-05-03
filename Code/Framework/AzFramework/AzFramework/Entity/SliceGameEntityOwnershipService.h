@@ -36,6 +36,9 @@ namespace AzFramework
         // SliceGameEntityOwnershipServiceRequestBus::Handler
         SliceInstantiationTicket InstantiateDynamicSlice(const AZ::Data::Asset<AZ::Data::AssetData>& sliceAsset,
             const AZ::Transform& worldTransform, const AZ::IdUtils::Remapper<AZ::EntityId>::IdMapper& customIdMapper) override;
+        AZ::SliceComponent::SliceInstanceAddress InstantiateDynamicSliceBlocking(const AZ::Data::Asset<AZ::Data::AssetData>& /*sliceAsset*/,
+            const AZ::Transform& /*worldTransform*/, const AZ::IdUtils::Remapper<AZ::EntityId>::IdMapper& /*customIdMapper*/,
+            const AZStd::function<void(const AZ::SliceComponent::SliceInstanceAddress&)>& /*preInstantiate*/) override;
         void CancelDynamicSliceInstantiation(const SliceInstantiationTicket& ticket) override;
         bool DestroyDynamicSliceByEntity(const AZ::EntityId&) override;
         //////////////////////////////////////////////////////////////////////////
@@ -64,6 +67,8 @@ namespace AzFramework
             AZ::Data::Asset<AZ::Data::AssetData> m_asset;
             AZ::Transform m_transform;
         };
+
+        void OnSlicePreInstantiate(const InstantiatingDynamicSliceInfo& sliceInfo, const AZ::SliceComponent::SliceInstanceAddress& instance);
 
         AZStd::unordered_map<SliceInstantiationTicket, InstantiatingDynamicSliceInfo> m_instantiatingDynamicSlices;
 

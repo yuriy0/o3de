@@ -19,6 +19,7 @@
 #include <EMotionFX/Source/AnimGraphSnapshot.h>
 #include <EMotionFX/Source/BaseObject.h>
 #include <EMotionFX/Source/EMotionFXConfig.h>
+#include <EMotionFX/Source/AnimGraphPlaySpeedModifier_fwd.h>
 #include <MCore/Source/Attribute.h>
 #include <MCore/Source/Array.h>
 #include <MCore/Source/Random.h>
@@ -42,6 +43,8 @@ namespace EMotionFX
     class AnimGraphInstanceEventHandler;
     class AnimGraphObjectData;
     class AnimGraphNodeData;
+    class AnimGraphInstance;
+    class AnimGraphPlaySpeedModifier;
 
     /**
      * The anim graph instance class.
@@ -279,6 +282,8 @@ namespace EMotionFX
         const InitSettings& GetInitSettings() const;
         const AnimGraphEventBuffer& GetEventBuffer() const;
 
+        AnimGraphPlaySpeedModifierPtr AddPlayspeedModifier(float mod);
+
         void AddFollowerGraph(AnimGraphInstance* follower, bool registerLeaderInsideFollower);
         void RemoveFollowerGraph(AnimGraphInstance* follower, bool removeLeaderFromFollower);
         AZStd::vector<AnimGraphInstance*>& GetFollowerGraphs();
@@ -302,6 +307,8 @@ namespace EMotionFX
         void ReleasePoses();
 
     private:
+        void RemovePlayspeedModifier(AnimGraphPlaySpeedModifier* mod);
+
         AnimGraph*                                          mAnimGraph;
         ActorInstance*                                      mActorInstance;
         AnimGraphInstance*                                  m_parentAnimGraphInstance; // If this anim graph instance is in a reference node, it will have a parent anim graph instance.
@@ -320,6 +327,8 @@ namespace EMotionFX
         bool                                                mAutoUnregister;        /**< Specifies whether we will automatically unregister this anim graph instance set from the anim graph manager or not, when deleting this object. */
         bool                                                mEnableVisualization;
         bool                                                mRetarget;              /**< Is retargeting enabled? */
+        AZStd::vector<AnimGraphPlaySpeedModifier*>          mPlaySpeedModifiers;
+        MCore::Mutex                                        mPlaySpeedModifiersMutex;
 
         bool                                                m_autoReleaseAllPoses;
         bool                                                m_autoReleaseAllRefDatas;

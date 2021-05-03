@@ -328,7 +328,7 @@ namespace EMotionFX
             }
 
             // In case the event buffer is nullptr, we update the time values to stay in sync without emitting events.
-            motionInstance->UpdateByTimeValues(motionInfo.m_preSyncTime, motionInfo.m_currentTime, eventBuffer);
+            motionInstance->UpdateByTimeValues(motionInfo.m_preSyncTime, motionInfo.m_currentTime, eventBuffer, animGraphInstance);
         }
 
         if (eventFilterMode == BSEVENTMODE_NONE)

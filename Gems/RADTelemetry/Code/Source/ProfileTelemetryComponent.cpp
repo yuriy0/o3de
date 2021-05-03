@@ -275,7 +275,7 @@ namespace RADTelemetry
 
         tmSetMaxThreadCount(MaxProfileThreadCount);
 
-        const tm_int32 telemetryBufferSize = 16 * 1024 * 1024;
+        const tm_int32 telemetryBufferSize = 256 * 1024 * 1024; // 256 MB
         m_buffer = static_cast<char*>(AZ_OS_MALLOC(telemetryBufferSize, sizeof(void*)));
         tmInitialize(telemetryBufferSize, m_buffer);
 

@@ -108,7 +108,6 @@ namespace AzToolsFramework
         m_sourceNode = nullptr;
         m_isContainer = false;
         m_isMultiSizeContainer = false;
-        m_isFixedSizeOrSmartPtrContainer = false;
         m_isSelected = false;
         m_selectionEnabled = false;
         m_readOnly = false;
@@ -154,7 +153,6 @@ namespace AzToolsFramework
         m_hadChildren = false;
         m_handler = nullptr;
         m_isMultiSizeContainer = false;
-        m_isFixedSizeOrSmartPtrContainer = false;
         if (m_selectionEnabled) 
         {
             SetSelected(false);
@@ -244,18 +242,24 @@ namespace AzToolsFramework
         m_forbidExpansion = false;
         m_containerEditable = false;
         m_isMultiSizeContainer = false;
-        m_isFixedSizeOrSmartPtrContainer = false;
         m_containerSize = 0;
+        m_isFixedSizeContainer = false;
+        bool containerAtCapacity = false;
 
         auto* container = (dataNode && dataNode->GetClassMetadata()) ? dataNode->GetClassMetadata()->m_container : nullptr;
         if (container)
         {
             m_isContainer = true;
-            m_containerEditable = !container->IsFixedSize() || container->IsSmartPointer();
-            m_isFixedSizeOrSmartPtrContainer = container->IsFixedSize() || container->IsSmartPointer();
+            m_containerEditable = true;
+            m_isFixedSizeContainer = container->IsFixedSize() && !container->IsSmartPointer();
 
             AZStd::size_t numElements = container->Size(dataNode->GetInstance(0));
             m_containerSize = AZStd::GetMax(m_containerSize, (int)numElements);
+
+            // If the container does not have a fixed size, and its capacity is set (i.e. non-zero), then its maximum size is the capacity.
+            // If the maximum size is the current size, the container is at capacity and we should not permit adding any more elements
+            auto containerCapacity = container->Capacity(dataNode->GetInstance(0));
+            containerAtCapacity = !container->IsFixedSize() && containerCapacity > 0 && m_containerSize == containerCapacity;
 
             for (AZStd::size_t pos = 1; pos < dataNode->GetNumInstances(); ++pos)
             {
@@ -330,13 +334,9 @@ namespace AzToolsFramework
         {
             createContainerButtons();
             // add those extra controls on the right hand side
-            m_containerClearButton->setVisible(m_containerEditable && !m_isFixedSizeOrSmartPtrContainer);
-            m_containerAddButton->setVisible(m_containerEditable && !m_isMultiSizeContainer && !m_isFixedSizeOrSmartPtrContainer);
-
-            if (m_isMultiSizeContainer)
-            {
-                m_containerAddButton->hide();
-            }
+            m_containerClearButton->setVisible(m_containerEditable && !m_isFixedSizeContainer);
+            m_containerAddButton->setVisible(m_containerEditable && !m_isMultiSizeContainer && !m_isFixedSizeContainer);
+            m_containerAddButton->setEnabled(!containerAtCapacity);
 
             if (m_containerSize > 0)
             {
@@ -365,7 +365,7 @@ namespace AzToolsFramework
                 m_elementRemoveButton->setDisabled(m_readOnly);
                 m_rightHandSideLayout->insertWidget(m_rightHandSideLayout->count(), m_elementRemoveButton);
                 connect(m_elementRemoveButton, &QToolButton::clicked, this, &PropertyRowWidget::OnClickedRemoveElementButton);
-                m_elementRemoveButton->setVisible(!m_parentRow->m_isFixedSizeOrSmartPtrContainer);
+                m_elementRemoveButton->setVisible(!m_parentRow->m_isFixedSizeContainer);
             }
         }
         else
@@ -489,41 +489,63 @@ namespace AzToolsFramework
                     {
                         m_defaultLabel->setText("(DIFFERING SIZES)");
                     }
-                    else if (dataNode->GetClassMetadata()->m_container->IsSmartPointer())
+                    else if (dataNode->GetClassMetadata()->m_container->IsSmartPointer()
+                            && dataNode->GetElementMetadata()
+                            && dataNode->GetElementMetadata()->m_genericClassInfo)
                     {
                         auto classElement = dataNode->GetElementMetadata();
                         auto genericClassInfo = classElement->m_genericClassInfo;
                         AZ::SerializeContext::IDataContainer* container = dataNode->GetClassMetadata()->m_container;
-                        if (genericClassInfo->GetNumTemplatedArguments() == 1)
-                        {
-                            void* ptrAddress = dataNode->GetInstance(0);
-                            void* ptrValue = container->GetElementByIndex(ptrAddress, classElement, 0);
-                            AZ::Uuid pointeeType;
-                            // If the pointer is non-null, find the polymorphic type info
-                            if (ptrValue)
-                            {
-                                auto ptrClassElement = container->GetElement(container->GetDefaultElementNameCrc());
-                                pointeeType = (ptrClassElement && ptrClassElement->m_azRtti && ptrClassElement->m_azRtti->ProvidesFullRtti()) ? 
-                                    ptrClassElement->m_azRtti->GetActualUuid(ptrValue) : genericClassInfo->GetTemplatedTypeId(0);
-                            }
-                            else
-                            {
-                                pointeeType = genericClassInfo->GetTemplatedTypeId(0);
-                            }
 
-                            auto elementClassData = dataNode->GetSerializeContext()->FindClassData(pointeeType);
-                            AZ_Assert(elementClassData, "No class data found for type %s", pointeeType.ToString<AZStd::string>().c_str());
-                            QString displayName = elementClassData->m_editData ? elementClassData->m_editData->m_name : elementClassData->m_name;
-                            if (!ptrValue)
+                        // Get the element type
+                        AZStd::optional<AZ::TypeId> pointeeType;
+                        container->EnumElements(dataNode->GetInstance(0),
+                            [&](void* elementPtr, const AZ::Uuid& elementType, const auto*, const AZ::SerializeContext::ClassElement* ce) {
+                                if (ce && ce->m_azRtti && (ce->m_flags & AZ::SerializeContext::ClassElement::FLG_POINTER))
+                                {
+                                    // In pointer types, element pointer is pointer-to-pointer. Get real dynamic type based on static type RTTI
+                                    void* ptrValue = *reinterpret_cast<void**>(elementPtr);
+                                    pointeeType = (ce->m_azRtti->ProvidesFullRtti()) ?
+                                        ce->m_azRtti->GetActualUuid(ptrValue) : genericClassInfo->GetTemplatedTypeId(0);
+                                }
+                                else
+                                {
+                                    // Non pointer type: use specified type
+                                    pointeeType = elementType;
+                                }
+                                return false; // Only look at the first element
+                            });
+
+                        // Empty container: use the type of the single template argument, if present.
+                        if (!pointeeType && genericClassInfo->GetNumTemplatedArguments() == 1)
+                        {
+                            pointeeType = genericClassInfo->GetTemplatedTypeId(0);
+                        }
+
+                        AZStd::string displayName;
+                        // Get the display name of the element type
+                        if (pointeeType)
+                        {
+                            auto elementClassData = dataNode->GetSerializeContext()->FindClassData(*pointeeType);
+                            AZ_Assert(elementClassData, "No class data found for type %s", pointeeType->ToString<AZStd::string>().c_str());
+                            displayName =
+                                elementClassData
+                                ? elementClassData->m_editData ? elementClassData->m_editData->m_name : elementClassData->m_name
+                                : ""
+                                ;
+                            if (m_containerSize == 0)
                             {
                                 displayName += " (empty)";
                             }
-                            m_defaultLabel->setText(displayName);
+
+                            m_defaultLabel->setText(QString(displayName.c_str()));
                         }
                         else
                         {
-                            m_defaultLabel->setText(QString("%1 elements").arg(m_containerSize));
+                            displayName = m_containerSize == 0 ? "(empty)" : AZStd::string::format("%d elements", m_containerSize);
                         }
+
+                        m_defaultLabel->setText(QString(displayName.c_str()));
                     }
                     else
                     {
@@ -1070,7 +1092,12 @@ namespace AzToolsFramework
             {
                 m_dropDownArrow->hide();
             }
-            m_indent->changeSize((m_treeDepth * m_treeIndentation) + m_leafIndentation, 1, QSizePolicy::Fixed, QSizePolicy::Fixed);
+            m_indent->changeSize((m_treeDepth * m_treeIndentation)
+                // APC Begin
+                // This wastes valuable vertical space just to align childless rows with the vertical line where rows with children begin
+                //+ m_leafIndentation
+                // APC End
+                , 1, QSizePolicy::Fixed, QSizePolicy::Fixed);
             m_leftHandSideLayout->invalidate();
             m_leftHandSideLayout->update();
             m_leftHandSideLayout->activate();

@@ -20,6 +20,7 @@ set(FILES
     AzCoreModule.cpp
     Asset/AssetCommon.cpp
     Asset/AssetCommon.h
+    Asset/AssetBusImpl.h
     Asset/AssetContainer.cpp
     Asset/AssetContainer.h
     Asset/AssetDataStream.cpp
@@ -110,6 +111,7 @@ set(FILES
     Debug/ProfilerDriller.cpp
     Debug/ProfilerDriller.h
     Debug/ProfilerDrillerBus.h
+    Debug/ProfilerAccumulationZones.h
     Debug/StackTracer.h
     Debug/EventTrace.h
     Debug/EventTrace.cpp
@@ -467,6 +469,8 @@ set(FILES
     Script/ScriptPropertyWatcherBus.h
     Script/ScriptDebug.cpp
     Script/ScriptDebug.h
+    Script/ScriptValueRef.cpp
+    Script/ScriptValueRef.h
     ScriptCanvas/ScriptCanvasAttributes.h
     ScriptCanvas/ScriptCanvasOnDemandNames.cpp
     ScriptCanvas/ScriptCanvasOnDemandNames.h
@@ -476,6 +480,8 @@ set(FILES
     Serialization/DataOverlayProviderMsgs.h
     Serialization/AZStdContainers.inl
     Serialization/AZStdAnyDataContainer.inl
+    Serialization/ClassSelectionParameters.h
+    Serialization/ClassSelectionParameters.cpp
     Serialization/DynamicSerializableField.cpp
     Serialization/DynamicSerializableField.h
     Serialization/EditContext.cpp

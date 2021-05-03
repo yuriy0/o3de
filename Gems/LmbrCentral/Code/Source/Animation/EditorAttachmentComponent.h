@@ -91,6 +91,9 @@ namespace LmbrCentral
         //! Observe scale information from the specified source.       
         AttachmentConfiguration::ScaleSource m_scaleSource = AttachmentConfiguration::ScaleSource::WorldScale;
 
+        //! Observe rotation information from the specified source.      
+        AttachmentConfiguration::ScaleSource m_rotationSource = AttachmentConfiguration::ScaleSource::TargetBoneScale;
+
         //! Whether to attach to target upon activation.
         //! If false, the entity remains detached until Attach() is called.
         bool m_attachedInitially = true;

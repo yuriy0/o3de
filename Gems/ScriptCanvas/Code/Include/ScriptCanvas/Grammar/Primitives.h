@@ -189,6 +189,9 @@ namespace ScriptCanvas
             // Statics required for internal, local values that need non-code constructible initialization,
             // when the system can't pass in the input from C++.
             AZStd::vector<AZStd::pair<VariableId, AZStd::any>> m_staticVariables;
+
+            // Metadata relating editor graph variables to runtime graph variables
+            Grammar::RuntimeVariableInfo m_runtimeVariableInfo;
         };
 
         struct PropertyExtraction
@@ -245,6 +248,17 @@ namespace ScriptCanvas
             AZStd::unordered_map<AZStd::string, AZ::s32> m_baseNameToCount;
 
             AZ::s32 AddNameCount(AZStd::string_view name);
+        };
+
+        struct VariableSourceInfo
+        {
+            AZ_TYPE_INFO(VariableSourceInfo, "{CBE886FE-D696-4759-9AF4-A3907735939F}");
+            AZ_CLASS_ALLOCATOR(VariableSourceInfo, AZ::SystemAllocator, 0);
+
+            static void Reflect(AZ::ReflectContext* reflectContext);
+
+            AZStd::string m_name;
+            AZ::TypeId m_type;
         };
 
         struct Variable

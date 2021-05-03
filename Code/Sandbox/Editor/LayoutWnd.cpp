@@ -440,152 +440,152 @@ void CLayoutWnd::CreateLayout(EViewLayout layout, bool bBindViewports, EViewport
     }
     else
     {
-        switch (layout)
+    switch (layout)
+    {
+    case ET_Layout0:
+        m_viewType[0] = ViewportTypeToClassName(defaultView);
+        if (bBindViewports)
         {
-        case ET_Layout0:
-            m_viewType[0] = ViewportTypeToClassName(defaultView);
-            if (bBindViewports)
-            {
-                MaximizeViewport(0);
-            }
-            break;
-
-        case ET_Layout1:
-            m_splitWnd = new CLayoutSplitter(this);
-            m_splitWnd->setOrientation(Qt::Horizontal);
-    #ifdef FEATURE_ORTHOGRAPHIC_VIEW
-            CreateLayoutView(m_splitWnd, 0, 0, 2, ET_ViewportXY);
-    #else
-            CreateLayoutView(m_splitWnd, 0, 0, 2, ET_ViewportCamera);
-    #endif
-            CreateLayoutView(m_splitWnd, 0, 1, 1, defaultView);
-            break;
-        case ET_Layout2:
-            m_splitWnd = new CLayoutSplitter(this);
-            m_splitWnd->setOrientation(Qt::Vertical);
-    #ifdef FEATURE_ORTHOGRAPHIC_VIEW
-            CreateLayoutView(m_splitWnd, 0, 0, 2, ET_ViewportXY);
-    #else
-            CreateLayoutView(m_splitWnd, 0, 0, 2, ET_ViewportCamera);
-    #endif
-            CreateLayoutView(m_splitWnd, 1, 0, 1, defaultView);
-            break;
-
-        case ET_Layout3:
-            m_splitWnd = new CLayoutSplitter(this);
-            m_splitWnd->setOrientation(Qt::Horizontal);
-            CreateLayoutView(m_splitWnd, 0, 1, 1, defaultView);
-
-            m_splitWnd2 = new CLayoutSplitter;
-            m_splitWnd2->setOrientation(Qt::Vertical);
-            m_splitWnd->insertWidget(0, m_splitWnd2);
-    #ifdef FEATURE_ORTHOGRAPHIC_VIEW
-            CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportXY);
-            CreateLayoutView(m_splitWnd2, 1, 0, 3, ET_ViewportXZ);
-    #else
-            CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportCamera);
-            CreateLayoutView(m_splitWnd2, 1, 0, 3, ET_ViewportCamera);
-    #endif
-            break;
-
-        case ET_Layout4:
-            m_splitWnd = new CLayoutSplitter(this);
-            m_splitWnd->setOrientation(Qt::Horizontal);
-            CreateLayoutView(m_splitWnd, 0, 0, 1, defaultView);
-
-            m_splitWnd2 = new CLayoutSplitter;
-            m_splitWnd2->setOrientation(Qt::Vertical);
-            m_splitWnd->insertWidget(1, m_splitWnd2);
-    #ifdef FEATURE_ORTHOGRAPHIC_VIEW
-            CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportXY);
-            CreateLayoutView(m_splitWnd2, 1, 0, 3, ET_ViewportXZ);
-    #else
-            CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportCamera);
-            CreateLayoutView(m_splitWnd2, 1, 0, 3, ET_ViewportCamera);
-    #endif
-            break;
-
-        case ET_Layout5:
-            m_splitWnd = new CLayoutSplitter(this);
-            m_splitWnd->setOrientation(Qt::Vertical);
-            CreateLayoutView(m_splitWnd, 1, 0, 1, defaultView);
-
-            m_splitWnd2 = new CLayoutSplitter;
-            m_splitWnd2->setOrientation(Qt::Horizontal);
-            m_splitWnd->insertWidget(0, m_splitWnd2);
-    #ifdef FEATURE_ORTHOGRAPHIC_VIEW
-            CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportXY);
-            CreateLayoutView(m_splitWnd2, 0, 1, 3, ET_ViewportXZ);
-    #else
-            CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportCamera);
-            CreateLayoutView(m_splitWnd2, 0, 1, 3, ET_ViewportCamera);
-    #endif
-            break;
-
-        case ET_Layout6:
-            m_splitWnd = new CLayoutSplitter(this);
-            m_splitWnd->setOrientation(Qt::Vertical);
-            CreateLayoutView(m_splitWnd, 0, 0, 1, defaultView);
-
-            m_splitWnd2 = new CLayoutSplitter;
-            m_splitWnd->insertWidget(1, m_splitWnd2);
-    #ifdef FEATURE_ORTHOGRAPHIC_VIEW
-            CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportXY);
-            CreateLayoutView(m_splitWnd2, 0, 1, 3, ET_ViewportXZ);
-    #else
-            CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportCamera);
-            CreateLayoutView(m_splitWnd2, 0, 1, 3, ET_ViewportCamera);
-    #endif
-            break;
-
-        case ET_Layout7:
-            m_splitWnd = new CLayoutSplitter(this);
-            m_splitWnd->setOrientation(Qt::Horizontal);
-            m_splitWnd2 = new CLayoutSplitter;
-            m_splitWnd2->setOrientation(Qt::Vertical);
-            m_splitWnd3 = new CLayoutSplitter;
-            m_splitWnd3->setOrientation(Qt::Vertical);
-            m_splitWnd->addWidget(m_splitWnd2);
-            m_splitWnd->addWidget(m_splitWnd3);
-    #ifdef FEATURE_ORTHOGRAPHIC_VIEW
-            CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportXZ);
-            CreateLayoutView(m_splitWnd3, 0, 1, 3, ET_ViewportYZ);
-            CreateLayoutView(m_splitWnd2, 1, 0, 4, ET_ViewportXY);
-    #else
-            CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportCamera);
-            CreateLayoutView(m_splitWnd3, 0, 1, 3, ET_ViewportCamera);
-            CreateLayoutView(m_splitWnd2, 1, 0, 4, ET_ViewportCamera);
-    #endif
-            CreateLayoutView(m_splitWnd3, 1, 1, 1, defaultView);
-            connect(m_splitWnd2, &QSplitter::splitterMoved, m_splitWnd3, &CLayoutSplitter::otherSplitterMoved);
-            connect(m_splitWnd3, &QSplitter::splitterMoved, m_splitWnd2, &CLayoutSplitter::otherSplitterMoved);
-            break;
-
-        case ET_Layout8:
-            m_splitWnd = new CLayoutSplitter(this);
-            m_splitWnd->setOrientation(Qt::Vertical);
-            CreateLayoutView(m_splitWnd, 1, 0, 1, defaultView);
-
-            m_splitWnd2 = new CLayoutSplitter;
-            m_splitWnd2->setOrientation(Qt::Horizontal);
-            m_splitWnd->insertWidget(0, m_splitWnd2);
-    #ifdef FEATURE_ORTHOGRAPHIC_VIEW
-            CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportXY);
-            CreateLayoutView(m_splitWnd2, 0, 1, 3, ET_ViewportXZ);
-            CreateLayoutView(m_splitWnd2, 0, 2, 4, ET_ViewportYZ);
-    #else
-            CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportCamera);
-            CreateLayoutView(m_splitWnd2, 0, 1, 3, ET_ViewportCamera);
-            CreateLayoutView(m_splitWnd2, 0, 2, 4, ET_ViewportCamera);
-    #endif
-            break;
-
-        default:
-            CLogFile::FormatLine("Trying to Create Unknown Layout %d", (int)layout);
-            QMessageBox::critical(this, QString(), tr("Trying to Create Unknown Layout"));
-            break;
+            MaximizeViewport(0);
         }
-        ;
+        break;
+
+    case ET_Layout1:
+        m_splitWnd = new CLayoutSplitter(this);
+        m_splitWnd->setOrientation(Qt::Horizontal);
+#ifdef FEATURE_ORTHOGRAPHIC_VIEW
+        CreateLayoutView(m_splitWnd, 0, 0, 2, ET_ViewportXY);
+#else
+        CreateLayoutView(m_splitWnd, 0, 0, 2, ET_ViewportCamera);
+#endif
+            CreateLayoutView(m_splitWnd, 0, 1, 1, defaultView);
+        break;
+    case ET_Layout2:
+        m_splitWnd = new CLayoutSplitter(this);
+        m_splitWnd->setOrientation(Qt::Vertical);
+#ifdef FEATURE_ORTHOGRAPHIC_VIEW
+        CreateLayoutView(m_splitWnd, 0, 0, 2, ET_ViewportXY);
+#else
+        CreateLayoutView(m_splitWnd, 0, 0, 2, ET_ViewportCamera);
+#endif
+            CreateLayoutView(m_splitWnd, 1, 0, 1, defaultView);
+        break;
+
+    case ET_Layout3:
+        m_splitWnd = new CLayoutSplitter(this);
+        m_splitWnd->setOrientation(Qt::Horizontal);
+            CreateLayoutView(m_splitWnd, 0, 1, 1, defaultView);
+
+        m_splitWnd2 = new CLayoutSplitter;
+        m_splitWnd2->setOrientation(Qt::Vertical);
+        m_splitWnd->insertWidget(0, m_splitWnd2);
+#ifdef FEATURE_ORTHOGRAPHIC_VIEW
+        CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportXY);
+        CreateLayoutView(m_splitWnd2, 1, 0, 3, ET_ViewportXZ);
+#else
+        CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportCamera);
+        CreateLayoutView(m_splitWnd2, 1, 0, 3, ET_ViewportCamera);
+#endif
+        break;
+
+    case ET_Layout4:
+        m_splitWnd = new CLayoutSplitter(this);
+        m_splitWnd->setOrientation(Qt::Horizontal);
+            CreateLayoutView(m_splitWnd, 0, 0, 1, defaultView);
+
+        m_splitWnd2 = new CLayoutSplitter;
+        m_splitWnd2->setOrientation(Qt::Vertical);
+        m_splitWnd->insertWidget(1, m_splitWnd2);
+#ifdef FEATURE_ORTHOGRAPHIC_VIEW
+        CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportXY);
+        CreateLayoutView(m_splitWnd2, 1, 0, 3, ET_ViewportXZ);
+#else
+        CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportCamera);
+        CreateLayoutView(m_splitWnd2, 1, 0, 3, ET_ViewportCamera);
+#endif
+        break;
+
+    case ET_Layout5:
+        m_splitWnd = new CLayoutSplitter(this);
+        m_splitWnd->setOrientation(Qt::Vertical);
+            CreateLayoutView(m_splitWnd, 1, 0, 1, defaultView);
+
+        m_splitWnd2 = new CLayoutSplitter;
+        m_splitWnd2->setOrientation(Qt::Horizontal);
+        m_splitWnd->insertWidget(0, m_splitWnd2);
+#ifdef FEATURE_ORTHOGRAPHIC_VIEW
+        CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportXY);
+        CreateLayoutView(m_splitWnd2, 0, 1, 3, ET_ViewportXZ);
+#else
+        CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportCamera);
+        CreateLayoutView(m_splitWnd2, 0, 1, 3, ET_ViewportCamera);
+#endif
+        break;
+
+    case ET_Layout6:
+        m_splitWnd = new CLayoutSplitter(this);
+        m_splitWnd->setOrientation(Qt::Vertical);
+            CreateLayoutView(m_splitWnd, 0, 0, 1, defaultView);
+
+        m_splitWnd2 = new CLayoutSplitter;
+        m_splitWnd->insertWidget(1, m_splitWnd2);
+#ifdef FEATURE_ORTHOGRAPHIC_VIEW
+        CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportXY);
+        CreateLayoutView(m_splitWnd2, 0, 1, 3, ET_ViewportXZ);
+#else
+        CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportCamera);
+        CreateLayoutView(m_splitWnd2, 0, 1, 3, ET_ViewportCamera);
+#endif
+        break;
+
+    case ET_Layout7:
+        m_splitWnd = new CLayoutSplitter(this);
+        m_splitWnd->setOrientation(Qt::Horizontal);
+        m_splitWnd2 = new CLayoutSplitter;
+        m_splitWnd2->setOrientation(Qt::Vertical);
+        m_splitWnd3 = new CLayoutSplitter;
+        m_splitWnd3->setOrientation(Qt::Vertical);
+        m_splitWnd->addWidget(m_splitWnd2);
+        m_splitWnd->addWidget(m_splitWnd3);
+#ifdef FEATURE_ORTHOGRAPHIC_VIEW
+        CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportXZ);
+        CreateLayoutView(m_splitWnd3, 0, 1, 3, ET_ViewportYZ);
+        CreateLayoutView(m_splitWnd2, 1, 0, 4, ET_ViewportXY);
+#else
+        CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportCamera);
+        CreateLayoutView(m_splitWnd3, 0, 1, 3, ET_ViewportCamera);
+        CreateLayoutView(m_splitWnd2, 1, 0, 4, ET_ViewportCamera);
+#endif
+            CreateLayoutView(m_splitWnd3, 1, 1, 1, defaultView);
+        connect(m_splitWnd2, &QSplitter::splitterMoved, m_splitWnd3, &CLayoutSplitter::otherSplitterMoved);
+        connect(m_splitWnd3, &QSplitter::splitterMoved, m_splitWnd2, &CLayoutSplitter::otherSplitterMoved);
+        break;
+
+    case ET_Layout8:
+        m_splitWnd = new CLayoutSplitter(this);
+        m_splitWnd->setOrientation(Qt::Vertical);
+            CreateLayoutView(m_splitWnd, 1, 0, 1, defaultView);
+
+        m_splitWnd2 = new CLayoutSplitter;
+        m_splitWnd2->setOrientation(Qt::Horizontal);
+        m_splitWnd->insertWidget(0, m_splitWnd2);
+#ifdef FEATURE_ORTHOGRAPHIC_VIEW
+        CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportXY);
+        CreateLayoutView(m_splitWnd2, 0, 1, 3, ET_ViewportXZ);
+        CreateLayoutView(m_splitWnd2, 0, 2, 4, ET_ViewportYZ);
+#else
+        CreateLayoutView(m_splitWnd2, 0, 0, 2, ET_ViewportCamera);
+        CreateLayoutView(m_splitWnd2, 0, 1, 3, ET_ViewportCamera);
+        CreateLayoutView(m_splitWnd2, 0, 2, 4, ET_ViewportCamera);
+#endif
+        break;
+
+    default:
+        CLogFile::FormatLine("Trying to Create Unknown Layout %d", (int)layout);
+        QMessageBox::critical(this, QString(), tr("Trying to Create Unknown Layout"));
+        break;
+    }
+    ;
     }
     if (m_splitWnd)
     {

@@ -1,0 +1,201 @@
+/*
+  Moment-based OIT technique is based on:
+
+    "Moment-Based Order-Independent Transparency", Cedrick Münstermann, Stefan Krumpen, Reinhard Klein, and Christoph Peters
+    https://cg.cs.uni-bonn.de/en/publications/paper-details/muenstermann2018-mboit/
+
+    and "Moment Shadow Mapping", Christoph Peters, and Reinhard Klein
+    https://cg.cs.uni-bonn.de/en/publications/paper-details/peters-2015-msm/
+
+    and "A Comparison of Rendering Techniques for 3D Line Sets with Transparency",
+    Michael Kern, Christoph Neuhauser, Torben Maack, Mengjiao Han, Will Usher, Rüdiger Westermann 
+
+  Code in this file is derived from:
+
+    https://github.com/chrismile/PixelSyncOIT
+    licensed under BSD2:
+    =================================================================
+BSD 2-Clause License
+
+Copyright (c) 2019, Christoph Neuhauser and Michael Kern
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+    =================================================================
+
+    http://momentsingraphics.de/MissingTMBOITCode.html
+    =================================================================
+    "Moment-Based Order-Independent Transparency" by Christoph Peters licensed under CC0, whose full license text is found here:
+    https://creativecommons.org/publicdomain/zero/1.0/
+
+    =================================================================
+
+  Modifications copyright 2021 Apocalypse Studios Inc., all rights reserved
+*/
+
+
+/*
+  Use a Cholesky decomposition to solve for q:
+
+  |   1; b_1 ; b_2 |       | 1       |
+  | b_1 ; b_2 ; b_3 | * q = | z_0     |
+  | b_2 ; b_3 ; b_4 |       | z_0 ^ 2 |
+
+*/
+float3 Hamburger_4P_Cholesky_decomposition_Hankel(float4 b, float z_0)
+{
+    // Compute a Cholesky factorization of the Hankel matrix B storing only non-
+    // trivial entries or related products
+    float L21D11 = mad(-b[0], b[1], b[2]);
+    float D11    = mad(-b[0], b[0], b[1]);
+    float InvD11 = 1.0 / D11;
+    float L21    = L21D11 * InvD11;
+    float SquaredDepthVariance = mad(-b[1],b[1], b[3]);
+    float D22    = mad(-L21D11, L21, SquaredDepthVariance);
+
+    // Obtain a scaled inverse image of bz=(1,z[0],z[0]*z[0])^T
+    float3 c = float3(1.0f,z_0,z_0*z_0);
+    // Forward substitution to solve L*c1=bz
+    c[1] -= b.x;
+    c[2] -= b.y + L21 * c[1];
+    // Scaling to solve D*c2=c1
+    c[1] *= InvD11;
+    c[2] /= D22;
+    // Backward substitution to solve L^T*c3=c2
+    c[1] -= L21*c[2];
+    c[0] -= dot(c.yz, b.xy);
+
+    return c;
+}
+
+/*
+  Solve for real roots of:
+  coeff[0] + coeff[1] * x + coeff[2] * z ^ 2 = 0
+*/
+float2 SolveQuadraticEquation(float3 coeff)
+{
+    float InvC2 = 1.0f / coeff[2];
+    float p = coeff[1] * InvC2;
+    float q = coeff[0] * InvC2;
+    float D = (p * p * 0.25f) - q;
+    float r = sqrt(D);
+    float H = -p * 0.5f;
+
+    return float2(H - r, H + r);
+}
+
+/*
+  Use divided differences to solve a Vandermonde system for u:
+
+  | 1  ;  z_0  ;  z_0 ^ 2 |       | v_0 |
+  | 1  ;  z_1  ;  z_1 ^ 2 | * u = | v_1 |
+  | 1  ;  z_2  ;  z_2 ^ 2 |       | v_2 |
+*/
+float3 Hamburger_4P_Vandermonde(float3 z, float3 v)
+{
+    float f01  = (v[1] - v[0]) / (z[1] - z[0]);
+    float f12  = (v[2] - v[1]) / (z[2] - z[1]);
+    float f012 = (f12  - f01 ) / (z[2] - z[0]);
+    float p0   = f01 - f012 * z[1];
+    return float3(
+        v[0] - p0 * z[0],
+        p0 - f012 * z[0],
+        f012
+    );
+}
+
+// Algorithm 1 specialized for `m=4' from "Moment-Based Order-Independent Transparency"
+// b_{0} is assumed to be 1 (normalize `b' before calling this function)
+float Hamburger_4P(float4 b, float depth, float bias, float overestimation, float4 bias_vector)
+{
+    // Apply bias to power moments
+    b = lerp(b, bias_vector, bias);
+
+    /*
+      Use a Cholesky decomposition to solve for q:
+
+      | b_0 ; b_1 ; b_2 |       | 1       |
+      | b_1 ; b_2 ; b_3 | * q = | z_0     |
+      | b_2 ; b_3 ; b_4 |       | z_0 ^ 2 |
+
+      Note that `b' is `(b_1, b_2, b_3, b_4)',
+      and `depth' is `z_0'
+     */
+    const float3 q = Hamburger_4P_Cholesky_decomposition_Hankel(b, depth);
+
+    /*
+      Solve for z:
+         q_0 + q_1 * z + q_2 * z ^ 2 = 0
+
+      Note that this has two real roots, which are called `z_1', `z_2'
+      and `z_0' is defined as `depth'
+     */
+    float3 z;
+    z.x = depth;
+    z.yz = SolveQuadraticEquation(q);
+
+    /*
+      Set v as follows:
+        v_0 = overestimation
+        v_1 = B-->R(z_1 < z_0)
+        v_2 = B-->R(z_2 < z_0)
+      where B-->R(x) = x ? 1 : 0
+     */
+
+    const float3 v = float3(
+        overestimation,
+        (z[1] < z[0]) ? 1.0f : 0.0f,
+        (z[2] < z[0]) ? 1.0f : 0.0f
+    );
+
+    /*
+      Use divided differences to solve a Vandermonde system for u:
+
+      | 1  ;  z_0  ;  z_0 ^ 2 |       | v_0 |
+      | 1  ;  z_1  ;  z_1 ^ 2 | * u = | v_1 |
+      | 1  ;  z_2  ;  z_2 ^ 2 |       | v_2 |
+     */
+    float3 u = Hamburger_4P_Vandermonde(z, v);
+
+    /*
+      Return
+        b_0 * u_0 + b_1 * u_1 + b_2 * u_2
+      i.e.
+        dot(b, u)
+     */
+
+    return dot(float3(1.0, b[0], b[1]), u);
+}
+
+/*
+  Compute the transmittance as:
+    T = exp(-Hamburger(b/b_0,depth)*b_0)
+
+  where b_0 is the total optical depth
+        b are four power moments
+        depth is the depth of the fragment whose transmittance you want to find
+*/
+float GetTransmittanceAtDepth_4P(float b_0, float4 b, float depth, float bias, float overestimation, float4 bias_vector)
+{
+    float absorbance = Hamburger_4P(b / b_0, depth, bias, overestimation, bias_vector);
+    return saturate(exp(-absorbance * b_0));
+}

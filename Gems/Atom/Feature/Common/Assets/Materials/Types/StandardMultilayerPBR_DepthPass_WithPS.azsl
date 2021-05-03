@@ -111,8 +111,8 @@ PSDepthOutput MainPS(VSDepthOutput IN, bool isFrontFace : SV_IsFrontFace)
     CheckClipping(alpha, MaterialSrg::m_opacityFactor);
 
     OUT.m_depth = IN.m_position.z;
-    
-    if(o_debugDrawMode == DebugDrawMode::None && o_parallax_feature_enabled && o_parallax_enablePixelDepthOffset)
+
+    if(o_debugDrawMode == DebugDrawMode::None && o_parallax_feature_enabled && (o_parallax_enablePixelDepthOffset || o_opacity_mode == OpacityMode::Cutout))
     {
         // We support two UV streams, but only a single stream of tangent/bitangent. So for UV[1+] we generated the tangent/bitangent in screen-space.
         float3 tangents[UvSetCount] = { IN.m_tangent.xyz, float3(0, 0, 0) };

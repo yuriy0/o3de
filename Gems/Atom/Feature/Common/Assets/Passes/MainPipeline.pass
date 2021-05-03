@@ -205,6 +205,93 @@
                         }
                     ]
                 },
+				{
+                    "Name": "TransparentRefractiveParentPass",
+                    "TemplateName": "TransparentRefractiveParentPassTemplate",
+                    "Enabled": true,
+                    "Connections": [
+						// Color render target
+                        {
+                            "LocalSlot": "InputOutput",
+                            "AttachmentRef": {
+                                "Pass": "OpaquePass",
+                                "Attachment": "Output"
+                            }
+                        },
+						
+						// Depth render target (multisampled)
+                        {
+                            "LocalSlot": "DepthStencilMS",
+                            "AttachmentRef": {
+                                "Pass": "DepthPrePass",
+                                "Attachment": "DepthMSAA"
+                            }
+                        },
+						
+						// Resolved depth for readback
+                        {
+                            "LocalSlot": "DepthStencilResolved",
+                            "AttachmentRef": {
+                                "Pass": "DepthPrePass",
+                                "Attachment": "Depth"
+                            }
+                        },
+						
+						// Specific data used by OIT pass
+						// Transparent near plane (min depth)
+                        {
+                            "LocalSlot": "DepthTransparentMin",
+                            "AttachmentRef": {
+                                "Pass": "LightCullingPass",
+                                "Attachment": "DepthTransparentMin"
+                            }
+                        },
+						
+						// Lighting and shadowing inputs for regular shading
+                        {
+                            "LocalSlot": "DirectionalLightShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "ShadowPass",
+                                "Attachment": "DirectionalShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ExponentialShadowmapDirectional",
+                            "AttachmentRef": {
+                                "Pass": "ShadowPass",
+                                "Attachment": "DirectionalESM"
+                            }
+                        },
+                        {
+                            "LocalSlot": "SpotLightShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "ShadowPass",
+                                "Attachment": "ProjectedShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ExponentialShadowmapSpot",
+                            "AttachmentRef": {
+                                "Pass": "ShadowPass",
+                                "Attachment": "ProjectedESM"
+                            }
+                        },
+                        {
+                            "LocalSlot": "TileLightData",
+                            "AttachmentRef": {
+                                "Pass": "LightCullingPass",
+                                "Attachment": "TileLightData"
+                            }
+                        },
+                        {
+                            "LocalSlot": "LightListRemapped",
+                            "AttachmentRef": {
+                                "Pass": "LightCullingPass",
+                                "Attachment": "LightListRemapped"
+                            }
+                        }
+					]
+				},
                 {
                     "Name": "TransparentPass",
                     "TemplateName": "TransparentParentTemplate",

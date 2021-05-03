@@ -45,6 +45,9 @@ namespace AZ
         //! Converts an AABB into an OBB.
         static Obb CreateFromAabb(const Aabb& aabb);
 
+        ///Creates an Obb from the box dimensions (half-lengths)
+        static const Obb CreateFromHalfLengths(const AZ::Vector3 & halfLengths);
+
         const Vector3& GetPosition() const;
         const Quaternion& GetRotation() const;
         void SetRotation(const Quaternion& rotation);

@@ -522,8 +522,8 @@ void UiCanvasManager::ReleaseCanvasDeferred(AZ::EntityId canvasEntityId)
             // Deactivate elements of the canvas
             canvasComponent->DeactivateElements();
 
-            // Deactivate the canvas element
-            canvasEntity->Deactivate();
+            // Deactivate the canvas element, if necessary
+            if (canvasEntity->GetState() == AZ::Entity::State::Active) canvasEntity->Deactivate();
 
             EBUS_EVENT(UiCanvasManagerNotificationBus, OnCanvasUnloaded, canvasEntityId);
 

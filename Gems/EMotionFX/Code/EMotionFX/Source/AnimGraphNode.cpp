@@ -2151,13 +2151,20 @@ namespace EMotionFX
     // request poses from the pose cache for all output poses
     void AnimGraphNode::RequestRefDatas(AnimGraphInstance* animGraphInstance)
     {
-        ActorInstance* actorInstance = animGraphInstance->GetActorInstance();
-        const uint32 threadIndex = actorInstance->GetThreadIndex();
+        AnimGraphNodeData* uniqueData = FindOrCreateUniqueNodeData(animGraphInstance);
+        if (!uniqueData->GetRefCountedData())
+        {
+            ActorInstance* actorInstance = animGraphInstance->GetActorInstance();
+            const uint32 threadIndex = actorInstance->GetThreadIndex();
 
-        AnimGraphRefCountedDataPool& pool = GetEMotionFX().GetThreadData(threadIndex)->GetRefCountedDataPool();
-        AnimGraphRefCountedData* newData = pool.RequestNew();
+            AnimGraphRefCountedDataPool& pool = GetEMotionFX().GetThreadData(threadIndex)->GetRefCountedDataPool();
+            AnimGraphRefCountedData* newData = pool.RequestNew();
 
-        FindOrCreateUniqueNodeData(animGraphInstance)->SetRefCountedData(newData);
+            newData->ClearEventBuffer();
+            newData->ZeroTrajectoryDelta();
+
+            uniqueData->SetRefCountedData(newData);
+        }
     }
 
 

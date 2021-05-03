@@ -73,6 +73,8 @@ namespace LmbrCentral
             incompatible.push_back(AZ_CRC("TagService", 0xf1ef347d));
         }
 
+        void SendRemoveTagEvent(const Tag& t);
+        void SendAddTagEvent(const Tag& t);
 
         Tags m_tags = Tags();
     };

@@ -25,6 +25,10 @@
                     "Name": "LightListRemapped",
                     "SlotType": "Output"
                 },
+                {
+                    "Name": "DepthTransparentMin",
+                    "SlotType": "Output"
+                },
                 // SwapChain here is only used to reference the frame height and format
                 {
                     "Name": "SwapChainOutput",
@@ -44,6 +48,13 @@
                     "AttachmentRef": {
                         "Pass": "LightCullingRemapPass",
                         "Attachment": "LightListRemapped"
+                    }
+                },
+                {
+                    "LocalSlot": "DepthTransparentMin",
+                    "AttachmentRef": {
+                        "Pass": "DepthTransparentMinPass",
+                        "Attachment": "Output"
                     }
                 }
             ],

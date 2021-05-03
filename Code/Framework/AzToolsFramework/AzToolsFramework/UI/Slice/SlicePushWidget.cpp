@@ -439,6 +439,54 @@ namespace AzToolsFramework
                 return Qt::CheckState::PartiallyChecked;
             }
         }
+
+        // A version of `GetNodeDisplayName' which doesn't require accessing any instances on the node, just the reflection metadata
+        AZStd::string GetNodeDisplayNameSafe(const AzToolsFramework::InstanceDataNode& node)
+        {
+            static const AZ::TypeId GenericComponentWrapperTypeId("{68D358CA-89B9-4730-8BA6-E181DEA28FDE}");
+
+            // Introspect template for generic component wrappers.
+            if (node.GetClassMetadata() && node.GetClassMetadata()->m_typeId == GenericComponentWrapperTypeId)
+            {
+                // If this node is removed, then it won't have children or any useful metadata
+                // But we can look at the comparison node (if it exists) to get the old data
+                const AzToolsFramework::InstanceDataNode* getTypeNode = &node;
+                if (node.IsRemovedVersusComparison() || node.GetChildren().empty())
+                {
+                    getTypeNode = node.GetComparisonNode();
+                }
+
+                // NB: GenericComponentWrapper has two children, EditorComponentBase base class and the real template component class
+                if (getTypeNode && getTypeNode->GetChildren().size() >= 2)
+                {
+                    const AzToolsFramework::InstanceDataNode& realComponentIt = *AZStd::next(getTypeNode->GetChildren().begin(), 1);
+                    if (auto cd = realComponentIt.GetClassMetadata())
+                    {
+                        return cd->m_name;
+                    }
+                }
+            }
+
+            // Otherwise use friendly reflection name.
+            AZStd::string displayName;
+            if (node.GetElementEditMetadata())
+            {
+                displayName = node.GetElementEditMetadata()->m_name;
+            }
+            else if (node.GetClassMetadata()->m_editData)
+            {
+                displayName = node.GetClassMetadata()->m_editData->m_name;
+            }
+            else if (node.GetElementMetadata() && node.GetElementMetadata()->m_nameCrc != AZ_CRC("element", 0x41405e39))
+            {
+                displayName = node.GetElementMetadata()->m_name;
+            }
+            else
+            {
+                displayName = node.GetClassMetadata()->m_name;
+            }
+            return displayName;
+        }
     } // namespace Internal
 
     //=========================================================================
@@ -1203,7 +1251,7 @@ namespace AzToolsFramework
             {
                 m_infoLabel->setText(QString("Choose target slice for %1\"%2\":")
                     .arg(isLeaf ? "" : "children of ")
-                    .arg((item->parent() == nullptr) ? item->m_entity->GetName().c_str() : GetNodeDisplayName(*item->m_node).c_str()));
+                    .arg((item->parent() == nullptr) ? item->m_entity->GetName().c_str() : Internal::GetNodeDisplayNameSafe(*item->m_node).c_str()));
             }
 
             SliceTargetTreeItem* parent = nullptr;

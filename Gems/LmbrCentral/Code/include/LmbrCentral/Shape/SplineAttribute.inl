@@ -42,16 +42,34 @@ namespace LmbrCentral
     template<typename AttributeType>
     void SplineAttribute<AttributeType>::Reflect(AZ::SerializeContext& context)
     {
-        context.Class<SplineAttribute<AttributeType>>()
-            ->Field("Elements", &SplineAttribute<AttributeType>::m_elements);
+        Reflect(AZStd::addressof(static_cast<AZ::ReflectContext&>(context)));
+    }
 
-        if (AZ::EditContext* editContext = context.GetEditContext())
-        {
-            editContext->Class<SplineAttribute<AttributeType>>("SplineAttribute", "Attribute of a spline")
-                // The dynamic edit data provider allows us to have different UI edit controls for each instance of a SplineAttribute.
-                ->SetDynamicEditDataProvider(&SplineAttribute<AttributeType>::GetElementDynamicEditData)
-                ->DataElement(0, &SplineAttribute<AttributeType>::m_elements, "Elements", "Elements in the attribute")
-                ->Attribute(AZ::Edit::Attributes::ContainerCanBeModified, false)
+    template<typename AttributeType>
+    void SplineAttribute<AttributeType>::Reflect(AZ::ReflectContext* context)
+    {
+        if (auto serializeContext = azrtti_cast<AZ::SerializeContext*>(context)) {
+            serializeContext->Class<SplineAttribute<AttributeType>>()
+                ->Field("Elements", &SplineAttribute<AttributeType>::m_elements);
+
+            if (AZ::EditContext* editContext = serializeContext->GetEditContext())
+            {
+                editContext->Class<SplineAttribute<AttributeType>>("SplineAttribute", "Attribute of a spline")
+                    // The dynamic edit data provider allows us to have different UI edit controls for each instance of a SplineAttribute.
+                    ->SetDynamicEditDataProvider(&SplineAttribute<AttributeType>::GetElementDynamicEditData)
+                    ->DataElement(0, &SplineAttribute<AttributeType>::m_elements, "Elements", "Elements in the attribute")
+                    ->Attribute(AZ::Edit::Attributes::ContainerCanBeModified, false)
+                    ;
+            }
+        }
+
+		using this_type = SplineAttribute<AttributeType>;
+        if (auto behaviorContext = azrtti_cast<AZ::BehaviorContext*>(context)) {
+            behaviorContext->Class<this_type>()
+                ->Property("Elements",
+                           [](this_type* ptr) { return ptr->m_elements; },
+                           [](this_type* ptr, const AZStd::vector<AttributeType>& value) { ptr->m_elements = value; }
+                           )
                 ;
         }
     }
@@ -113,19 +131,31 @@ namespace LmbrCentral
     }
 
     template<typename AttributeType>
-    void SplineAttribute<AttributeType>::SetElement(size_t index, AttributeType value)
+    void SplineAttribute<AttributeType>::SetElement(size_t index, const AttributeType& value)
     {
         m_elements[index] = value;
     }
 
     template<typename AttributeType>
-    AttributeType SplineAttribute<AttributeType>::GetElement(size_t index) const
+    void SplineAttribute<AttributeType>::SetElement(size_t index, AttributeType&& value)
+    {
+        m_elements[index] = AZStd::move(value);
+    }
+
+    template<typename AttributeType>
+    const AttributeType& SplineAttribute<AttributeType>::GetElement(size_t index) const
     {
         return m_elements[index];
     }
 
     template<typename AttributeType>
-    AttributeType SplineAttribute<AttributeType>::GetElementInterpolated(size_t index, float fraction, Interpolator interpolator) const
+    AttributeType& SplineAttribute<AttributeType>::GetElement(size_t index)
+    {
+        return m_elements[index];
+    }
+
+    template<typename AttributeType>
+    AttributeType SplineAttribute<AttributeType>::GetElementInterpolated(size_t index, float fraction, const Interpolator& interpolator) const
     {
         if (m_elements.size() > 0)
         {
@@ -139,7 +169,7 @@ namespace LmbrCentral
     }
 
     template<typename AttributeType>
-    AttributeType SplineAttribute<AttributeType>::GetElementInterpolated(const AZ::SplineAddress& address, Interpolator interpolator) const
+    AttributeType SplineAttribute<AttributeType>::GetElementInterpolated(const AZ::SplineAddress& address, const Interpolator& interpolator) const
     {
         return GetElementInterpolated(address.m_segmentIndex, address.m_segmentFraction, interpolator);
     }

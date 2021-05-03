@@ -26,7 +26,7 @@ namespace AZ
             AZ_CLASS_ALLOCATOR_IMPL(NodeListSelectionWidget, SystemAllocator, 0)
 
             NodeListSelectionWidget::NodeListSelectionWidget(QWidget* parent)
-                : QComboBox(parent)
+                : AzToolsFramework::DHQComboBox(parent)
                 , m_classTypeId(Uuid::CreateNull())
                 , m_exactClassTypeMatch(false)
                 , m_hasDirtyList(true)
@@ -35,6 +35,7 @@ namespace AZ
                 , m_defaultToDisabled(false)
             {
                 connect(this, &QComboBox::currentTextChanged, this, &NodeListSelectionWidget::OnTextChange);
+                setFocusPolicy(Qt::StrongFocus);
             }
 
             void NodeListSelectionWidget::SetCurrentSelection(const AZStd::string& selection)

@@ -31,8 +31,7 @@ namespace EMotionFX
              * Note that this is not the most optimal synchronization but it does
              * work for just about all Anim Graphs.
              *
-             * Disclaimer: string parameters are not supported! Because one should not synchronize
-             * strings over the network. They ought to be converted to enum/int values beforehand.
+             * Disclaimer: string parameters synchronization is very expensive!
              */
             class AnimGraphNetSyncComponent
                 : public AZ::Component

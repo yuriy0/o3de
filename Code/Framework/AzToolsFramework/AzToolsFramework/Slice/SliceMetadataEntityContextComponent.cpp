@@ -122,7 +122,7 @@ namespace AzToolsFramework
         auto metadataEntityByIdIter = m_metadataEntityByIdMap.find(entityId);
         if (metadataEntityByIdIter != m_metadataEntityByIdMap.end())
         {
-            return metadataEntityByIdIter->second;
+            return metadataEntityByIdIter->second.entity;
         }
 
         return nullptr;
@@ -174,10 +174,12 @@ namespace AzToolsFramework
 
         AZ_Assert(metadataEntity.GetState() == AZ::Entity::State::Active, "Metadata Entity Failed To Activate");
 
+        MetadataEntityInfo& info = m_metadataEntityByIdMap[metadataEntity.GetId()];
+        info.entity = &metadataEntity;
+
         // All metadata entities created should have a metadata association component
-        AZStd::set<AZ::EntityId> associatedEntities;
-        AZ::SliceMetadataInfoRequestBus::Event(metadataEntity.GetId(), &AZ::SliceMetadataInfoRequestBus::Events::GetAssociatedEntities, associatedEntities);
-        for (const auto& editorEntityId : associatedEntities)
+        AZ::SliceMetadataInfoRequestBus::Event(metadataEntity.GetId(), &AZ::SliceMetadataInfoRequestBus::Events::GetAssociatedEntities, info.associatedEntities);
+        for (const auto& editorEntityId : info.associatedEntities)
         {
             m_editorEntityToMetadataEntityMap[editorEntityId] = metadataEntity.GetId();
         }
@@ -188,8 +190,8 @@ namespace AzToolsFramework
         if (!parentMetadataId.IsValid())
         {
             m_sliceAddressToRootMetadataMap[sliceAddress] = metadataEntity.GetId();
+            info.associatedSlice = sliceAddress;
         }
-        m_metadataEntityByIdMap[metadataEntity.GetId()] = &metadataEntity;
 
         AzFramework::EntityIdContextQueryBus::MultiHandler::BusConnect(metadataEntity.GetId());
         AZ::SliceMetadataInfoNotificationBus::MultiHandler::BusConnect(metadataEntity.GetId());
@@ -217,7 +219,9 @@ namespace AzToolsFramework
 
     void SliceMetadataEntityContextComponent::OnMetadataDependenciesRemoved()
     {
-        RemoveMetadataEntityFromContext(*AZ::SliceMetadataInfoNotificationBus::GetCurrentBusId());
+        if (auto pEntityId = AZ::SliceMetadataInfoNotificationBus::GetCurrentBusId()) {
+            RemoveMetadataEntityFromContext(*pEntityId);
+        }
     }
 
     /*!  Get a list of required component types.
@@ -271,31 +275,13 @@ namespace AzToolsFramework
         {
             return;
         }
+        const MetadataEntityInfo& info = metadataEntityByIdIter->second;
 
         AzFramework::EntityIdContextQueryBus::MultiHandler::BusDisconnect(entityId);
 
         // Clean up our quick-lookup maps
-        // Find our entry in the slice address map and remove it.
-        for (auto sliceAddressToRootMetadataIter = m_sliceAddressToRootMetadataMap.begin(); sliceAddressToRootMetadataIter != m_sliceAddressToRootMetadataMap.end();)
-        {
-            if (sliceAddressToRootMetadataIter->second == entityId)
-            {
-                m_sliceAddressToRootMetadataMap.erase(sliceAddressToRootMetadataIter);
-                break;
-            }
-            ++sliceAddressToRootMetadataIter;
-        }
-
-        // Remove all association entries for the given metadata entity ID.
-        for (auto editorEntityToMetadataEntityIter = m_editorEntityToMetadataEntityMap.begin(); editorEntityToMetadataEntityIter != m_editorEntityToMetadataEntityMap.end();)
-        {
-            if (editorEntityToMetadataEntityIter->second == entityId)
-            {
-                editorEntityToMetadataEntityIter = m_editorEntityToMetadataEntityMap.erase(editorEntityToMetadataEntityIter);
-                continue;
-            }
-            ++editorEntityToMetadataEntityIter;
-        }
+        m_sliceAddressToRootMetadataMap.erase(info.associatedSlice);
+        for (const auto& associatedEntity : info.associatedEntities) { m_editorEntityToMetadataEntityMap.erase(associatedEntity); }
 
         SliceMetadataEntityContextNotificationBus::Broadcast(&SliceMetadataEntityContextNotifications::OnMetadataEntityRemoved, entityId);
         m_metadataEntityByIdMap.erase(metadataEntityByIdIter);

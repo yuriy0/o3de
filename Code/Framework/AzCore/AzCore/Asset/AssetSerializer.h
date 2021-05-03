@@ -167,7 +167,7 @@ namespace AZ {
             if (auto behaviorContext = azrtti_cast<BehaviorContext*>(context))
             {
                 behaviorContext->Class<DataAssetType>()
-                    ->Attribute(Script::Attributes::Scope, Script::Attributes::ScopeFlags::Automation)
+                    ->Attribute(Script::Attributes::Scope, Script::Attributes::ScopeFlags::Common)
                     ->Attribute(Script::Attributes::Module, "asset")
                     ->Method("IsReady", &DataAssetType::IsReady)
                     ->Attribute(AZ::Script::Attributes::Alias, "is_ready")

@@ -43,6 +43,9 @@ namespace MCore
         MCORE_INLINE void* GetValue() const                         { return mValue; }
         MCORE_INLINE void SetValue(void* value)                     { mValue = value; }
 
+        bool FromAny(const AZStd::any&) override { return false; };
+        bool ToAny(AZStd::any&) override { return false; };
+
         // overloaded from the attribute base class
         Attribute* Clone() const override                           { return AttributePointer::Create(mValue); }
         const char* GetTypeString() const override                  { return "AttributePointer"; }

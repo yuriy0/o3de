@@ -25,6 +25,9 @@
 #include <AzCore/Jobs/JobManagerBus.h>
 #include <AzCore/Jobs/JobContext.h>
 
+#include <IConsole.h>
+#include <CrySystemBus.h>
+#include <ISystem.h>
 
 namespace EMotionFX
 {
@@ -114,6 +117,21 @@ namespace EMotionFX
     // execute the schedule
     void MultiThreadScheduler::Execute(float timePassedInSeconds)
     {
+        static ICVar* emfx_fixedTimeStepCvar = nullptr;
+        if (!emfx_fixedTimeStepCvar)
+        {
+            ISystem* crySystem = nullptr;
+            CrySystemRequestBus::BroadcastResult(crySystem, &CrySystemRequestBus::Events::GetCrySystem);
+            if (crySystem)
+            {
+                if (auto cryConsole = crySystem->GetIConsole())
+                {
+                    emfx_fixedTimeStepCvar = cryConsole->GetCVar("emfx_fixedTimeStep");
+                }
+            }
+        }
+        const float fixedTimeStep = emfx_fixedTimeStepCvar ? emfx_fixedTimeStepCvar->GetFVal() : 0.0f;
+
         MCore::LockGuardRecursive guard(mMutex);
 
         uint32 numSteps = mSteps.GetLength();
@@ -174,7 +192,7 @@ namespace EMotionFX
                 }
 
                 AZ::JobContext* jobContext = nullptr;
-                AZ::Job* job = AZ::CreateJobFunction([this, timePassedInSeconds, actorInstance]()
+                AZ::Job* job = AZ::CreateJobFunction([this, timePassedInSeconds, actorInstance, fixedTimeStep]()
                 {
                     AZ_PROFILE_SCOPE(AZ::Debug::ProfileCategory::Animation, "MultiThreadScheduler::Execute::ActorInstanceUpdateJob");
 
@@ -202,7 +220,20 @@ namespace EMotionFX
                     }
 
                     // update the actor instance
-                    actorInstance->UpdateTransformations(timePassedInSeconds, isVisible, sampleMotions);
+                    if (fixedTimeStep > 0.f)
+                    {
+                        float remaining = timePassedInSeconds;
+                        while (remaining > fixedTimeStep)
+                        {
+                            actorInstance->UpdateTransformations(fixedTimeStep, isVisible, sampleMotions);
+                            remaining -= fixedTimeStep;
+                        }
+                        actorInstance->UpdateTransformations(remaining, isVisible, sampleMotions);
+                    }
+                    else
+                    {
+                        actorInstance->UpdateTransformations(timePassedInSeconds, isVisible, sampleMotions);
+                    }
                 }, true, jobContext);
 
                 job->SetDependent(&jobCompletion);               

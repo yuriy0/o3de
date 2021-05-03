@@ -780,6 +780,8 @@ void ScriptSystemComponent::OnAssetReloaded(Data::Asset<Data::AssetData> asset)
 {
     Data::AssetBus::MultiHandler::BusDisconnect(asset.GetId());
 
+
+    // APC TODO: Still needed? Previously: TEMP: disable this as it causes some sort of circular reload
     auto it = m_queuedReloads.find(asset.GetId());
     if (it == m_queuedReloads.end())
     {
@@ -813,7 +815,7 @@ void ScriptSystemComponent::OnAssetReloaded(Data::Asset<Data::AssetData> asset)
                                 // the C++ standard requires the use of this-> on baseclass calls that are templated classes
                                 // most of the time you can get away with it, but in some cases MSVC will not correctly adjust the offset of this
                                 // during the call
-                                this->Data::AssetBus::MultiHandler::BusConnect(id); 
+                                this->Data::AssetBus::MultiHandler::BusConnect(id);
                             }
                         }
                     }
@@ -831,6 +833,7 @@ void ScriptSystemComponent::OnAssetReloaded(Data::Asset<Data::AssetData> asset)
         // Remove it from the queue, so that reloadFn can be triggered again once all dependencies finished reloading.
         m_queuedReloads.erase(it);
     }
+    // APC TODO: Still needed?
 }
 
 //=========================================================================

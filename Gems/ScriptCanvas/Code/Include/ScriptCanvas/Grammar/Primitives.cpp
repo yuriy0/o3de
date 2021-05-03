@@ -298,6 +298,18 @@ namespace ScriptCanvas
             }
         }
 
+        void VariableSourceInfo::Reflect(AZ::ReflectContext* reflectContext)
+        {
+            if (auto serializeContext = azrtti_cast<AZ::SerializeContext*>(reflectContext))
+            {
+                serializeContext->Class<VariableSourceInfo>()
+                    ->Version(1)
+                    ->Field("m_name", &VariableSourceInfo::m_name)
+                    ->Field("m_type", &VariableSourceInfo::m_type)
+                    ;
+            }
+        }
+
         Variable::Variable(Datum&& datum)
         : m_datum(datum)
         {}
@@ -318,6 +330,8 @@ namespace ScriptCanvas
         
         void Variable::Reflect(AZ::ReflectContext* reflectContext)
         {
+            VariableSourceInfo::Reflect(reflectContext);
+
             if (auto serializeContext = azrtti_cast<AZ::SerializeContext*>(reflectContext))
             {
                 serializeContext->Class<Variable>()

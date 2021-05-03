@@ -299,6 +299,7 @@ protected:
     EntityOutliner::DisplaySortMode m_sortMode;
 
 private:
+    bool GetShouldToggleRecursively() const;
     QVariant GetEntityIcon(const AZ::EntityId& id) const;
     QVariant GetEntityTooltip(const AZ::EntityId& id) const;
 

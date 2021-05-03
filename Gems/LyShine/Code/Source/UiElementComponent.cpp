@@ -1321,6 +1321,30 @@ AZStd::vector<AZ::EntityId> UiElementComponent::GetSliceEntityChildren()
 // PUBLIC STATIC MEMBER FUNCTIONS
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+class UiElementNotificationBus_Handler : public UiElementNotificationBus::Handler, public AZ::BehaviorEBusHandler
+{
+public:
+    AZ_EBUS_BEHAVIOR_BINDER(UiElementNotificationBus_Handler, "{90DD7CAF-B3B3-4664-A45D-984EB64027B1}", AZ::SystemAllocator,
+                            OnUiElementBeingDestroyed, OnUiElementFixup, OnUiElementEnabledChanged, OnUiElementAndAncestorsEnabledChanged
+    );
+
+    void OnUiElementBeingDestroyed() override {
+        Call(FN_OnUiElementBeingDestroyed);
+    }
+
+    void OnUiElementFixup(AZ::EntityId canvasEntityId, AZ::EntityId parentEntityId) override {
+        Call(FN_OnUiElementFixup, canvasEntityId, parentEntityId);
+    }
+
+    void OnUiElementEnabledChanged(bool isEnabled) override {
+        Call(FN_OnUiElementEnabledChanged, isEnabled);
+    }
+
+    void OnUiElementAndAncestorsEnabledChanged(bool areElementAndAncestorsEnabled) override {
+        Call(FN_OnUiElementAndAncestorsEnabledChanged, areElementAndAncestorsEnabled);
+    }
+};
+
 void UiElementComponent::Reflect(AZ::ReflectContext* context)
 {
     AZ::SerializeContext* serializeContext = azrtti_cast<AZ::SerializeContext*>(context);
@@ -1398,6 +1422,9 @@ void UiElementComponent::Reflect(AZ::ReflectContext* context)
             ->Event("IsAncestor", &UiElementBus::Events::IsAncestor)
             ->Event("IsEnabled", &UiElementBus::Events::IsEnabled)
             ->Event("SetIsEnabled", &UiElementBus::Events::SetIsEnabled);
+
+        behaviorContext->EBus<UiElementNotificationBus>("UiElementNotificationBus")
+            ->Handler<UiElementNotificationBus_Handler>();
     }
 }
 

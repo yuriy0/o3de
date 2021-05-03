@@ -79,4 +79,24 @@ struct LoadScreenUpdateNotifications
 };
 using LoadScreenUpdateNotificationBus = AZ::EBus<LoadScreenUpdateNotifications>;
 
+class LoadCompletionQueryInterface
+    : public AZ::EBusTraits
+{
+public:
+    using MutexType = AZStd::recursive_mutex;
+
+    virtual ~LoadCompletionQueryInterface() {}
+
+    //! Called to determine if level loading should finally complete: the loading screen should be closed and the level contents should begin rendering
+    // @param texStreamingDone True iff texture streaming is completed
+    // @param timeSinceLevelStart Time in seconds since level was first loaded from disk
+    // @param framesSinceLevelStart Number of frames since level was first loaded from disk
+    virtual bool ShouldCompleteLevelLoading(bool texStreamingDone, float timeSinceLevelStart, size_t framesSinceLevelStart) = 0;
+
+    //! Called to determine if level precache should complete: streaming system is placed into asynchronous mode
+    // @param timeSinceLevelLoadCompleted Time in seconds since level loading was completed (`ShouldCompleteLevelLoading` returned true)
+    virtual bool ShouldCompletePrecaching(float timeSinceLevelLoadCompleted) = 0;
+};
+using LoadCompletionQueryBus = AZ::EBus<LoadCompletionQueryInterface>;
+
 #endif // if AZ_LOADSCREENCOMPONENT_ENABLED

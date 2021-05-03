@@ -162,6 +162,11 @@ namespace AZ
 
         void RayTracingFeatureProcessor::UpdateRayTracingSceneSrg()
         {
+            if (!m_rayTracingSceneSrg)
+            {
+                return;
+            }
+
             if (!m_tlas->GetTlasBuffer())
             {
                 return;

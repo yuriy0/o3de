@@ -41,4 +41,4 @@ partial ShaderResourceGroup SceneSrg
         MaxAnisotropy = 16;
         ReductionType = Comparison;
     };    
-}
+}

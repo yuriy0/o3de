@@ -72,6 +72,18 @@ namespace AZStd
     template<typename... Types>
     inline constexpr bool hash_enabled_concept_v = hash_enabled_concept<Types...>::value;
 
+    template <class T>
+    struct hash<const T&> : private hash<T>
+    {
+        using hash<T>::operator();
+    };
+
+    template <class T>
+    struct hash<T&> : private hash<T>
+    {
+        using hash<T>::operator();
+    };
+
     template< class T >
     struct hash< const T* >
     {

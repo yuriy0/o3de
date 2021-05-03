@@ -54,6 +54,7 @@ namespace LmbrCentral
                      ->Attribute(AZ::Edit::Attributes::ChangeNotify, &EditorBaseShapeComponent::OnDisplayFilledChanged)
                 ->DataElement(AZ::Edit::UIHandlers::Default, &EditorBaseShapeComponent::m_shapeColor, "Shape Color", "The color to use when rendering the faces of the shape object")
                     ->Attribute(AZ::Edit::Attributes::ChangeNotify, &EditorBaseShapeComponent::OnShapeColorChanged)
+                    ->Attribute("AlphaChannel", true)
                     ->Attribute(AZ::Edit::Attributes::Visibility, &EditorBaseShapeComponent::GetShapeColorIsEditable)
                 ;
         }

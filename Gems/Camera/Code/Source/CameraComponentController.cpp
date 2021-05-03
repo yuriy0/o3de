@@ -46,6 +46,10 @@ namespace Camera
                         ->Attribute(AZ::Edit::Attributes::Visibility, AZ::Edit::PropertyVisibility::ShowChildrenOnly)
                     ->DataElement(AZ::Edit::UIHandlers::Default, &CameraComponentConfig::m_makeActiveViewOnActivation,
                             "Make active camera on activation?", "If true, this camera will become the active render camera when it activates")
+
+                    ->DataElement(AZ::Edit::UIHandlers::Default, &CameraComponentConfig::m_makeActiveViewOnActivation,
+                            "Make active camera on activation?", "If true, this camera will become the active render camera when it activates")
+
                     ->DataElement(AZ::Edit::UIHandlers::Default, &CameraComponentConfig::m_fov, "Field of view", "Vertical field of view in degrees")
                         ->Attribute(AZ::Edit::Attributes::Min, MIN_FOV)
                         ->Attribute(AZ::Edit::Attributes::Suffix, " degrees")
@@ -114,6 +118,8 @@ namespace Camera
 
     void CameraComponentController::DeactivateAtomView()
     {
+        if (!AZ::RPI::ViewportContextNotificationBus::Handler::BusIsConnected()) return;
+
         auto atomViewportRequests = AZ::Interface<AZ::RPI::ViewportContextRequestsInterface>::Get();
         if (atomViewportRequests)
         {

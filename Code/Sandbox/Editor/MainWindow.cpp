@@ -786,6 +786,10 @@ void MainWindow::InitActions()
         .SetShortcut(tr("Ctrl+O"))
         .SetStatusTip(tr("Open an existing level"))
         .RegisterUpdateCallback(cryEdit, &CCryEditApp::OnUpdateFileOpen);
+    am->AddAction(ID_FILE_RELOAD_LEVEL, tr("Reload Level"))
+        .SetShortcut(tr("Ctrl+R"))
+        .SetStatusTip(tr("Reload the current level"))
+        .RegisterUpdateCallback(cryEdit, &CCryEditApp::OnUpdateReloadLevel);
 #ifdef ENABLE_SLICE_EDITOR
     am->AddAction(ID_FILE_NEW_SLICE, tr("New Slice"))
         .SetStatusTip(tr("Create a new slice"));
@@ -1285,6 +1289,12 @@ void MainWindow::InitActions()
         .SetApplyHoverEffect()
         .SetCheckable(true)
         .RegisterUpdateCallback(cryEdit, &CCryEditApp::OnUpdatePlayGame);
+    am->AddAction(ID_VIEW_SWITCHTOGAME_FULLSCREEN, tr("Play &Game (Maximized)"))
+        .SetShortcut(tr("Ctrl+Shift+G"))
+        .SetStatusTip(tr("Activate the game input mode (maximized)"))
+        .SetIcon(Style::icon("Play"))
+        .SetApplyHoverEffect()
+        .SetCheckable(true);
     am->AddAction(ID_SWITCH_PHYSICS, tr("Simulate"))
         .SetShortcut(tr("Ctrl+P"))
         .SetToolTip(tr("Simulate (Ctrl+P)"))
@@ -1874,10 +1884,12 @@ void MainWindow::OnGameModeChanged(bool inGameMode)
 {
     menuBar()->setDisabled(inGameMode);
     m_toolbarManager->SetEnabled(!inGameMode);
-    QAction* action = m_actionManager->GetAction(ID_VIEW_SWITCHTOGAME);
-    action->blockSignals(true); // avoid a loop
-    action->setChecked(inGameMode);
-    action->blockSignals(false);
+
+    // avoid a loop
+    AZStd::vector<QAction*> actions = { m_actionManager->GetAction(ID_VIEW_SWITCHTOGAME), m_actionManager->GetAction(ID_VIEW_SWITCHTOGAME_FULLSCREEN) };
+    for (auto action : actions) action->blockSignals(true);
+    for (auto action : actions) action->setChecked(inGameMode);
+    for (auto action : actions) action->blockSignals(false);
 }
 
 void MainWindow::OnEditorNotifyEvent(EEditorNotifyEvent ev)

@@ -36,6 +36,7 @@ namespace ScriptCanvas
     ExecutionStateInterpreted::ExecutionStateInterpreted(const ExecutionStateConfig& config)
         : ExecutionState(config)
         , m_interpretedAsset(config.runtimeData.m_script)
+        , m_runtimeData(config.runtimeData)
     {}
     
     void ExecutionStateInterpreted::ClearLuaRegistryIndex()
@@ -129,6 +130,17 @@ namespace ScriptCanvas
         AZ_Assert(m_luaRegistryIndex == LUA_NOREF, "ExecutionStateInterpreted already in the Lua registry and risks double deletion");
         // Lua: instance
         m_luaRegistryIndex = luaL_ref(m_luaState, LUA_REGISTRYINDEX);
+
+        // Once lua object state is ready, connect to runtime buses
+        if (m_component && m_component->GetEntity())
+        {
+            const AZ::EntityId attachedEntity = m_component->GetEntity()->GetId();
+            VariableRuntimeRequestBus::Handler::BusConnect(attachedEntity);
+        }
+        else
+        {
+            AZ_Warning("ScriptCanvas", false, AZ_FUNCTION_SIGNATURE " - attached component is invalid, runtime buses will not be serviced!");
+        }
     }
 
     void ExecutionStateInterpreted::Reflect(AZ::ReflectContext* reflectContext)
@@ -152,6 +164,85 @@ namespace ScriptCanvas
     {
         luaL_unref(m_luaState, LUA_REGISTRYINDEX, m_luaRegistryIndex);
         m_luaRegistryIndex = LUA_NOREF;
+        VariableRuntimeRequestBus::Handler::BusDisconnect();
+    }
+
+    VariableSetResult ExecutionStateInterpreted::SetVariable(AZStd::string_view name, const AZStd::any& value)
+    {
+        const auto registryIndex = GetLuaRegistryIndex();
+        if (registryIndex == LUA_NOREF)
+        {
+            AZ_Assert(false, "ExecutionStateInterpreted::SetVariable called but Initialize is was never called");
+            return VariableAccessError::StateError;
+        }
+
+        // Check variable name
+        const auto& varInfoMap = m_runtimeData.m_input.m_runtimeVariableInfo;
+        auto varInfoIt = varInfoMap.find(name);
+        if (varInfoIt == varInfoMap.end())
+        {
+            return VariableAccessError::NonExistentVariable;
+        }
+
+        // Check variable type
+        if (varInfoIt->second.m_type != value.type())
+        {
+            return VariableAccessError::WrongTypeValue;
+        }
+
+        lua_rawgeti(m_luaState, LUA_REGISTRYINDEX, registryIndex);
+        // Lua: instance
+
+        AZStd::string_view internalName = varInfoIt->second.m_name;
+        lua_pushlstring(m_luaState, internalName.data(), internalName.size());
+        // Lua: instance, key
+
+        AZ::ScriptValue<AZStd::any>::StackPush(m_luaState, value);
+        // Lua: instance, key, value
+
+        lua_settable(m_luaState, -3); // TODO: or lua_rawset?
+        // Lua: instance
+
+        lua_pop(m_luaState, 1);
+        // Lua: 
+
+        return VariableSetResult();
+    }
+
+    VariableGetResult ExecutionStateInterpreted::GetVariable(AZStd::string_view name)
+    {
+        const auto registryIndex = GetLuaRegistryIndex();
+        if (registryIndex == LUA_NOREF)
+        {
+            AZ_Assert(false, "ExecutionStateInterpreted::GetVariable called but Initialize is was never called");
+            return VariableAccessError::StateError;
+        }
+
+        // Check variable name
+        const auto& varInfoMap = m_runtimeData.m_input.m_runtimeVariableInfo;
+        auto varInfoIt = varInfoMap.find(name);
+        if (varInfoIt == varInfoMap.end())
+        {
+            return VariableAccessError::NonExistentVariable;
+        }
+
+        lua_rawgeti(m_luaState, LUA_REGISTRYINDEX, registryIndex);
+        // Lua: instance
+
+        AZStd::string_view internalName = varInfoIt->second.m_name;
+        lua_pushlstring(m_luaState, internalName.data(), internalName.size());
+        // Lua: instance, key
+
+        lua_gettable(m_luaState, -2);
+        // Lua: instance, value
+
+        auto res = AZ::ScriptValue<AZStd::any>::StackRead(m_luaState, -1);
+        // Lua: instance, value
+
+        lua_pop(m_luaState, 2);
+        // Lua:
+
+        return VariableGetResult(AZStd::move(res));
     }
 
 } 

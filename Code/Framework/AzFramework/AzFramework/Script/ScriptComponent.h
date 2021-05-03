@@ -101,6 +101,10 @@ namespace AzFramework
         static const char* DefaultFieldName;
 
         AZ_COMPONENT(AzFramework::ScriptComponent, "{8D1BC97E-C55D-4D34-A460-E63C57CD0D4B}", NetBindable);        
+        void GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType& provided) const;
+        void GetDependentServices(AZ::ComponentDescriptor::DependencyArrayType& dependent) const;
+        void GetRequiredServices(AZ::ComponentDescriptor::DependencyArrayType& required) const;
+        void GetIncompatibleServices(AZ::ComponentDescriptor::DependencyArrayType& incompatible) const;
 
         /// \red ComponentDescriptor::Reflect
         static void Reflect(AZ::ReflectContext* reflection);        
@@ -148,6 +152,10 @@ namespace AzFramework
         /// Loads the script into the context/VM, \returns true if the script is loaded
         bool LoadInContext();
 
+        /// Attempts to load services from the Lua script
+        void LoadServices();
+        void ClearServices();
+
         // Create script instance table.
         void CreateEntityTable();
         void DestroyEntityTable();
@@ -162,6 +170,13 @@ namespace AzFramework
         int                                 m_table;                ///< Cached table index
         ScriptPropertyGroup                 m_properties;           ///< List with all properties that were tweaked in the editor and should override values in the m_sourceScriptName class inside m_script.
         ScriptNetBindingTable*              m_netBindingTable;      ///< Table that will hold our networked script values, and manage callbacks
+
+        // Services
+        using ServicesSet = AZStd::unordered_set<AZ::Crc32>;
+        ServicesSet m_providedServices;
+        ServicesSet m_dependentServices;
+        ServicesSet m_requiredServices;
+        ServicesSet m_incompatibleServices;
     };        
 }   // namespace AZ
 

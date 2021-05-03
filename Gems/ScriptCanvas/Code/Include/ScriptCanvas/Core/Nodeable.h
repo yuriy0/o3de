@@ -99,6 +99,7 @@ namespace ScriptCanvas
         virtual void OnInitializeExecutionState() {}
 
         virtual void OnDeactivate() {}
+        virtual void OnExecutionStateInitialized() {}
 
         virtual size_t GetRequiredOutCount() const { return 0; }
 

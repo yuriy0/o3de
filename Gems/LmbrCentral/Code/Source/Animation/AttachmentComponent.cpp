@@ -44,12 +44,13 @@ namespace LmbrCentral
         if (serializeContext)
         {
             serializeContext->Class<AttachmentConfiguration>()
-                ->Version(1)
+                ->Version(2)
                 ->Field("Target ID", &AttachmentConfiguration::m_targetId)
                 ->Field("Target Bone Name", &AttachmentConfiguration::m_targetBoneName)
                 ->Field("Target Offset", &AttachmentConfiguration::m_targetOffset)
                 ->Field("Attached Initially", &AttachmentConfiguration::m_attachedInitially)
                 ->Field("Scale Source", &AttachmentConfiguration::m_scaleSource)
+                ->Field("m_rotationSource", &AttachmentConfiguration::m_rotationSource)
             ;
         }
         AZ::BehaviorContext* behaviorContext = azrtti_cast<AZ::BehaviorContext*>(context);
@@ -58,7 +59,13 @@ namespace LmbrCentral
             behaviorContext->EBus<AttachmentComponentRequestBus>("AttachmentComponentRequestBus")
                 ->Event("Attach", &AttachmentComponentRequestBus::Events::Attach)
                 ->Event("Detach", &AttachmentComponentRequestBus::Events::Detach)
-                ->Event("SetAttachmentOffset", &AttachmentComponentRequestBus::Events::SetAttachmentOffset);
+                ->Event("Reattach", &AttachmentComponentRequestBus::Events::Reattach)
+                ->Event("SetAttachmentOffset", &AttachmentComponentRequestBus::Events::SetAttachmentOffset)
+                ->Event("GetJointName", &AttachmentComponentRequestBus::Events::GetJointName)
+                ->Event("GetTargetEntityId", &AttachmentComponentRequestBus::Events::GetTargetEntityId)
+                ->Event("SetTargetEntityId", &AttachmentComponentRequestBus::Events::SetTargetEntityId)
+                ->Event("GetOffset", &AttachmentComponentRequestBus::Events::GetOffset)
+                ;
 
             behaviorContext->EBus<AttachmentComponentNotificationBus>("AttachmentComponentNotificationBus")
                 ->Handler<BehaviorAttachmentComponentNotificationBusHandler>();
@@ -92,6 +99,7 @@ namespace LmbrCentral
         m_targetCanAnimate = targetCanAnimate;
         m_isUpdatingOwnerTransform = false;
         m_scaleSource = configuration.m_scaleSource;
+        m_rotationSource = configuration.m_rotationSource;
 
         m_cachedOwnerTransform = AZ::Transform::CreateIdentity();
         EBUS_EVENT_ID_RESULT(m_cachedOwnerTransform, m_ownerId, AZ::TransformBus, GetWorldTM);
@@ -130,10 +138,8 @@ namespace LmbrCentral
         // safe to try and detach, even if we weren't attached
         Detach();
 
-        if (!targetId.IsValid())
-        {
-            return;
-        }
+        m_targetBoneName = targetBoneName;
+        m_targetOffset = offset;
 
         if (targetId == m_ownerId)
         {
@@ -141,13 +147,44 @@ namespace LmbrCentral
             return;
         }
 
+        if (!targetId.IsValid())
+        {
+            return;
+        }
+
+        m_targetId = targetId;
+
+        UpdateAttachment();
+    }
+
+    void BoneFollower::SetTargetEntityId(AZ::EntityId targetId)
+    {
+        AZ_Assert(m_ownerId.IsValid(), "BoneFollower must be Activated to use.");
+
+        // safe to try and detach, even if we weren't attached
+        Detach();
+
+        if (targetId == m_ownerId)
+        {
+            AZ_Error("Attachment Component", false, "AttachmentComponent cannot target itself");
+            return;
+        }
+
+        if (!targetId.IsValid())
+        {
+            return;
+        }
+
+        m_targetId = targetId;
+
+        UpdateAttachment();
+    }
+
+    void BoneFollower::UpdateAttachment()
+    {
         // Note: the target entity may not be activated yet. That's ok.
         // When mesh is ready we are notified via MeshComponentEvents::OnMeshCreated
         // When transform is ready we are notified via TransformNotificationBus::OnTransformChanged
-
-        m_targetId = targetId;
-        m_targetBoneName = targetBoneName;
-        m_targetOffset = offset;
 
         BindTargetBone();
 
@@ -237,26 +274,43 @@ namespace LmbrCentral
             m_isTargetEntityTransformKnown = true;
         }
 
+        AZ::Transform targetBoneTransform = m_targetBoneTransform;
+
+        switch (m_rotationSource)
+        {
+        case AttachmentConfiguration::ScaleSource::TargetEntityScale:
+            // Zero out the rotation (entity rotation is applied seperately)
+            targetBoneTransform.SetRotation(AZ::Quaternion::CreateIdentity());
+            break;
+        case AttachmentConfiguration::ScaleSource::TargetBoneScale:
+            // Do nothing (keep original rotation)
+            break;
+        default:
+            AZ_Warning("BoneFollower", false, "Unexpected 'ScaleSource'");
+            break;
+        }
+
+
         AZ::Transform finalTransform;
         if (m_scaleSource == AttachmentConfiguration::ScaleSource::WorldScale)
         {
             // apply offset in world-space
-            finalTransform = m_targetEntityTransform * m_targetBoneTransform;
-            finalTransform.SetScale(AZ::Vector3::CreateOne());
+            finalTransform = m_targetEntityTransform * targetBoneTransform;
+            finalTransform.ExtractScale();
             finalTransform *= m_targetOffset;
         }
         else if (m_scaleSource == AttachmentConfiguration::ScaleSource::TargetEntityScale)
         {
             // apply offset in target-entity-space (ignoring bone scale)
-            AZ::Transform boneNoScale = m_targetBoneTransform;
-            boneNoScale.SetScale(AZ::Vector3::CreateOne());
+            AZ::Transform boneNoScale = targetBoneTransform;
+            boneNoScale.ExtractScale();
 
             finalTransform = m_targetEntityTransform * boneNoScale * m_targetOffset;
         }
         else // AttachmentConfiguration::ScaleSource::TargetEntityScale
         {
             // apply offset in target-bone-space
-            finalTransform = m_targetEntityTransform * m_targetBoneTransform * m_targetOffset;
+            finalTransform = m_targetEntityTransform * targetBoneTransform * m_targetOffset;
         }
             
         if (m_cachedOwnerTransform != finalTransform)

@@ -3238,6 +3238,28 @@ namespace AzToolsFramework
                     else if (selectionRootEntities.size() == 1)
                     {
                         //we have one common root, don't need to do anything
+
+                        // Check if that root entity is already part of a slice. If so, don't permit creating this slice.
+                        // While this is technically valid, it causes massive amounts of confusion, bugs, and wasted time.
+                        // There is no necessity to have such slices, so we simply don't allow them (as opposed to trying to support this)
+                        // This check is not necessary if the root was auto-created; it cannot be a slice since it is a fresh entity
+                        const auto& newSliceRootEntity = selectionRootEntities[0]->GetId();
+
+                        bool isAlreadySliceRoot = false;
+                        EBUS_EVENT_ID_RESULT(isAlreadySliceRoot, newSliceRootEntity, AzToolsFramework::EditorEntityInfoRequestBus, IsSliceRoot);
+                        if (isAlreadySliceRoot)
+                        {
+                            AZStd::string name = "<unknown name>";
+                            EBUS_EVENT_ID_RESULT(name, newSliceRootEntity, AzToolsFramework::EditorEntityInfoRequestBus, GetName);
+                            name = "'" + name + "'" + newSliceRootEntity.ToString();
+
+                            return AZ::Failure(AZStd::string::format(
+                                                   "The selection root entity %s is already a slice root entity. Creating a slice from the selection would result "
+                                                   "in the selection root entity being the root of multiple slices. This is currently unsupported. "
+                                                   "To fix this, create a new root entity for the selection, and make the current root entity a child of the newly created entity."
+                                                   , name.c_str()
+                                                   ));
+                        }
                     }
                 }
                 else

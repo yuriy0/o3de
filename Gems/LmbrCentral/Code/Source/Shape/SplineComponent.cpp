@@ -18,6 +18,8 @@
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzCore/std/smart_ptr/make_shared.h>
 
+#include <AzFramework/Viewport/ViewportColors.h>
+
 namespace LmbrCentral
 {
     using SplineComboBoxVec = AZStd::vector<AZStd::pair<size_t, AZStd::string>>;
@@ -172,6 +174,7 @@ namespace LmbrCentral
     void SplineComponent::Reflect(AZ::ReflectContext* context)
     {
         SplineCommon::Reflect(context);
+        SplineDisplay::Reflect(context);
 
         if (auto serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
         {
@@ -187,7 +190,7 @@ namespace LmbrCentral
                 Handler<BehaviorSplineComponentNotificationBusHandler>();
 
             behaviorContext->EBus<SplineComponentRequestBus>("SplineComponentRequestBus")
-                ->Attribute(AZ::Script::Attributes::Scope, AZ::Script::Attributes::ScopeFlags::Automation)
+                //->Attribute(AZ::Script::Attributes::Scope, AZ::Script::Attributes::ScopeFlags::Automation)
                 ->Attribute(AZ::Edit::Attributes::Category, "Shape")
                 ->Attribute(AZ::Script::Attributes::Module, "shape")
                 ->Event("GetSpline", &SplineComponentRequestBus::Events::GetSpline)
@@ -345,5 +348,155 @@ namespace LmbrCentral
     {
         // set closed callback calls OnSplineChanged
         m_splineCommon.m_spline->SetClosed(closed);
+    }
+
+    ///////////////////////////////////////////////////
+    // SplineDebugDisplayComponent
+    ///////////////////////////////////////////////////
+    void SplineDebugDisplayComponent::Reflect(AZ::ReflectContext * context)
+    {
+        if (auto serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
+        {
+            serializeContext->Class<SplineDebugDisplayComponent, EntityDebugDisplayComponent>()
+                ->Version(1)
+                ->Field("Spline", &SplineDebugDisplayComponent::m_spline)
+                ->Field("Display", &SplineDebugDisplayComponent::m_display)
+                ;
+        }
+    }
+
+    void SplineDebugDisplayComponent::Activate() {
+        EBUS_EVENT_ID_RESULT(m_spline, GetEntityId(), SplineComponentRequestBus, GetSpline);
+
+        EntityDebugDisplayComponent::Activate();
+    }
+
+    void SplineDebugDisplayComponent::Deactivate() {
+        EntityDebugDisplayComponent::Deactivate();
+    }
+
+    static AZ::Transform TransformUniformScale(const AZ::Transform& transform)
+    {
+        AZ::Transform transformUniformScale = transform;
+        const float maxScale = transformUniformScale.ExtractScale().GetMaxElement();
+        return transformUniformScale * AZ::Transform::CreateScale(AZ::Vector3(maxScale));
+    }
+
+    void SplineDebugDisplayComponent::Draw(AzFramework::DebugDisplayRequests& displayContext) {
+        displayContext.SetColor(AzFramework::ViewportColors::SelectedColor);
+        m_display.Draw(*m_spline.get(), TransformUniformScale(GetCurrentTransform()), displayContext, true);
+    }
+
+    ///////////////////////////////////////////////////
+    // SplineDisplay
+    ///////////////////////////////////////////////////
+    void SplineDisplay::DrawVertices(
+        const AZ::Spline& spline, const AZ::Transform& worldFromLocal,
+        const size_t begin, const size_t end, AzFramework::DebugDisplayRequests& debugDisplay)
+    {
+        static const auto offset = AZ::Vector3(0.f, 0.f, -0.1f);
+        static const auto vertexColor = AZ::Color(1.f, 0.f, 0.f, 0.65f);
+        static const auto labelColor = AZ::Color(1.f, 1.f, 1.f, 1.f);
+        debugDisplay.SetColor(vertexColor);
+
+        for (auto i = begin-1; i < end; i++) {
+            auto vertexPos = spline.GetVertex(i);
+
+            AZStd::string indexFormat = AZStd::string::format("[%d]", i);
+            debugDisplay.SetColor(labelColor);
+            debugDisplay.DrawTextLabel(worldFromLocal.TransformPoint(vertexPos + offset), 1.5f, indexFormat.c_str(), true);
+            debugDisplay.SetColor(vertexColor);
+
+            debugDisplay.DrawBall(vertexPos, 0.125f);
+        }
+    }
+
+    void SplineDisplay::Draw(const AZ::Spline& spline, const AZ::Transform& worldFromLocal, size_t begin, size_t end, AzFramework::DebugDisplayRequests& displayContext, bool drawLabels) const
+    {
+        const size_t granularity = spline.GetSegmentGranularity();
+        const auto GetAddr = [&](size_t i, size_t j) {
+            return AZ::SplineAddress(i - 1, j / static_cast<float>(granularity));
+        };
+
+        AZStd::vector<AZStd::function<void(const AZ::Vector3&, const AZ::SplineAddress&)>> DrawAux;
+        if (showNormals) {
+            DrawAux.push_back([&](const AZ::Vector3& orig, const AZ::SplineAddress& addr) {
+                auto normal = spline.GetNormal(addr);
+                displayContext.DrawLine(orig - normal, orig + normal);
+            });
+        }
+        if (showTangents) {
+            DrawAux.push_back([&](const AZ::Vector3& orig, const AZ::SplineAddress& addr) {
+                auto tangent = spline.GetTangent(addr);
+                displayContext.DrawLine(orig-tangent, orig+tangent);
+            });
+        }
+        const auto DrawAuxillaryData = [&](const AZ::Vector3& orig, const AZ::SplineAddress& addr) {
+            for (auto& fn : DrawAux) { fn(orig, addr); };
+        };
+
+        for (size_t i = begin; i < end; ++i)
+        {
+            AZ::Vector3 p1 = spline.GetVertex(i - 1);
+            DrawAuxillaryData(p1, GetAddr(i, 0));
+
+            for (size_t j = 1; j <= granularity; ++j)
+            {
+                auto addr = GetAddr(i, j);
+                AZ::Vector3 p2 = spline.GetPosition(addr);
+                displayContext.DrawLine(p1, p2);
+                DrawAuxillaryData(p2, addr);
+                p1 = p2;
+            }
+        }
+
+        if (drawLabels) DrawVertices(spline, worldFromLocal, begin, end, displayContext);
+    }
+
+    void SplineDisplay::Draw(const AZ::Spline& spline, const AZ::Transform& worldFromLocal, AzFramework::DebugDisplayRequests& displayContext, bool drawLabels) const {
+        const size_t vertexCount = spline.GetVertexCount();
+        if (vertexCount == 0)
+        {
+            return;
+        }
+
+        // render spline
+        if (spline.RTTI_IsTypeOf(AZ::LinearSpline::RTTI_Type()) || spline.RTTI_IsTypeOf(AZ::BezierSpline::RTTI_Type()))
+        {
+            Draw(spline, worldFromLocal, 1, spline.IsClosed() ? vertexCount + 1 : vertexCount, displayContext, drawLabels);
+        }
+        else if (spline.RTTI_IsTypeOf(AZ::CatmullRomSpline::RTTI_Type()))
+        {
+            // catmull-rom splines use the first and last points as control points only, omit those for display
+            Draw(spline, worldFromLocal, spline.IsClosed() ? 1 : 2, spline.IsClosed() ? vertexCount + 1 : vertexCount - 1, displayContext, drawLabels);
+        }
+    }
+
+    SplineDisplay::SplineDisplay()
+        : showNormals(false)
+        , showTangents(false)
+    {}
+
+    void SplineDisplay::Reflect(AZ::ReflectContext * context) {
+        if (auto serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
+        {
+            serializeContext->Class<SplineDisplay>()
+                ->Version(1)
+                ->Field("showNormals", &SplineDisplay::showNormals)
+                ->Field("showTangents", &SplineDisplay::showTangents)
+                ;
+
+            if (AZ::EditContext* editContext = serializeContext->GetEditContext())
+            {
+                editContext->Class<SplineDisplay>(
+                    "Spline Display", "Describes how to display a spline")
+                    ->ClassElement(AZ::Edit::ClassElements::EditorData, "")
+
+                    ->DataElement(AZ::Edit::UIHandlers::Default, &SplineDisplay::showNormals, "Show normals?", "")
+
+                    ->DataElement(AZ::Edit::UIHandlers::Default, &SplineDisplay::showTangents, "Show tangents?", "")
+                    ;
+            }
+        }
     }
 } // namespace LmbrCentral

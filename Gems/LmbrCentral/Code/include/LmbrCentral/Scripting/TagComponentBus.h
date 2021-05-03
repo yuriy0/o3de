@@ -121,4 +121,18 @@ namespace LmbrCentral
     };
     using TagComponentNotificationsBus = AZ::EBus<TagComponentNotifications>;
 
+	// Notifications regarding Tags on entities.
+	class TagGeneralNotifications
+		: public AZ::EBusTraits
+	{
+	public:
+		static const AZ::EBusAddressPolicy AddressPolicy = AZ::EBusAddressPolicy::Single;
+		//! Notifies listeners about tags being added
+		virtual void OnTagGeneralAdded(const Tag&, const AZ::EntityId&) = 0;
+
+		//! Notifies listeners about tags being removed
+		virtual void OnTagGeneralRemoved(const Tag&, const AZ::EntityId&) = 0;
+	};
+	using TagGeneralNotificationsBus = AZ::EBus<TagGeneralNotifications>;
+
 } // namespace LmbrCentral

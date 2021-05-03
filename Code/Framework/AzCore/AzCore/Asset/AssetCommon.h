@@ -24,6 +24,7 @@
 #include <AzCore/std/typetraits/is_base_of.h>
 #include <AzCore/Debug/AssetTracking.h>
 #include <AzCore/IO/Streamer/FileRequest.h>
+#include <AzCore/Asset/AssetBusImpl.h>
 
 namespace AZ
 {
@@ -577,6 +578,11 @@ namespace AZ
             using ConnectionPolicy = AssetConnectionPolicy<Bus>;
 
             using EventProcessingPolicy = Debug::AssetTrackingEventProcessingPolicy<>;
+
+            template<class Interface, class Traits>
+            using EBusContainer = AssetInternal::AssetBusContainer<Interface, Traits>;
+
+            using HandlerHolder = AssetInternal::AssetBusHandlerHolder<AssetEvents, AssetEvents>;
             //////////////////////////////////////////////////////////////////////////
 
             virtual ~AssetEvents() {}
@@ -617,7 +623,7 @@ namespace AZ
             virtual void OnAssetContainerReady([[maybe_unused]] Asset<AssetData> asset) { }
         };
 
-        typedef EBus<AssetEvents> AssetBus;
+        using AssetBus = AssetInternal::AssetBusImpl<AssetEvents>;
 
         /*
          * AssetBusCallbacks is a utility class that maps AssetBus events to user callbacks

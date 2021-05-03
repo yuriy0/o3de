@@ -18,9 +18,93 @@
 #include <EMotionFX/Source/AnimGraphNodeData.h>
 #include <EMotionFX/Source/AnimGraphRefCountedData.h>
 
+#include <AzCore/std/containers/variant.h>
 
 namespace EMotionFX
 {
+    // Represents a sequence of values of alternating types
+    template<class T0, class T1>
+    class AlternatingSequence
+    {
+    public:
+        using pair = AZStd::pair<T1, T0>;
+
+        struct Builder
+        {
+            Builder() = default;
+
+            template<class Arg>
+            AZStd::enable_if_t<
+                AZStd::is_convertible_v<
+                    AZStd::decay_t<Arg>,
+                    T0
+                >
+            >
+                push_back(Arg&& arg)
+            {
+                if (m_sequence.size() % 2 == 0)
+                {
+                    m_sequence.push_back(T0(AZStd::forward<Arg>(arg)));
+                }
+                else
+                {
+                    AZ_Assert(false, "AlternatingSequence::push_back(T0) called when next element is expected to be T1");
+                }
+            }
+
+            template<class Arg>
+            AZStd::enable_if_t<
+                AZStd::is_convertible_v<
+                    AZStd::decay_t<Arg>,
+                    T1
+                >
+            >
+                push_back(Arg&& arg)
+            {
+                if (m_sequence.size() % 2 == 1)
+                {
+                    m_sequence.push_back(T1(AZStd::forward<Arg>(arg)));
+                }
+                else
+                {
+                    AZ_Assert(false, "AlternatingSequence::push_back(T0) called when next element is expected to be T1");
+                }
+            }
+
+            template<class X, class Y, class... Args>
+            inline void push_back(X&& val0, Y&& val1, Args&&... args)
+            {
+                push_back(AZStd::forward<X>(val0));
+                push_back(AZStd::forward<Y>(val1), AZStd::forward<Args>(args)...);
+            }
+
+            operator AlternatingSequence() const
+            {
+                AlternatingSequence seq;
+                auto it = m_sequence.begin();
+                if (it != m_sequence.end())
+                {
+                    seq.first = AZStd::get<T0>(*it);
+                    ++it;
+                }
+                for (; it != m_sequence.end(); )
+                {
+                    seq.rest.emplace_back(AZStd::get<T1>(*it), AZStd::get<T0>(*(it+1)));
+                    it += 2;
+                }
+                return seq;
+            }
+        private:
+            using element = AZStd::variant<T0, T1>;
+            AZStd::vector<element> m_sequence;
+        };
+
+        friend struct Builder;
+
+        AZStd::optional<T0> first;
+        AZStd::vector<pair> rest;
+    };
+
     // forward declarations
     class AnimGraphInstance;
     class ActorInstance;
@@ -65,6 +149,11 @@ namespace EMotionFX
             bool                                        mReachedExitState;      /**< True in case the state machine's current state is an exit state, false it not. */
             AnimGraphRefCountedData                     m_prevData;
             bool                                        mSwitchToEntryState;
+
+            using LeavingNode = AZStd::pair<AnimGraphNode*, AnimGraphStateTransition*>;
+
+            AZStd::vector<LeavingNode>                  m_statesLeftThisUpdate; /* The states which were left (no longer active) on this update */
+            bool                                        m_deferredRewind;
 
         private:
             AZStd::vector<AnimGraphNode*>               m_activeStates;         // TODO: See function comment.
@@ -275,7 +364,9 @@ namespace EMotionFX
         AZ::u64                                     m_entryStateId;             /**< The node id of the entry state. */
         bool                                        m_alwaysStartInEntryState;
 
-        static AZ::u32                              s_maxNumPasses;
+        // Represents a sequence of nodes in a state machine with the transitions between them
+        using NodeSequence = AlternatingSequence<AnimGraphNode*, AnimGraphStateTransition*>;
+        void PostUpdateFoldSequence(AnimGraphInstance* animGraphInstance, AnimGraphRefCountedData* outData, const NodeSequence& sequence);
 
         /**
          * Reset all conditions from wild card and outgoing transitions of the given state.
@@ -307,6 +398,8 @@ namespace EMotionFX
 
         void PushTransitionStack(UniqueData* uniqueData, AnimGraphStateTransition* transition);
 
+        void DoDeferredRewind(AnimGraphInstance* animGraphInstance);
+
         /**
          * Get the latest active transition. The latest active transition is the one that got started most recently, is still transitioning
          * and defines where the state machine is actually going. All other transitions on the transition stack got interrupted.
@@ -317,5 +410,9 @@ namespace EMotionFX
 
         void EndTransition(AnimGraphStateTransition* transition, AnimGraphInstance* animGraphInstance, UniqueData* uniqueData);
         void EndAllActiveTransitions(AnimGraphInstance* animGraphInstance, UniqueData* uniqueData);
+
+
+        void OnStateEnd(AnimGraphInstance* animGraphInstance, AnimGraphNode* newState, AnimGraphStateTransition* usedTransition) override;
+        void OnStateExit(AnimGraphInstance* animGraphInstance, AnimGraphNode* targetState, AnimGraphStateTransition* usedTransition) override;
     };
 } // namespace EMotionFX

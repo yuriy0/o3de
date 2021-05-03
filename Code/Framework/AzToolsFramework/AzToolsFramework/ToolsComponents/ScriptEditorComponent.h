@@ -36,6 +36,11 @@ namespace AzToolsFramework
             AZ_EDITOR_COMPONENT(ScriptEditorComponent, "{b5fc8679-fa2a-4c7c-ac42-dcc279ea613a}")
 
             static void Reflect(AZ::ReflectContext* context);
+            void GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType& provided) const;
+            void GetDependentServices(AZ::ComponentDescriptor::DependencyArrayType& dependent) const;
+            void GetRequiredServices(AZ::ComponentDescriptor::DependencyArrayType& required) const;
+            void GetIncompatibleServices(AZ::ComponentDescriptor::DependencyArrayType& incompatible) const;
+
             static bool DoComponentsMatch(const ScriptEditorComponent* thisComponent, const ScriptEditorComponent* otherComponent);
 
             ScriptEditorComponent() = default;
@@ -93,6 +98,7 @@ namespace AzToolsFramework
 
             void ClearDataElements();
             AZ::u32 ScriptHasChanged();
+            AZ::u32 ServicesHaveChanged();
 
             bool LoadEnumValuesDouble(AZ::ScriptDataContext& sdc, int valueIndex, AZ::Edit::ElementData& ed);
             bool LoadEnumValuesString(AZ::ScriptDataContext& sdc, int valueIndex, AZ::Edit::ElementData& ed);

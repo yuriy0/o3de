@@ -23,6 +23,7 @@ namespace TranslationResultCpp
         AddedStaticVariables,
         SupportMemberVariableInputs,
         ExecutionStateSelectionIncludesOnGraphStart,
+        AddRuntimeVariableInfoMap,
         // add your entry above
         Current
     };
@@ -125,6 +126,7 @@ namespace ScriptCanvas
             m_variables = rhs.m_variables;
             m_entityIds = rhs.m_entityIds;
             m_staticVariables = rhs.m_staticVariables;
+            m_runtimeVariableInfo = rhs.m_runtimeVariableInfo;
         }
 
         size_t RuntimeInputs::GetConstructorParameterCount() const
@@ -141,6 +143,7 @@ namespace ScriptCanvas
                 m_variables = AZStd::move(rhs.m_variables);
                 m_entityIds = AZStd::move(rhs.m_entityIds);
                 m_staticVariables = AZStd::move(rhs.m_staticVariables);
+                m_runtimeVariableInfo = AZStd::move(rhs.m_runtimeVariableInfo);
             }
 
             return *this;
@@ -157,6 +160,7 @@ namespace ScriptCanvas
                     ->Field("variables", &RuntimeInputs::m_variables)
                     ->Field("entityIds", &RuntimeInputs::m_entityIds)
                     ->Field("staticVariables", &RuntimeInputs::m_staticVariables)
+                    ->Field("runtimeVariableInfo", &RuntimeInputs::m_runtimeVariableInfo)
                     ;
             }
         }

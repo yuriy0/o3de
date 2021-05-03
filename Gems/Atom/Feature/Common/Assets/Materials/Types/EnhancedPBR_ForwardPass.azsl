@@ -11,6 +11,7 @@
 */
 
 #include <viewsrg.srgi>
+#include <Atom/Features/PBR/ForwardPassSrg.azsli>
 #include "EnhancedPBR_Common.azsli"
 #include <Atom/Features/PBR/DefaultObjectSrg.azsli>
 #include <Atom/Features/PBR/ForwardPassOutput.azsli>

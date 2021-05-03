@@ -134,6 +134,7 @@
 #define ID_EDIT_FETCH                              33465
 #define ID_FILE_EXPORTTOGAMENOSURFACETEXTURE       33473
 #define ID_VIEW_SWITCHTOGAME                       33477
+#define ID_VIEW_SWITCHTOGAME_FULLSCREEN            33478
 #define ID_EDIT_DELETE                             33480
 #define ID_MOVE_OBJECT                             33481
 #define ID_RENAME_OBJ                              33483
@@ -318,6 +319,7 @@
 #define ID_TOOLS_ENABLEFILECHANGEMONITORING        34185
 #define ID_FILE_OPEN_LEVEL                         34196
 #define ID_FILE_SAVE_LEVEL                         34197
+#define ID_FILE_RELOAD_LEVEL                       37198
 #define ID_TV_SYNC_TO_BASE                         34199
 #define ID_TV_SYNC_FROM_BASE                       34200
 #ifdef ENABLE_SLICE_EDITOR

@@ -1214,6 +1214,8 @@ namespace AZ
         AZStd::string m_deprecatedName;
         AZStd::string m_toolTip;
         BehaviorMethod* m_queueFunction;
+        BehaviorMethod* m_getNumHandlersFunction;
+        BehaviorMethod* m_getTotalNumHandlersFunction;
         BehaviorParameter m_idParam; /// Invalid if bus doesn't have ID (you can check the typeId for invalid)
         BehaviorMethod* m_getCurrentId; ///< Method that returns current ID of the message, null if this EBus has not ID.
         AZStd::unordered_map<AZStd::string, BehaviorEBusEventSender> m_events;
@@ -1405,6 +1407,39 @@ namespace AZ
             return nullptr;
         }
 
+        // GetNumOfEventHandlers
+        template<class Bus>
+        static int GetNumHandlers(const typename Bus::BusIdType& busId)
+        {
+            return (int)Bus::GetNumOfEventHandlers(busId);
+        }
+        template<class Bus, typename AZStd::enable_if_t<!AZStd::is_same<typename Bus::BusIdType, AZ::NullBusId>::value>* = nullptr>
+        BehaviorMethod* GetNumHandlersMethod()
+        {
+            return aznew Internal::BehaviorMethodImpl
+                <int(const typename Bus::BusIdType&)>
+                (&GetNumHandlers<Bus>, this, AZStd::string(Bus::GetName()) + "::GetNumHandlers");
+        }
+        template<class Bus, typename AZStd::enable_if_t<AZStd::is_same<typename Bus::BusIdType, AZ::NullBusId>::value>* = nullptr>
+        BehaviorMethod* GetNumHandlersMethod()
+        {
+            return nullptr;
+        }
+
+        // GetTotalNumOfEventHandlers
+        template<class Bus>
+        static int GetTotalNumHandlers()
+        {
+            return (int)Bus::GetTotalNumOfEventHandlers();
+        }
+        template<class Bus>
+        BehaviorMethod* GetTotalNumHandlersMethod()
+        {
+            return aznew Internal::BehaviorMethodImpl
+                <int()>
+                (&GetTotalNumHandlers<Bus>, this, AZStd::string(Bus::GetName()) + "::GetTotalNumHandlers");
+        }
+
         /// Helper struct to call the default class allocator \ref AZ_CLASS_ALLOCATOR
         template<class T>
         struct DefaultAllocator
@@ -1521,7 +1556,7 @@ namespace AZ
         template <class T>
         static void SetClassHasher(BehaviorClass* behaviorClass)
         {
-            if constexpr (AZStd::HasherInvocable_v<T>)
+            if constexpr (AZStd::HasherInvocable<T>::value)
             {
                 behaviorClass->m_valueHasher = [](void* value) -> AZStd::size_t
                 {
@@ -3554,6 +3589,8 @@ namespace AZ
 
             EBusSetIdFeatures<T>(behaviorEBus);
             behaviorEBus->m_queueFunction = QueueFunctionMethod<T>();
+            behaviorEBus->m_getNumHandlersFunction = GetNumHandlersMethod<T>();
+            behaviorEBus->m_getTotalNumHandlersFunction = GetTotalNumHandlersMethod<T>();
 
             // Switch to Set (we store the name in the class)
             m_ebuses.insert(AZStd::make_pair(behaviorEBus->m_name, behaviorEBus));

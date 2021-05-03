@@ -27,6 +27,7 @@
 
 #include <AzFramework/Script/ScriptComponent.h>
 #include <AzFramework/Script/ScriptNetBindings.h>
+#include <AzFramework/Entity/BehaviorEntity.h>
 
 #include <AzFramework/Network/NetworkContext.h>
 #include <AzFramework/StringFunc/StringFunc.h>
@@ -280,6 +281,14 @@ namespace AzFramework
     //              end
     //          }
     //
+    //      },
+    //
+    //      // Extension: component-style services may be specified in the script
+    //      Services = {
+    //          Provided = {"Service1"},
+    //          Dependent = {"Service2"},
+    //          Incompatible = {"Service3"},
+    //          Required = {"Service4"},
     //      }
     // }
     //
@@ -810,7 +819,87 @@ namespace AzFramework
         lua_pop(lua, 1); // pop the properties table (or the nil value)
         // Leave the script table on the stack for CreateEntityTable().
 
+        LoadServices();
         return true;
+    }
+
+    //=========================================================================
+    // LoadServices
+    //=========================================================================
+    void ScriptComponent::LoadServices() {
+        // This function assumes that the script table is on top of the stack
+        lua_State* L = m_context->NativeContext();
+        if (!lua_istable(L, -1)) {
+            AZ_Error("Script", false, "LoadServices - internal error, table was not found at stack index -1!");
+            return;
+        }
+
+        static AZStd::string ServicesName = "Services";
+        static AZStd::string ProvidedServicesName = "Provided";
+        static AZStd::string DependentServicesName = "Dependent";
+        static AZStd::string RequiredServicesName = "Required";
+        static AZStd::string IncompatibleServicesName = "Incompatible";
+        const AZStd::unordered_map<AZStd::string, ServicesSet*> scriptNamesToMembers =
+            { { ProvidedServicesName, &m_providedServices }
+            , { DependentServicesName, &m_dependentServices }
+            , { RequiredServicesName, &m_requiredServices }
+            , { IncompatibleServicesName, &m_incompatibleServices }
+            };
+
+        // Only clear previous services if the script table is valid, otherwise it is likely that the new script has an error,
+        // in which case we save the previous state until the error is fixed. This behavior is consistent with other script component behaviors
+        ClearServices();
+
+                                                                                 // [<entity table>]
+        // Push services tables
+        lua_pushstring(L, ServicesName.c_str());                                 // ["Services", <entity table>]
+        lua_rawget(L, -2);                                                       // [<services table>, <entity table>]
+
+        // Services not present
+        if (!lua_istable(L, -1)) {
+            lua_pop(L, 1);                                                       // [<entity table>]
+            return;
+        }
+
+        for (auto svc : scriptNamesToMembers) {
+            auto svcName = svc.first.c_str();
+            auto svcMemb = svc.second;
+
+            lua_pushstring(L, svcName);                                           // [<svcName>, <services table>, <entity table>]
+            lua_rawget(L, -2);                                                    // [<svcName table>, <services table>, <entity table>]
+
+            if (!lua_istable(L, -1)) {
+                lua_pop(L, 1);                                                    // [<services table>, <entity table>]
+                continue;
+            }
+
+            // Iterate over table
+            lua_pushnil(L);                                                       // [<key=nil>, <svcName table>, <services table>, <entity table>]
+            while (lua_next(L, -2) != 0) {                                        // [<value>, <key>, <svcName table>, <services table>, <entity table>]
+                if (lua_isstring(L, -1)) {
+                    svcMemb->insert(AZ::Crc32(lua_tostring(L, -1)));
+                } else if (auto p_crc32 = reinterpret_cast<AZ::Crc32*>(AZ::Internal::LuaClassFromStack(L, -1, AZ::AzTypeInfo<AZ::Crc32>::Uuid()))) {
+                    svcMemb->insert(*p_crc32);
+                }
+                lua_pop(L, 1);                                                    // [<key>, <svcName table>, <services table>, <entity table>]
+            }
+            lua_pop(L, 1);                                                        // [<services table>, <entity table>]
+        }
+
+        // Remove services table from stack
+                                                                                  // [<services table>, <entity table>]
+        lua_pop(L, 1);                                                            // [<entity table>]
+    }
+
+
+    //=========================================================================
+    // ClearServices
+    //=========================================================================
+    void ScriptComponent::ClearServices() {
+        m_providedServices.clear();
+        m_dependentServices.clear();
+        m_incompatibleServices.clear();
+        m_requiredServices.clear();
     }
 
     //=========================================================================
@@ -925,6 +1014,11 @@ namespace AzFramework
         AZ::ScriptValue<AZ::EntityId>::StackPush(lua, GetEntityId());  // Stack: ScriptRootTable PropertiesTable EntityTable{ PropertiesTable{__index __newIndex Meta{CopyOfPropertiesTable}} } "entityId" userdata
         lua_rawset(lua, -3);  // Stack: ScriptRootTable PropertiesTable EntityTable{ PropertiesTable{__index __newIndex Meta{CopyOfPropertiesTable}} entityId }
 
+        // set my component id
+        lua_pushliteral(lua, "componentId");
+        AZ::ScriptValue<AzFramework::BehaviorComponentId>::StackPush(lua, GetId());
+        lua_rawset(lua, -3);
+
         // set the base metatable
         lua_pushvalue(lua, baseStackIndex); // copy the "Base table"
         lua_setmetatable(lua, -2); // set the scriptTable as a metatable for the entity table
@@ -991,6 +1085,8 @@ namespace AzFramework
             luaL_unref(lua, LUA_REGISTRYINDEX, m_table);
             m_table = LUA_NOREF;
         }
+
+        ClearServices();
     }
 
     //=========================================================================
@@ -1129,6 +1225,32 @@ namespace AzFramework
         }
 
         lua_rawset(lua, parentIndex); // Stack: ScriptRootTable PropertiesTable EntityTable{ PropertiesTable{Meta{__index __newIndex}} }
+    }
+
+
+
+    void ScriptComponent::GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType & provided) const {
+        for (auto s : m_providedServices) {
+            provided.push_back(s);
+        }
+    }
+
+    void ScriptComponent::GetDependentServices(AZ::ComponentDescriptor::DependencyArrayType & dependent) const {
+        for (auto s : m_dependentServices) {
+            dependent.push_back(s);
+        }
+    }
+
+    void ScriptComponent::GetRequiredServices(AZ::ComponentDescriptor::DependencyArrayType & required) const {
+        for (auto s : m_requiredServices) {
+            required.push_back(s);
+        }
+    }
+
+    void ScriptComponent::GetIncompatibleServices(AZ::ComponentDescriptor::DependencyArrayType & incompatible) const {
+        for (auto s : m_incompatibleServices) {
+            incompatible.push_back(s);
+        }
     }
 
     //=========================================================================

@@ -80,6 +80,7 @@ set(FILES
     parallel/config.h
     parallel/exponential_backoff.h
     parallel/lock.h
+    parallel/lock_ext.h
     parallel/mutex.h
     parallel/semaphore.h
     parallel/scoped_lock.h

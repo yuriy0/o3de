@@ -189,6 +189,7 @@ public:
     // Implementation
     void OnCreateLevel();
     void OnOpenLevel();
+    void OnReloadLevel();
     void OnCreateSlice();
     void OnOpenSlice();
     void OnAppAbout();
@@ -288,6 +289,7 @@ public:
     void OnFileSave();
     void OnUpdateDocumentReady(QAction* action);
     void OnUpdateFileOpen(QAction* action);
+    void OnUpdateReloadLevel(QAction* action);
     void OnUpdateNonGameMode(QAction* action);
     void OnUpdateNewLevel(QAction* action);
     void OnUpdatePlayGame(QAction* action);
@@ -322,6 +324,17 @@ private:
     //! can happen after the level is loaded. This method will wait for a few idle updates and then
     //! display the load errors to ensure all errors are displayed properly.
     void DisplayLevelLoadErrors();
+
+    //! Helper method to see if a Legacy Terrain Level component could potentially be added.
+    bool CanAddLegacyTerrainLevelComponent();
+
+    //! Helper method that should be called to add the Legacy Terrain Level Component
+    //! to the Level Entity when CreateLevel() is called with bUseTerrain set to true.
+    bool AddLegacyTerrainLevelComponent();
+
+    // Performs any work before and after opening a level file
+    template<class DoOpen>
+    CCryEditDoc* OpenDocumentFileWrapper(DoOpen&& doOpen);
 
     class CEditorImpl* m_pEditor = nullptr;
     static CCryEditApp* s_currentInstance;

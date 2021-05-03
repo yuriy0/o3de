@@ -609,7 +609,7 @@ namespace EMotionFX
             ->ClassElement(AZ::Edit::ClassElements::EditorData, "")
                 ->Attribute(AZ::Edit::Attributes::AutoExpand, "")
                 ->Attribute(AZ::Edit::Attributes::Visibility, AZ::Edit::PropertyVisibility::ShowChildrenOnly)
-            ->DataElement(AZ_CRC("AnimGraphNumberParameter", 0x8023eba9), &AnimGraphParameterCondition::m_parameterName, "Parameter", "The parameter name to apply the condition on.")
+            ->DataElement(AZ_CRC("AnimGraphParameter", 0x778af55a), &AnimGraphParameterCondition::m_parameterName, "Parameter", "The parameter name to apply the condition on.")
                 ->Attribute(AZ::Edit::Attributes::ChangeNotify, &AnimGraphParameterCondition::Reinit)
                 ->Attribute(AZ::Edit::Attributes::ChangeNotify, AZ::Edit::PropertyRefreshLevels::EntireTree)
                 ->Attribute(AZ_CRC("AnimGraph", 0x0d53d4b3), &AnimGraphParameterCondition::GetAnimGraph)

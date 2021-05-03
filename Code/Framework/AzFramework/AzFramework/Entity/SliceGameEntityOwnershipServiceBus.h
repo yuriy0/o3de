@@ -41,6 +41,11 @@ namespace AzFramework
         virtual SliceInstantiationTicket InstantiateDynamicSlice(const AZ::Data::Asset<AZ::Data::AssetData>& /*sliceAsset*/,
             const AZ::Transform& /*worldTransform*/, const AZ::IdUtils::Remapper<AZ::EntityId>::IdMapper& /*customIdMapper*/) = 0;
 
+        // Like `InstantiateDynamicSlice', but instantiaes the slice right now instead of next tick
+        virtual AZ::SliceComponent::SliceInstanceAddress InstantiateDynamicSliceBlocking(const AZ::Data::Asset<AZ::Data::AssetData>& /*sliceAsset*/,
+            const AZ::Transform& /*worldTransform*/, const AZ::IdUtils::Remapper<AZ::EntityId>::IdMapper& /*customIdMapper*/,
+            const AZStd::function<void(const AZ::SliceComponent::SliceInstanceAddress&)>& /*preInstantiate*/) = 0;
+
         /**
          * Cancels the asynchronous instantiation of a dynamic slice.
          * This call has no effect if the slice has already finished instantiation.

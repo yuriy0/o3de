@@ -93,8 +93,18 @@ namespace {
         }
         void SetRotation(const Quat& localRotation) override
         {
-            AZ::Quaternion quat = LYQuaternionToAZQuaternion(localRotation);
-            AZ::TransformBus::Event(m_cameraEntityId, &AZ::TransformBus::Events::SetLocalRotationQuaternion, quat);
+            // APC BEGIN
+            // This function is expected to be the inverse of `GetRotation', which gets the world rotation,
+            // so we must set the world rotation as well.
+            AZ::Transform tm;
+            AZ::TransformBus::EventResult(tm, m_cameraEntityId, &AZ::TransformBus::Events::GetWorldTM);
+            tm.SetRotation(LYQuaternionToAZQuaternion(localRotation));
+            AZ::TransformBus::Event(m_cameraEntityId, &AZ::TransformBus::Events::SetWorldTM, tm);
+
+            //AZ::Quaternion quat = LYQuaternionToAZQuaternion(localRotation);
+            //AZ::TransformBus::Event(m_cameraEntityId, &AZ::TransformBus::Events::SetLocalRotationQuaternion, quat);
+
+            // APC END
         }
         float GetFoV() const
         {

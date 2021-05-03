@@ -118,6 +118,8 @@ public:
 
     CInfoBar& GetInfoBar() { return *m_infoBar; }
 
+    using AzQtComponents::ToolBarArea::SetMainWidget;
+
 public slots:
     void ResetLayout();
 

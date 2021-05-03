@@ -1349,6 +1349,11 @@ namespace AZ
 
     SerializeContext::PerModuleGenericClassInfo& GetCurrentSerializeContextModule();
 
+    // Type info specializations for various SerializeContext types
+    AZ_TYPE_INFO_SPECIALIZE(SerializeContext::EnumerateInstanceCallContext, "{1E800502-14BC-4E8A-83E7-61064C05BAA4}");
+    AZ_TYPE_INFO_SPECIALIZE(SerializeContext::ClassData, "{EA95FC22-9A14-440E-A48B-893E3C0EAC32}");
+    AZ_TYPE_INFO_SPECIALIZE(SerializeContext::ClassElement, "{C251865E-5050-4433-A3FC-4DBD4B0EB761}");
+
     /**
     * Base class that will provide various information for a generic entry.
     *

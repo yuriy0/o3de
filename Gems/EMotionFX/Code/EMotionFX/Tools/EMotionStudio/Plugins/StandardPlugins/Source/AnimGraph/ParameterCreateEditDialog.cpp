@@ -179,9 +179,9 @@ namespace EMStudio
         if (!m_parameter)
         {
             const AZStd::string uniqueParameterName = MCore::GenerateUniqueString("Parameter",
-                    [&](const AZStd::string& value)
+                    [animGraph = m_plugin->GetActiveAnimGraph()](const AZStd::string& value)
                     {
-                        return (m_plugin->GetActiveAnimGraph()->FindParameterByName(value) == nullptr);
+                        return animGraph ? animGraph->FindParameterByName(value) == nullptr : true;
                     });
             m_parameter.reset(EMotionFX::ParameterFactory::Create(valueType));
             m_parameter->SetName(uniqueParameterName);

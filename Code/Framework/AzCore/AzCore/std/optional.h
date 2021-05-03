@@ -1021,9 +1021,10 @@ namespace AZStd
     template<class T>
     struct hash<optional<T>>
     {
-        constexpr size_t operator()(const optional<T>& opt) const
+        template<class T_ = T, class = AZStd::enable_if_t<hash_enabled_concept_v<T_>>>
+        constexpr size_t operator()(const optional<T_>& opt) const
         {
-            return static_cast<bool>(opt) ? hash<T>{}(*opt) : 0;
+            return static_cast<bool>(opt) ? hash<T_>{}(*opt) : 0;
         }
     };
 }

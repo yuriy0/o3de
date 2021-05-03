@@ -168,6 +168,19 @@ namespace ScriptCanvas
             void WriteVariableWrite(Grammar::ExecutionTreeConstPtr execution, const AZStd::vector<AZStd::pair<const Slot*, Grammar::OutputAssignmentConstPtr>>& output);
             void WriteWrittenMathExpression(Grammar::ExecutionTreeConstPtr execution);
 
+            enum class PropertyCallInfoType
+            {
+                Getter, Setter
+            };
+
+            struct PropertyFunctionCallInfo
+            {
+                AZStd::string_view propertyName;
+                PropertyCallInfoType propertyType;
+            };
+
+            static AZStd::optional<PropertyFunctionCallInfo> IsPropertyFunctionCall(Grammar::ExecutionTreeConstPtr execution);
+            void WritePropertyFunctionCall(Grammar::ExecutionTreeConstPtr execution, const PropertyFunctionCallInfo& propertyInfo);
         private:
         };
                

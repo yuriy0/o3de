@@ -1,4 +1,4 @@
-/*
+﻿/*
  * All or portions of this file Copyright (c) Amazon.com, Inc. or its affiliates or
  * its licensors.
  *
@@ -14,6 +14,7 @@
 
 #include "WhiteBoxColliderConfiguration.h"
 
+#include <AzCore/std/containers/variant.h>
 #include <AzCore/Component/Component.h>
 #include <AzCore/Component/TransformBus.h>
 #include <AzFramework/Physics/Shape.h>

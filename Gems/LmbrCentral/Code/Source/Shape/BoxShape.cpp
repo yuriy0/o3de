@@ -23,6 +23,7 @@
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzCore/std/algorithm.h>
 #include <AzCore/std/containers/array.h>
+#include <AzCore/std/containers/fixed_unordered_set.h>
 #include <AzFramework/Entity/EntityDebugDisplayBus.h>
 #include <Shape/ShapeDisplay.h>
 #include <random>
@@ -175,6 +176,12 @@ namespace LmbrCentral
         return intersection;
     }
 
+    ShapeTriangulation BoxShape::GetShapeTriangulation()
+    {
+        m_intersectionDataCache.UpdateIntersectionParams(m_currentTransform, m_boxShapeConfig);
+        return m_intersectionDataCache.m_triangulation;
+    }
+
     AZ::Vector3 BoxShape::GenerateRandomPointInside(AZ::RandomDistributionType randomDistribution)
     {
         m_intersectionDataCache.UpdateIntersectionParams(m_currentTransform, m_boxShapeConfig, m_currentNonUniformScale);
@@ -280,6 +287,72 @@ namespace LmbrCentral
 
             m_aabb = AZ::Aabb::CreateFromObb(m_obb);
             m_axisAligned = false;
+        }
+
+        // Create triangulation
+        m_triangulation.triangles.clear();
+        auto currentPos = currentTransform.GetTranslation();
+
+        // Compute which dimensions are flat; this allows us to omit trivial triangles
+        AZStd::fixed_unordered_set<AZ::u8, 1, 3> flatDimensions;
+        for (AZ::u8 dim = 0; dim < 3; dim++) {
+            if (AZ::IsClose(configuration.m_dimensions.GetElement(dim), 0.f, FLT_EPSILON)) { flatDimensions.insert(dim); }
+        }
+
+        if (flatDimensions.size() <= 1) {
+            for (AZ::u8 dim0 = 0; dim0 < 3; dim0++) {
+                AZ::u8 dim1 = (dim0 + 1) % 3;
+                AZ::u8 dim2 = (dim0 + 2) % 3;
+
+                // Skip this face if any of its extents are zero
+                if (flatDimensions.find(dim1) != flatDimensions.end() ||
+                    flatDimensions.find(dim2) != flatDimensions.end()
+                    )
+                { continue; }
+
+                // Get the extents along each basis. 0 is the primary basis; the faces to
+                // be added on this iteration have normals parllel to basis 0.
+                const auto& extent0 = m_obb.GetAxis(dim0) * m_obb.GetHalfLength(dim0);
+                const auto& extent1 = m_obb.GetAxis(dim1) * m_obb.GetHalfLength(dim1);
+                const auto& extent2 = m_obb.GetAxis(dim2) * m_obb.GetHalfLength(dim2);
+
+                // The vertices of the faces, not yet offset by the primary basis
+                const AZStd::array<AZ::Vector3, 4> faceVertices = {
+                    currentPos - extent1 - extent2,
+                    currentPos - extent1 + extent2,
+                    currentPos + extent1 + extent2,
+                    currentPos + extent1 - extent2,
+                };
+
+                // Winding orders for triangles (CCW order)
+                using TriVertIndices = AZStd::array<AZ::u8, 3>;
+                static const AZStd::array<TriVertIndices, 2> triWindings = {
+                    TriVertIndices{ 2, 0, 3 },
+                    TriVertIndices{ 1, 0, 2 }
+                };
+
+                const auto addFace = [&](int off) {
+                    for (auto& winding : triWindings) {
+                        m_triangulation.triangles.push_back();
+                        Triangle& t = m_triangulation.triangles.back();
+                        for (auto vertIt = winding.begin(); vertIt != winding.end(); ++vertIt) {
+                            auto ix = vertIt - winding.begin();
+                            if (off == -1) ix = (winding.array_size-1) - ix; // Reverse winding order for opposite face
+                            t.vertices[ix] = faceVertices[*vertIt] + (extent0 * (float)off);
+                        }
+                    }
+                };
+
+                addFace(-1);
+                if (flatDimensions.find(dim0) == flatDimensions.end()) {
+                    // If this dimension is not flat, add the other face (otherwise they are identical)
+                    addFace(1);
+                }
+            }
+
+        } else {
+            // If there are 2 or 3 flat dimensions, there are no triangles (the "box" is a line or a point, respectively)
+            // Do nothing
         }
     }
 

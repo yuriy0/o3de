@@ -144,7 +144,7 @@ namespace EMotionFX
         {
             // update the time values and extract events into the event buffer
             motionInstance->SetWeight(uniqueData->GetLocalWeight());
-            motionInstance->UpdateByTimeValues(uniqueData->GetPreSyncTime(), uniqueData->GetCurrentPlayTime(), &data->GetEventBuffer());
+            motionInstance->UpdateByTimeValues(uniqueData->GetPreSyncTime(), uniqueData->GetCurrentPlayTime(), &data->GetEventBuffer(), animGraphInstance);
 
             // mark all events to be emitted from this node
             data->GetEventBuffer().UpdateEmitters(this);

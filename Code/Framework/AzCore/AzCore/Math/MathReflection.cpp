@@ -257,6 +257,13 @@ namespace AZ
     {
         context.Constant("FloatEpsilon", BehaviorConstant(Constants::FloatEpsilon));
 
+        AZ::BehaviorDefaultValue* floatEps = new AZ::BehaviorDefaultValue(std::numeric_limits<float>::epsilon());
+        AZStd::array<AZ::BehaviorParameterOverrides, 3> IsCloseMag_paraminfo =
+        { AZ::BehaviorParameterOverrides(),
+          AZ::BehaviorParameterOverrides(),
+          AZ::BehaviorParameterOverrides("", "", floatEps)
+        };
+
         context.Class<MathGlobals>("Math")
             ->Attribute(AZ::Script::Attributes::Scope, AZ::Script::Attributes::ScopeFlags::Common)
             ->Attribute(AZ::Script::Attributes::Module, "math")
@@ -294,6 +301,10 @@ namespace AZ
             ->Attribute(AZ::ScriptCanvasAttributes::ExplicitOverloadCrc, ExplicitOverloadInfo("Divide By Number (/)", "Math"))
             ->Attribute(AZ::ScriptCanvasAttributes::OperatorOverride, AZ::Script::Attributes::OperatorType::Div)
             ->Attribute(AZ::ScriptCanvasAttributes::OverloadArgumentGroup, AZ::OverloadArgumentGroupInfo({ "DivideGroup", "" }, { "DivideGroup" }))
+			->Method<float(float, float)>("WrapBelow", &AZ::Wrap)
+            ->Method<float(float, float, float)>("Wrap", &AZ::Wrap)
+            ->Method<bool(float, float, float)>("IsCloseMag", &AZ::IsCloseMag, IsCloseMag_paraminfo)
+            ->Method<float(float, float, float)>("ClampIfCloseMag", &AZ::ClampIfCloseMag, IsCloseMag_paraminfo)
              ;
 
         // Uuid

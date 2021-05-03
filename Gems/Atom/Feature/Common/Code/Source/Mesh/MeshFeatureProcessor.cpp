@@ -216,6 +216,19 @@ namespace AZ
             return meshHandle.IsValid() ? meshHandle->m_model : nullptr;
         }
 
+        Data::Instance<RPI::ShaderResourceGroup> MeshFeatureProcessor::GetObjectSrg(const MeshHandle& meshHandle) const
+        {
+            return meshHandle.IsValid() ? meshHandle->m_shaderResourceGroup : nullptr;
+        }
+
+        void MeshFeatureProcessor::QueueObjectSrgForCompile(const MeshHandle& meshHandle) const
+        {
+            if (meshHandle.IsValid())
+            {
+                meshHandle->m_objectSrgNeedsUpdate = true;
+            }
+        }
+
         void MeshFeatureProcessor::SetMaterialAssignmentMap(const MeshHandle& meshHandle, const Data::Instance<RPI::Material>& material)
         {
             Render::MaterialAssignmentMap materials;
@@ -942,6 +955,7 @@ namespace AZ
             }
 
             m_shaderResourceGroup->Compile();
+
             m_objectSrgNeedsUpdate = false;
         }
 

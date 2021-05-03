@@ -27,11 +27,12 @@ namespace MCore
      * This attribute represents one Vector4.
      */
     class MCORE_API AttributeQuaternion
-        : public Attribute
+        : public Attribute_tpl<AZ::Quaternion, AttributeQuaternion>
     {
         AZ_CLASS_ALLOCATOR(AttributeQuaternion, AttributeAllocator, 0)
 
         friend class AttributeFactory;
+        using Base = Attribute_tpl<AZ::Quaternion, AttributeQuaternion>;
     public:
         enum
         {
@@ -46,6 +47,17 @@ namespace MCore
         MCORE_INLINE uint32 GetRawDataSize() const                  { return sizeof(AZ::Quaternion); }
 
         // adjust values
+        bool FromAny(const AZStd::any& anyVal) override { 
+            bool success = false;
+            success = Base::FromAny(anyVal);
+            if (!success) { 
+                AZ::Vector3 val;
+                success = Attribute_impl::any_generic_cast(anyVal, val);
+                if (success) { SetValue(AZ::ConvertEulerRadiansToQuaternion(val)); }
+            }
+            return success;
+        };
+
         MCORE_INLINE const AZ::Quaternion& GetValue() const             { return mValue; }
         MCORE_INLINE void SetValue(const AZ::Quaternion& value)         { mValue = value; }
 
@@ -79,11 +91,11 @@ namespace MCore
         AZ::Quaternion  mValue;     /**< The Quaternion value. */
 
         AttributeQuaternion()
-            : Attribute(TYPE_ID)
+            : Base(TYPE_ID)
             , mValue(AZ::Quaternion::CreateIdentity())
         {}
         AttributeQuaternion(const AZ::Quaternion& value)
-            : Attribute(TYPE_ID)
+            : Base(TYPE_ID)
             , mValue(value) {}
         ~AttributeQuaternion() { }
 

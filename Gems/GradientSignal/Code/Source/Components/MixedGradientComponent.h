@@ -16,6 +16,7 @@
 #include <AzCore/Component/Component.h>
 #include <GradientSignal/Ebuses/GradientRequestBus.h>
 #include <GradientSignal/Ebuses/MixedGradientRequestBus.h>
+#include <GradientSignal/Ebuses/GradientTransformRequestBus.h>
 #include <GradientSignal/GradientSampler.h>
 #include <LmbrCentral/Dependency/DependencyMonitor.h>
 
@@ -80,6 +81,7 @@ namespace GradientSignal
         : public AZ::Component
         , private GradientRequestBus::Handler
         , private MixedGradientRequestBus::Handler
+        , private GradientTransformRequestBus::Handler
     {
     public:
         template<typename, typename> friend class LmbrCentral::EditorWrappedComponentBase;
@@ -101,6 +103,12 @@ namespace GradientSignal
         bool WriteOutConfig(AZ::ComponentConfig* outBaseConfig) const override;
 
         //////////////////////////////////////////////////////////////////////////
+        // GradientTransformRequestBus
+        void TransformPositionToUVW(const AZ::Vector3& inPosition, AZ::Vector3& outUVW, const bool shouldNormalizeOutput, bool& wasPointRejected) const override;
+        void GetGradientLocalBounds(AZ::Aabb& bounds) const override;
+        void GetGradientEncompassingBounds(AZ::Aabb& bounds) const override;
+
+        //////////////////////////////////////////////////////////////////////////
         // GradientRequestBus
         float GetValue(const GradientSampleParams& sampleParams) const override;
         bool IsEntityInHierarchy(const AZ::EntityId& entityId) const override;
@@ -114,6 +122,8 @@ namespace GradientSignal
         MixedGradientLayer* GetLayer(int layerIndex) override;
 
     private:
+        AZ::EntityId GetLayerEntityForGradientTransform() const;
+
         MixedGradientConfig m_configuration;
         LmbrCentral::DependencyMonitor m_dependencyMonitor;
     };

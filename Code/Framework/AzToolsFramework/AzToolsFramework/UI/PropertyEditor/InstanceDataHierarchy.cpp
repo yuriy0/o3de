@@ -24,6 +24,9 @@
 #include <AzCore/Math/Crc.h>
 
 #include <AzCore/Serialization/EditContextConstants.inl>
+
+#include <AzCore/Outcome/Outcome.h>
+
 #include "ComponentEditor.hxx"
 #include "PropertyEditorAPI.h"
 
@@ -96,14 +99,64 @@ namespace
         return GetValueFromAttributeWithParams<AZStd::string>("", node, attribute);
     }
 
-    AZStd::string GetDisplayLabel(AzToolsFramework::InstanceDataNode* node, int siblingIndex = 0)
+    template<typename Type>
+    AZ::Outcome<Type, void> GetFromAttribute(AzToolsFramework::InstanceDataNode* node, AZ::Edit::AttributeId attribId)
+    {
+        if (!node)
+        {
+            return AZ::Failure();
+        }
+
+        AZ::Edit::Attribute* attr{};
+        const AZ::Edit::ElementData* elementEditData = node->GetElementEditMetadata();
+        if (elementEditData)
+        {
+            attr = elementEditData->FindAttribute(attribId);
+        }
+
+        // Attempt to look up the attribute on the node reflected class data.
+        // This look up is done via AZ::SerializeContext::ClassData -> AZ::Edit::ClassData -> EditorData element
+        if (!attr)
+        {
+            if (const AZ::SerializeContext::ClassData* classData = node->GetClassMetadata())
+            {
+                if (const auto* editClassData = classData->m_editData)
+                {
+                    if (const auto* classEditorData = editClassData->FindElementData(AZ::Edit::ClassElements::EditorData))
+                    {
+                        attr = classEditorData->FindAttribute(attribId);
+                    }
+                }
+            }
+        }
+
+        if (!attr)
+        {
+            return AZ::Failure();
+        }
+
+        // Read the value from the attribute found.
+        Type retVal = Type();
+        for (size_t instIndex = 0; instIndex < node->GetNumInstances(); ++instIndex)
+        {
+            AzToolsFramework::PropertyAttributeReader reader(node->GetInstance(instIndex), attr);
+            if (reader.Read<Type>(retVal))
+            {
+                return retVal;
+            }
+        }
+
+        return AZ::Failure();
+    }
+
+    AZStd::string GetDisplayLabel(AzToolsFramework::InstanceDataNode* node, size_t index)
     {
         if (!node)
         {
             return "";
         }
 
-        AZStd::string label;
+        AZ::Outcome<AZStd::string, void> label = AZ::Failure();
 
         // We want to check to see if a name override was provided by our first real
         // non-container parent.
@@ -124,9 +177,10 @@ namespace
 
                 nonContainerNodeFound = (visibility == AzToolsFramework::NodeDisplayVisibility::Visible);
             }
+            if (nonContainerNodeFound) break;
 
-            label = GetStringFromAttribute(parentNode, AZ::Edit::Attributes::ChildNameLabelOverride);
-            if (!label.empty() || nonContainerNodeFound)
+            label = GetFromAttribute<AZStd::string>(parentNode, AZ::Edit::Attributes::ChildNameLabelOverride);
+            if (label.IsSuccess())
             {
                 break;
             }
@@ -135,12 +189,12 @@ namespace
         }
 
         // If our parent isn't controlling us. Fall back to whatever we want to be called
-        if (label.empty())
+        if (!label.IsSuccess())
         {
-            label = GetStringFromAttribute(node, AZ::Edit::Attributes::NameLabelOverride);
+            label = GetFromAttribute<AZStd::string>(node, AZ::Edit::Attributes::NameLabelOverride);
         }
 
-        if (label.empty())
+        if (!label.IsSuccess())
         {
             parentNode = node;
             do
@@ -150,10 +204,10 @@ namespace
             while (parentNode && parentNode->GetClassMetadata() && parentNode->GetClassMetadata()->m_container);
 
             // trying to get per-item name provided by real parent
-            label = GetIndexedStringFromAttribute(parentNode, node->GetParent(), AZ::Edit::Attributes::IndexedChildNameLabelOverride, siblingIndex);
+            label = GetIndexedStringFromAttribute(parentNode, node->GetParent(), AZ::Edit::Attributes::IndexedChildNameLabelOverride, (int)index);
         }
 
-        return label;
+        return label.GetValueOr("");
     }
 }
 
@@ -247,20 +301,51 @@ namespace AzToolsFramework
             return false;
         }
 
+        //If the container is at capacity, we do not want to add another item.
+        const auto AtCapacity = [&](void* instance) {
+            if (container->IsFixedCapacity() && !container->IsSmartPointer()) {
+                return container->Size(instance) >= container->Capacity(instance);
+            } else {
+                return false;
+            }
+        };
+
+        const auto MakeElements = [&](auto DoMake, const AZ::SerializeContext::ClassElement* ce) {
+            for (size_t i = 0; i < m_instances.size(); ++i)
+            {
+                auto inst = GetInstance(i);
+                if (AtCapacity(inst)) continue;
+
+                // reserve entry in the container
+                void* dataAddress = container->ReserveElement(inst, ce);
+
+                if (!DoMake(dataAddress)) { return false; }
+                // Store the element in the container
+                container->StoreElement(GetInstance(i), dataAddress);
+            }
+            return true;
+        };
+
         if (containerClassElement->m_flags & AZ::SerializeContext::ClassElement::FLG_POINTER)
         {
-            // TEMP until it's safe to pass 0 as type id
-            const AZ::Uuid& baseTypeId = containerClassElement->m_azRtti ? containerClassElement->m_azRtti->GetTypeId() : AZ::AzTypeInfo<int>::Uuid();
+            // Select clases which are subclasses of the base class, or precisely the base class, which are not abstract
+            ClassSelectionParameters p =
+                ClassSelectionParameters::Intersection(
+                    ClassSelectionParameters::Union(
+                        ClassSelectionParameters(containerClassElement->m_typeId, containerClassElement->m_azRtti ? containerClassElement->m_azRtti->GetTypeId() : AZ::Uuid::CreateNull()),
+                        ClassSelectionParameters(AZStd::vector<AZ::Uuid>{containerClassElement->m_typeId})
+                    ),
+                    ClassSelectionParameters([](const AZ::SerializeContext::ClassData* cd) {
+                        return !cd->m_azRtti || !cd->m_azRtti->IsAbstract();
+                    })
+                );
+
             // ask the GUI and use to create one (if there is choice)
-            const AZ::SerializeContext::ClassData* classData = selectClass(containerClassElement->m_typeId, baseTypeId, m_context);
+            const AZ::SerializeContext::ClassData* classData = selectClass(p, m_context);
 
             if (classData && classData->m_factory)
             {
-                for (size_t i = 0; i < m_instances.size(); ++i)
-                {
-                    // reserve entry in the container
-                    void* dataAddress = container->ReserveElement(GetInstance(i), containerClassElement);
-                    // create entry
+                return MakeElements([&](void*& dataAddress) {
                     void* newDataAddress = classData->m_factory->Create(classData->m_name);
 
                     AZ_Assert(newDataAddress, "Faliled to create new element for the continer!");
@@ -268,10 +353,8 @@ namespace AzToolsFramework
                     void* basePtr = m_context->DownCast(newDataAddress, classData->m_typeId, containerClassElement->m_typeId, classData->m_azRtti, containerClassElement->m_azRtti);
                     AZ_Assert(basePtr != NULL, "Can't cast container element %s to %s, make sure classes are registered in the system and not generics!", classData->m_name, containerClassElement->m_name);
                     *reinterpret_cast<void**>(dataAddress) = basePtr; // store the pointer in the class
-                    /// Store the element in the container
-                    container->StoreElement(GetInstance(i), dataAddress);
-                }
-                return true;
+                    return true;
+                }, containerClassElement);
             }
         }
         else if (containerClassElement->m_typeId == AZ::SerializeTypeInfo<AZ::DynamicSerializableField>::GetUuid())
@@ -300,11 +383,7 @@ namespace AzToolsFramework
                         if (classData && classData->m_factory &&
                             dynamicClassData && dynamicClassData->m_factory)
                         {
-                            for (size_t i = 0; i < m_instances.size(); ++i)
-                            {
-                                // Reserve entry in the container
-                                void* dataAddress = container->ReserveElement(GetInstance(i), containerClassElement);
-
+                            return MakeElements([&](void*& dataAddress) {
                                 // Create DynamicSerializeableField entry
                                 void* newDataAddress = classData->m_factory->Create(classData->m_name);
                                 AZ_Assert(newDataAddress, "Faliled to create new element for the continer!");
@@ -317,41 +396,77 @@ namespace AzToolsFramework
 
                                 /// Store the entry in the container
                                 *reinterpret_cast<AZ::DynamicSerializableField*>(dataAddress) = *dynamicFieldDesc;
-                                container->StoreElement(GetInstance(i), dataAddress);
-                            }
-
-                            return true;
+                                return true;
+                            }, containerClassElement);
                         }
                     }
                 }
             }
         }
+        else if (containerClassElement->m_flags & AZ::SerializeContext::ClassElement::FLG_DYNAMIC_FIELD)
+        {
+            ClassSelectionParameters selection;
+            bool foundSelectionParams = false;
+            static const auto ClassSelectionParameters_attr = AZ::Crc32("ClassSelectionParameters");
+            const auto TryReadAttribute = [&](AZ::Edit::Attribute* attr) {
+                AZ_Warning("InstanceDataNode", m_parent->GetNumInstances() == 1,
+                           "CreateContainerElement: Found an attribute but multiple instances present; "
+                           "unclear how to handle this case."
+                );
+
+                AZ::AttributeReader attrRead(m_parent->GetInstance(0), attr);
+                foundSelectionParams = attrRead.Read<ClassSelectionParameters>(selection);
+            };
+
+            // Look for a selection parameters override attribute
+            // NB: we (potentially) need an instance to pass to the function; but we might have multiple
+            // instances. For now just warn about multiple instances and always use the first one.
+            if (m_parent && m_classElement && m_classElement->m_editData) {
+                if (auto* attr = m_classElement->m_editData->FindAttribute(ClassSelectionParameters_attr)) {
+                    TryReadAttribute(attr);
+                }
+            }
+
+            // If we can't find an override on the edit data (i.e. a consumer of the container has not explicitly
+            // given a class selection parameters override) then try to find one on the container class element
+            if (!foundSelectionParams) {
+                if (auto* attr = containerClassElement->FindAttribute(ClassSelectionParameters_attr)) {
+                    TryReadAttribute(attr);
+                }
+            }
+
+            // This is a dynamic field, so we try to select a class.
+            // TODO: add user configuration options (Attributes) which permit specifying which types should appear here.
+            const AZ::SerializeContext::ClassData* classData = selectClass(selection, m_context);
+            if (classData)
+            {
+                // Fill out a ClassElement with some basic data (type ID, etc) based on the ClassData
+                // ReserveElement should not be allowed to cache pointers to this, so this should be safe
+                AZ::SerializeContext::ClassElement selectedClassProxyElement;
+                selectedClassProxyElement.m_typeId = classData->m_typeId;
+                selectedClassProxyElement.m_name = classData->m_name;
+                selectedClassProxyElement.m_nameCrc = AZ::Crc32(selectedClassProxyElement.m_name);
+                selectedClassProxyElement.m_dataSize = selectedClassProxyElement.m_offset = 0;
+                selectedClassProxyElement.m_azRtti = classData->m_azRtti;
+                selectedClassProxyElement.m_genericClassInfo = nullptr;
+                selectedClassProxyElement.m_editData = nullptr;
+                selectedClassProxyElement.m_flags = 0;
+
+                return MakeElements([&](void*& dataAddress) {
+                    fillData(dataAddress, &selectedClassProxyElement, false, m_context);
+                    return true;
+                }, &selectedClassProxyElement);
+            }
+        }
         else
         {
-            for (size_t i = 0; i < m_instances.size(); ++i)
-            {
-                // check capacity of container before attempting to reserve an element
-                if (container->IsFixedCapacity() && !container->IsSmartPointer() && container->Size(GetInstance(i)) >= container->Capacity(GetInstance(i)))
-                {
-                    AZ_Warning("Serializer", false, "Cannot add additional entries to the container as it is at its capacity of %zu", container->Capacity(GetInstance(i)));
-                    return false;
-                }
-                // reserve entry in the container
-                void* dataAddress = container->ReserveElement(GetInstance(i), containerClassElement);
+            return MakeElements([&](void*& dataAddress) {
                 bool isAssociative = false;
                 ReadAttribute(AZ::Edit::Attributes::ShowAsKeyValuePairs, isAssociative, true);
                 bool noDefaultData = isAssociative || (containerClassElement->m_flags & AZ::SerializeContext::ClassElement::FLG_NO_DEFAULT_VALUE) != 0;
 
-                if (!dataAddress || !fillData(dataAddress, containerClassElement, noDefaultData, m_context) && noDefaultData) // fill default data
-                {
-                    return false;
-                }
-
-                /// Store the element in the container
-                container->StoreElement(GetInstance(i), dataAddress);
-            }
-
-            return true;
+                return !(!dataAddress || !fillData(dataAddress, containerClassElement, noDefaultData, m_context) && noDefaultData);
+            }, containerClassElement);
         }
 
         return false;
@@ -1542,8 +1657,13 @@ namespace AzToolsFramework
                     tempSourceBuffer.clear();
                     tempTargetBuffer.clear();
                     AZ::IO::ByteContainerStream<AZStd::vector<AZ::u8> > sourceStream(&tempSourceBuffer), targetStream(&tempTargetBuffer);
-                    targetNode->m_classData->m_serializer->Save(targetNode->GetInstance(0), targetStream);
-                    sourceNode->m_classData->m_serializer->Save(sourceNode->GetInstance(0), sourceStream);
+
+                    if (targetNode->GetNumInstances() > 0) {
+                        targetNode->m_classData->m_serializer->Save(targetNode->GetInstance(0), targetStream);
+                    }
+                    if (sourceNode->GetNumInstances() > 0) {
+                        sourceNode->m_classData->m_serializer->Save(sourceNode->GetInstance(0), sourceStream);
+                    }
 
                     changedNodeCallback(sourceNode, targetNode, tempSourceBuffer, tempTargetBuffer);
                 }

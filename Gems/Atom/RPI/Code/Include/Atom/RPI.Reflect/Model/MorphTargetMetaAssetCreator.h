@@ -17,6 +17,8 @@
 
 namespace AZ::RPI
 {
+    class ImageAsset;
+
     //! Constructs an instance of a MorphTargetMetaAsset
     class MorphTargetMetaAssetCreator
         : public AssetCreator<MorphTargetMetaAsset>

@@ -108,6 +108,10 @@ namespace AZ
         return false;
     }
 
+    void Component::UnsafeManualActivate() { Activate(); }
+
+    void Component::UnsafeManualDeactivate() { Deactivate(); }
+
     //=========================================================================
     // ReadInConfig
     //=========================================================================

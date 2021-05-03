@@ -20,6 +20,7 @@ if(PAL_TRAIT_PIX_AVAILABLE)
 else()
     set(USE_PIX_DEFINE "")
     set(PIX_BUILD_DEPENDENCY "")
+	message(WARNING "Winpix not available")
 endif()
 
 

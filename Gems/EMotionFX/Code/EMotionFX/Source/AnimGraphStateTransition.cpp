@@ -419,11 +419,6 @@ namespace EMotionFX
     // check if all conditions are tested positive
     bool AnimGraphStateTransition::CheckIfIsReady(AnimGraphInstance* animGraphInstance) const
     {
-        if (mConditions.empty())
-        {
-            return false;
-        }
-
         if (!GetEMotionFX().GetIsInEditorMode())
         {
             // If we are not in editor mode, we can early out for the first failed condition
@@ -1054,7 +1049,13 @@ namespace EMotionFX
             ->DataElement(AZ::Edit::UIHandlers::Default, &AnimGraphStateTransition::m_priority, "Priority", "The priority level of the transition.")
             ->Attribute(AZ::Edit::Attributes::Min, 0)
             ->Attribute(AZ::Edit::Attributes::Max, std::numeric_limits<AZ::s32>::max())
-            ->DataElement(AZ_CRC("TransitionStateFilterLocal", 0x7c4000ff), &AnimGraphStateTransition::m_allowTransitionsFrom, "Allow transitions from", "States and groups of states from which the wildcard transition can get activated.")
+            ->DataElement(AZ::Edit::UIHandlers::Default, &AnimGraphStateTransition::m_canBeInterruptedByOthers, "Can Be Interrupted By Others", "Can be interrupted? If enabled the transition can be interrupted by other transitions, while it is already transitioning.")
+            ->Attribute(AZ::Edit::Attributes::Visibility, &AnimGraphStateTransition::GetVisibilityHideWhenExitOrEntry)
+            ->DataElement(AZ::Edit::UIHandlers::Default, &AnimGraphStateTransition::m_canInterruptOtherTransitions, "Can Interrupt Other Transitions", "Can interrupt other transitions? If enabled the transition can be activated while another one is already transitioning.")
+            ->Attribute(AZ::Edit::Attributes::Visibility, &AnimGraphStateTransition::GetVisibilityHideWhenExitOrEntry)
+            ->DataElement(AZ::Edit::UIHandlers::Default, &AnimGraphStateTransition::m_allowSelfInterruption, "Allow Self Interruption", "Can interrupt itself? If enabled the transition can interrupt and restart itself.")
+            ->Attribute(AZ::Edit::Attributes::Visibility, &AnimGraphStateTransition::GetVisibilityHideWhenExitOrEntry)
+            ->DataElement(AZ_CRC("TransitionStateFilterLocal", 0x7c4000ff), &AnimGraphStateTransition::m_allowTransitionsFrom, "Allow Transitions From", "States and groups of states from which the wildcard transition can get activated.")
             ->Attribute(AZ::Edit::Attributes::Visibility, &AnimGraphStateTransition::GetVisibilityAllowedStates)
             ->Attribute(AZ::Edit::Attributes::ChangeNotify, AZ::Edit::PropertyRefreshLevels::EntireTree)
             ->Attribute(AZ_CRC("StateMachine", 0xe5f2e7a8), &AnimGraphStateTransition::GetStateMachine)

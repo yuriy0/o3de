@@ -518,6 +518,8 @@ namespace ScriptCanvas
 
     void Node::PostActivate()
     {
+        AZ_PROFILE_SCOPE_DYNAMIC(AZ::Debug::ProfileCategory::ScriptCanvas, "%s::PostActivate", RTTI_GetTypeName());
+
         for (auto& currentSlot : m_slots)
         {
             currentSlot.InitializeVariables();

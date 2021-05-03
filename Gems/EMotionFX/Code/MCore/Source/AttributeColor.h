@@ -27,11 +27,12 @@ namespace MCore
      * This attribute represents one Color.
      */
     class MCORE_API AttributeColor
-        : public Attribute
+        : public Attribute_tpl<AZ::Color, AttributeColor>
     {
         AZ_CLASS_ALLOCATOR(AttributeColor, AttributeAllocator, 0)
 
         friend class AttributeFactory;
+        using Base = Attribute_tpl<AZ::Color, AttributeColor>;
     public:
         enum
         {
@@ -78,9 +79,9 @@ namespace MCore
         RGBAColor   mValue;     /**< The color value. */
 
         AttributeColor()
-            : Attribute(TYPE_ID)                    { mValue.Set(0.0f, 0.0f, 0.0f, 1.0f); }
+            : Base(TYPE_ID)                    { mValue.Set(0.0f, 0.0f, 0.0f, 1.0f); }
         AttributeColor(const RGBAColor& value)
-            : Attribute(TYPE_ID)
+            : Base(TYPE_ID)
             , mValue(value)     { }
         ~AttributeColor() {}
 

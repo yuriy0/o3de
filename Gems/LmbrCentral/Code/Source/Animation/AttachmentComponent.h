@@ -54,6 +54,9 @@ namespace LmbrCentral
             TargetBoneScale,    // Adopt scaling of attachment target entity/joint.
         };
         ScaleSource m_scaleSource = ScaleSource::WorldScale;
+
+        // Source from which to retrieve rotation
+        ScaleSource m_rotationSource = ScaleSource::TargetBoneScale;
     };
 
     /*
@@ -83,6 +86,7 @@ namespace LmbrCentral
         void SetAttachmentOffset(const AZ::Transform& offset) override;
         const char* GetJointName() override;
         AZ::EntityId GetTargetEntityId() override;
+        void SetTargetEntityId(AZ::EntityId) override;
         AZ::Transform GetOffset() override;
         ////////////////////////////////////////////////////////////////////////
 
@@ -109,6 +113,7 @@ namespace LmbrCentral
         ////////////////////////////////////////////////////////////////////////
 
         void BindTargetBone();
+        void UpdateAttachment();
 
         AZ::Transform QueryBoneTransform() const;
 
@@ -136,6 +141,7 @@ namespace LmbrCentral
         int             m_targetBoneId; //!< negative when bone not found
 
         AttachmentConfiguration::ScaleSource m_scaleSource;
+        AttachmentConfiguration::ScaleSource m_rotationSource;
     };
 
     /*!

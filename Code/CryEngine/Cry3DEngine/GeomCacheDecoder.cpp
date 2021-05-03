@@ -275,9 +275,9 @@ namespace GeomCacheDecoder
         pFloorFrameDataPtr += bConstantTexcoords ? 0 : ((numVertices * sizeof(GeomCacheFile::Texcoords) + 15) & ~15);
         pCeilFrameDataPtr += bConstantTexcoords ? 0 : ((numVertices * sizeof(GeomCacheFile::Texcoords) + 15) & ~15);
 
-        const GeomCacheFile::QTangent* __restrict pFloorQTangents = (bConstantPositions && bConstantTexcoords) ? NULL :
+        [[maybe_unused]] const GeomCacheFile::QTangent* __restrict pFloorQTangents = (bConstantPositions && bConstantTexcoords) ? NULL :
             reinterpret_cast<const GeomCacheFile::QTangent*>(pFloorFrameDataPtr);
-        const GeomCacheFile::QTangent* __restrict pCeilQTangents = (bConstantPositions && bConstantTexcoords) ? NULL :
+        [[maybe_unused]] const GeomCacheFile::QTangent* __restrict pCeilQTangents = (bConstantPositions && bConstantTexcoords) ? NULL :
             reinterpret_cast<const GeomCacheFile::QTangent*>(pCeilFrameDataPtr);
         pFloorFrameDataPtr += (bConstantPositions && bConstantTexcoords) ? 0 : ((numVertices * sizeof(GeomCacheFile::QTangent) + 15) & ~15);
         pCeilFrameDataPtr += (bConstantPositions && bConstantTexcoords) ? 0 : ((numVertices * sizeof(GeomCacheFile::QTangent) + 15) & ~15);
@@ -502,7 +502,7 @@ namespace GeomCacheDecoder
         }
     }
 
-    uint32 GetMeshDataSize(const SGeomCacheStaticMeshData& staticMeshData)
+    uint32 GetMeshDataSize(const SGeomCacheStaticMeshData& staticMeshData) 
     {
         const unsigned int numVertices = staticMeshData.m_numVertices;
 

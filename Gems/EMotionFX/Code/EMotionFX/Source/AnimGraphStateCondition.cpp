@@ -222,6 +222,16 @@ namespace EMotionFX
     // class AnimGraphStateCondition::UniqueData
     //--------------------------------------------------------------------------------
 
+    void AnimGraphStateCondition::Update(AnimGraphInstance* animGraphInstance, float timePassedInSeconds)
+    {
+        AnimGraphTransitionCondition::Update(animGraphInstance, timePassedInSeconds);
+        UniqueData* uniqueData = static_cast<UniqueData*>(animGraphInstance->FindOrCreateUniqueObjectData(this));
+        if (!uniqueData->mEventHandler)
+        {
+            uniqueData->CreateEventHandler();
+        }
+    }
+
     // constructor
     AnimGraphStateCondition::UniqueData::UniqueData(AnimGraphObject* object, AnimGraphInstance* animGraphInstance)
         : AnimGraphObjectData(object, animGraphInstance)

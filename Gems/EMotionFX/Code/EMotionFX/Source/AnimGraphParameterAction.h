@@ -16,6 +16,8 @@
 #include <EMotionFX/Source/AnimGraphTriggerAction.h>
 #include <EMotionFX/Source/ObjectAffectedByParameterChanges.h>
 
+#include <AzFramework/UI/ClassSelectionParameters.h>
+
 namespace EMotionFX
 {
     // forward declarations
@@ -49,10 +51,15 @@ namespace EMotionFX
         AZ::Outcome<size_t> GetParameterIndex() const;
         void SetParameterName(const AZStd::string& parameterName);
         const AZStd::string& GetParameterName() const;
-        AZ::TypeId GetParameterType() const;
 
-        void SetTriggerValue(float value) { m_triggerValue = value; }
-        float GetTriggerValue() const { return m_triggerValue; }
+        void SetParameterValue(const AZStd::any& parameterValue);
+        const AZStd::any& GetParameterValue() const;
+
+        void SetTriggerValue(float value) { m_parameterValue = value; }
+        float GetTriggerValue() const {
+            float val;
+            return AZStd::any_numeric_cast<float>(&m_parameterValue, val) ? val : 0.f;
+        }
 
         // ObjectAffectedByParameterChanges overrides
         void ParameterRenamed(const AZStd::string& oldParameterName, const AZStd::string& newParameterName) override;
@@ -62,9 +69,19 @@ namespace EMotionFX
         static void Reflect(AZ::ReflectContext* context);
 
     private:
-        AZStd::string                       m_parameterName;
-        AZ::Outcome<size_t>                 m_parameterIndex;
-        const ValueParameter*               m_valueParameter;
-        float                               m_triggerValue;
+        AZStd::string GetParameterValueString() const;
+        AzFramework::ClassSelectionParameters GetParameterValueSelection();
+        bool GetParameterValueVisibility();
+        AZStd::vector<AZ::TypeId> TypesValidForAttribute();
+        AZStd::unordered_set<AZ::TypeId> TypesValidForAttribute_set();
+
+
+        // Reflected data
+        AZStd::string                            m_parameterName;
+        AZStd::any                               m_parameterValue;
+
+        // Runtime data
+        AZ::Outcome<size_t>                      m_parameterIndex;
+        const ValueParameter*                    m_valueParameter;
     };
 } // namespace EMotionFX

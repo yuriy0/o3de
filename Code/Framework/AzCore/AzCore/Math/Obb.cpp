@@ -84,6 +84,7 @@ namespace AZ
                 Method("CreateFromPositionRotationAndHalfLengths", &Obb::CreateFromPositionRotationAndHalfLengths)->
                 Method("CreateFromAabb", &Obb::CreateFromAabb)->
                 Method("ConstructObbFromValues", &Internal::ConstructObbFromValues)->
+				Method("CreateFromHalfLengths", &Obb::CreateFromHalfLengths)->
                 Method("GetAxis", &Obb::GetAxis)->
                 Method("GetAxisX", &Obb::GetAxisX)->
                 Method("GetAxisY", &Obb::GetAxisY)->
@@ -124,6 +125,14 @@ namespace AZ
         );
     }
 
+     const Obb Obb::CreateFromHalfLengths(const AZ::Vector3 & halfLengths)
+     {
+        Obb result;
+        result.SetPosition(AZ::Vector3::CreateZero());
+        result.SetRotation(AZ::Quaternion::CreateIdentity());
+        result.SetHalfLengths(halfLengths);
+        return result;
+    }
 
     bool Obb::IsFinite() const
     {

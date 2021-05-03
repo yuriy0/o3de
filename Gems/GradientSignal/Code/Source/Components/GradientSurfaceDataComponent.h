@@ -19,6 +19,7 @@
 #include <SurfaceData/SurfaceDataTypes.h>
 #include <LmbrCentral/Dependency/DependencyNotificationBus.h>
 #include <LmbrCentral/Shape/ShapeComponentBus.h>
+#include <AzCore/Component/EntityBus.h>
 
 namespace LmbrCentral
 {
@@ -54,6 +55,7 @@ namespace GradientSignal
         , private LmbrCentral::DependencyNotificationBus::Handler
         , private LmbrCentral::ShapeComponentNotificationsBus::Handler
         , private GradientSurfaceDataRequestBus::Handler
+        , private AZ::EntityBus::Handler
     {
     public:
         template<typename, typename> friend class LmbrCentral::EditorWrappedComponentBase;
@@ -61,6 +63,7 @@ namespace GradientSignal
         static void GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType& services);
         static void GetIncompatibleServices(AZ::ComponentDescriptor::DependencyArrayType& services);
         static void GetRequiredServices(AZ::ComponentDescriptor::DependencyArrayType& services);
+        static void GetDependentServices(AZ::ComponentDescriptor::DependencyArrayType& dep);
         static void Reflect(AZ::ReflectContext* context);
 
         GradientSurfaceDataComponent(const GradientSurfaceDataConfig& configuration);
@@ -86,6 +89,10 @@ namespace GradientSignal
         ////////////////////////////////////////////////////////////////////////
         // LmbrCentral::ShapeComponentNotificationsBus
         void OnShapeChanged(LmbrCentral::ShapeComponentNotifications::ShapeChangeReasons reasons) override;
+
+        ////////////////////////////////////////////////////////////////////////
+        // AZ::EntityBus
+        void OnEntityActivated(const AZ::EntityId&) override;
 
         //////////////////////////////////////////////////////////////////////////
         // GradientSurfaceDataRequestBus

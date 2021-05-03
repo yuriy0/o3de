@@ -18,6 +18,7 @@
 #include "Endian.h"
 #include "Stream.h"
 #include <AzCore/std/string/string.h>
+#include <AzCore/std/any_ext.h>
 
 namespace EMotionFX
 {
@@ -73,6 +74,8 @@ namespace MCore
         virtual bool InitFrom(const Attribute* other) = 0;
         virtual uint32 GetClassSize() const = 0;
         virtual uint32 GetDefaultInterfaceType() const = 0;
+        virtual bool FromAny(const AZStd::any&) = 0;
+        virtual bool ToAny(AZStd::any&) = 0;
 
         // These two members and ReadData can go away once we put the old-format parser
         bool Read(Stream* stream, MCore::Endian::EEndianType sourceEndianType);
@@ -97,5 +100,40 @@ namespace MCore
          * @result Returns true when successful, or false when reading failed.
          */
         virtual bool ReadData(MCore::Stream* stream, MCore::Endian::EEndianType streamEndianType, uint8 version) = 0;
+    };
+
+    namespace Attribute_impl {
+        using AZStd::any_generic_cast;
+    }
+
+    /**
+    * A version of Attribute with template arguments which defines defaults for To/FromAny
+    */
+    template<class Type, class DerivedType>
+    class Attribute_tpl
+        : public Attribute { 
+    public:
+        template<class... Args>
+        Attribute_tpl<Type, DerivedType>(Args&&... args)
+            : Attribute(AZStd::forward<Args>(args)...)
+        {}
+
+#pragma warning(push)
+#pragma warning(disable : 4804) // '<': unsafe use of type 'bool' in operation
+        virtual bool FromAny(const AZStd::any& anyVal) override {
+            Type realVal;
+            if (Attribute_impl::any_generic_cast(anyVal, realVal)) {
+                static_cast<DerivedType*>(this)->SetValue(realVal);
+                return true;
+            } else {
+                return false;
+            }
+        };
+#pragma warning(pop)
+
+        virtual bool ToAny(AZStd::any& anyVal) override {
+            anyVal = AZStd::any(AZStd::in_place_type_t<Type>{}, static_cast<DerivedType*>(this)->GetValue());
+            return true;
+        };
     };
 } // namespace MCore

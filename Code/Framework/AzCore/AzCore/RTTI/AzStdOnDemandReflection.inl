@@ -20,6 +20,7 @@
 #include <AzCore/std/smart_ptr/unique_ptr.h>
 #include <AzCore/std/string/conversions.h>
 #include <AzCore/std/string/tokenize.h>
+#include <AzCore/Outcome/Outcome.h>
 #include <AzCore/RTTI/AzStdOnDemandPrettyName.inl>
 #include <AzCore/RTTI/AzStdOnDemandReflectionLuaFunctions.inl>
 #include <AzCore/EBus/Event.h>
@@ -56,6 +57,9 @@ namespace AZStd
     // Wrapper types
     template <typename T>
     class optional;
+}
+namespace AZ { 
+    template<class V, class E> class Outcome;
 }
 
 namespace AZ

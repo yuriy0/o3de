@@ -28,6 +28,7 @@
 #include <ScriptCanvas/Execution/RuntimeComponent.h>
 #include <ScriptCanvas/SystemComponent.h>
 #include <ScriptCanvas/Variable/GraphVariableManagerComponent.h>
+#include <ScriptCanvas/Execution/VariableBus.h>
 
 #if defined(SC_EXECUTION_TRACE_ENABLED)
 #include <ScriptCanvas/Asset/ExecutionLogAsset.h>
@@ -93,6 +94,14 @@ namespace ScriptCanvas
         ExecutionLogAsset::Reflect(context);
 #endif//defined(SC_EXECUTION_TRACE_ENABLED)
 
+
+        if (auto behavior = azrtti_cast<AZ::BehaviorContext*>(context))
+        {
+            behavior->EBus<VariableRuntimeRequestBus>("ScriptCanvasVariableRuntimeRequestBus")
+                ->Event("SetVariable", &VariableRuntimeRequestBus::Events::SetVariable)
+                ->Event("GetVariable", &VariableRuntimeRequestBus::Events::GetVariable)
+                ;
+        }
     }
 
     void SystemComponent::GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType& provided)

@@ -50,17 +50,48 @@ namespace AzToolsFramework
             const AzToolsFramework::ComponentFilter& componentFilter,
             const AZStd::vector<AZ::ComponentServiceType>& serviceFilter,
             const AZStd::vector<AZ::ComponentServiceType>& incompatibleServiceFilter,
-            ComponentDataTable &componentDataTable,
-            ComponentIconTable &componentIconTable
+            ComponentDataTable *componentDataTable,
+            ComponentIconTable *componentIconTable
         );
 
         void BuildComponentTables(
             AZ::SerializeContext* serializeContext,
             const AzToolsFramework::ComponentFilter& componentFilter,
             const AZStd::vector<AZ::ComponentServiceType>& serviceFilter,
+            ComponentDataTable *componentDataTable,
+            ComponentIconTable *componentIconTable
+        );
+
+        void BuildComponentTables(
+            AZ::SerializeContext* serializeContext,
+            const AzToolsFramework::ComponentFilter& componentFilter,
+            const AZStd::vector<AZ::ComponentServiceType>& serviceFilter,
+            const AZStd::vector<AZ::ComponentServiceType>& incompatibleServiceFilter,
+            ComponentDataTable *componentDataTable,
+            ComponentIconTable *componentIconTable
+        );
+
+        inline void BuildComponentTables(
+            AZ::SerializeContext* serializeContext,
+            const AzToolsFramework::ComponentFilter& componentFilter,
+            const AZStd::vector<AZ::ComponentServiceType>& serviceFilter,
+            const AZStd::vector<AZ::ComponentServiceType>& incompatibleServiceFilter,
             ComponentDataTable &componentDataTable,
             ComponentIconTable &componentIconTable
-        );
+        )
+		{
+			return BuildComponentTables(serializeContext, componentFilter, serviceFilter, incompatibleServiceFilter, &componentDataTable, &componentIconTable);
+		}
+
+        inline void BuildComponentTables(
+            AZ::SerializeContext* serializeContext,
+            const AzToolsFramework::ComponentFilter& componentFilter,
+            const AZStd::vector<AZ::ComponentServiceType>& serviceFilter,
+            ComponentDataTable& componentDataTable,
+            ComponentIconTable& componentIconTable)
+        {
+            return BuildComponentTables(serializeContext, componentFilter, serviceFilter, &componentDataTable, &componentIconTable);
+        }
 
         // Returns true if any components in the given filter provide any of the services
         // specified and are addable/editable by the user

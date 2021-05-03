@@ -95,6 +95,21 @@ class UiCanvasAssetRefNotifications
     : public AZ::ComponentBus
 {
 public:
+    // If the canvas is already loaded onto the given entity when connecting, send the event immediately
+    template<class Bus>
+    struct ConnectionPolicy
+        : public AZ::EBusConnectionPolicy<Bus>
+    {
+        static void Connect(typename Bus::BusPtr& busPtr, typename Bus::Context& context, typename Bus::HandlerNode& handler, typename Bus::ConnectLockGuard& contextLock, const typename Bus::BusIdType& id = 0)
+        {
+            AZ::EBusConnectionPolicy<Bus>::Connect(busPtr, context, handler, contextLock, id);
+            if (auto pUiCanvas = UiCanvasRefBus::FindFirstHandler(id))
+            {
+                handler->OnCanvasLoadedIntoEntity(pUiCanvas->GetCanvas());
+            }
+        }
+    };
+
     virtual ~UiCanvasAssetRefNotifications() {}
 
     //! Called when the canvas ref loads a UI canvas

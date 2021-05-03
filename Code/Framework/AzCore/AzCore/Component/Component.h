@@ -149,6 +149,33 @@ namespace AZ
          */
         bool GetConfiguration(AZ::ComponentConfig& outConfig) const;
 
+        /**
+        * Activate the component without any of the usual checks. It is up to the caller to ensure all components on the entity
+        * (if it is attached to an entity) have their requirements satisfied.
+        * @copydoc AZ::Component::Activate()
+        */
+        void UnsafeManualActivate();
+
+        /**
+        * Deactivate the component without any of the usual checks. It is up to the caller to ensure all components on the entity
+        * (if it is attached to an entity) have their requirements satisfied.
+        * @copydoc AZ::Component::Deactivate()
+        */
+        void UnsafeManualDeactivate();
+
+        /**
+        * Some components are wrappers around other components; this function gives
+        * access to the underlying implementation.
+        * Any class which overrides this function should call GetTemplate on the component
+        * it wraps before returning. This ensures that a single call to GetTemplate produces the lowest-level wrapped component.
+        */
+        virtual Component* GetTemplate() { return this; }
+
+        /**
+        * @copydoc AZ::Component::GetTemplate()
+        */
+        const Component* GetTemplate() const { return const_cast<const Component*>(const_cast<Component*>(this)->GetTemplate()); }
+
     protected:
         /**
          * Initializes a component's resources.
@@ -256,6 +283,10 @@ namespace AZ
     friend class AZ::HasComponentDependentServices<_ComponentClass>;                                                                    \
     friend class AZ::HasComponentRequiredServices<_ComponentClass>;                                                                     \
     friend class AZ::HasComponentIncompatibleServices<_ComponentClass>;                                                                 \
+    friend class AZ::HasComponentMemberProvidedServices<_ComponentClass>;                                                                     \
+    friend class AZ::HasComponentMemberDependentServices<_ComponentClass>;                                                                    \
+    friend class AZ::HasComponentMemberRequiredServices<_ComponentClass>;                                                                     \
+    friend class AZ::HasComponentMemberIncompatibleServices<_ComponentClass>;                                                                 \
     static AZ::ComponentDescriptor* CreateDescriptor()                                                                                  \
     {                                                                                                                                   \
             AZ::ComponentDescriptor* descriptor = nullptr;                                                                              \
@@ -500,6 +531,10 @@ namespace AZ
     AZ_HAS_STATIC_MEMBER(ComponentDependentServices, GetDependentServices, void, (ComponentDescriptor::DependencyArrayType &));
     AZ_HAS_STATIC_MEMBER(ComponentRequiredServices, GetRequiredServices, void, (ComponentDescriptor::DependencyArrayType &));
     AZ_HAS_STATIC_MEMBER(ComponentIncompatibleServices, GetIncompatibleServices, void, (ComponentDescriptor::DependencyArrayType &));
+    AZ_HAS_MEMBER(ComponentMemberProvidedServices, GetProvidedServices, void, (ComponentDescriptor::DependencyArrayType &) const);
+    AZ_HAS_MEMBER(ComponentMemberDependentServices, GetDependentServices, void, (ComponentDescriptor::DependencyArrayType &) const);
+    AZ_HAS_MEMBER(ComponentMemberRequiredServices, GetRequiredServices, void, (ComponentDescriptor::DependencyArrayType &) const);
+    AZ_HAS_MEMBER(ComponentMemberIncompatibleServices, GetIncompatibleServices, void, (ComponentDescriptor::DependencyArrayType &) const);
     /// @endcond
 
     /**
@@ -535,8 +570,14 @@ namespace AZ
          */
         void GetProvidedServices(ComponentDescriptor::DependencyArrayType& provided, const Component* instance) const override
         {
-            (void)instance; // Not used by default because most components have static (not instance-dependent) services.
-            CallProvidedServices(provided, typename HasComponentProvidedServices<ComponentClass>::type());
+            static_assert(!(typename HasComponentProvidedServices<ComponentClass>::value &&
+                               typename HasComponentMemberProvidedServices<ComponentClass>::value),
+                             "Components using ComponentDescriptorDefault (AZ_COMPONENT macro) has both member and static GetProvidedServices function. Define only one in your class."
+            );
+            CallProvidedServices(provided, instance,
+                                 typename HasComponentProvidedServices<ComponentClass>::type(),
+                                 typename HasComponentMemberProvidedServices<ComponentClass>::type()
+            );
         }
 
         /**
@@ -546,8 +587,14 @@ namespace AZ
          */
         void GetDependentServices(ComponentDescriptor::DependencyArrayType& dependent, const Component* instance) const override
         {
-            (void)instance; // Not used by default because most components have static (not instance-dependent) services.
-            CallDependentServices(dependent, typename HasComponentDependentServices<ComponentClass>::type());
+            static_assert(!(typename HasComponentDependentServices<ComponentClass>::value &&
+                               typename HasComponentMemberDependentServices<ComponentClass>::value),
+                             "Components using ComponentDescriptorDefault (AZ_COMPONENT macro) has both member and static GetDependentServices function. Define only one in your class."
+            );
+            CallDependentServices(dependent, instance,
+                                  typename HasComponentDependentServices<ComponentClass>::type(),
+                                  typename HasComponentMemberDependentServices<ComponentClass>::type()
+            );
         }
 
         /**
@@ -557,8 +604,14 @@ namespace AZ
          */
         void GetRequiredServices(ComponentDescriptor::DependencyArrayType& required, const Component* instance) const override
         {
-            (void)instance; // Not used by default because most components have static (not instance-dependent) services.
-            CallRequiredServices(required, typename HasComponentRequiredServices<ComponentClass>::type());
+            static_assert(!(typename HasComponentRequiredServices<ComponentClass>::value &&
+                               typename HasComponentMemberRequiredServices<ComponentClass>::value),
+                             "Components using ComponentDescriptorDefault (AZ_COMPONENT macro) has both member and static GetRequiredServices function. Define only one in your class."
+            );
+            CallRequiredServices(required, instance,
+                                  typename HasComponentRequiredServices<ComponentClass>::type(),
+                                  typename HasComponentMemberRequiredServices<ComponentClass>::type()
+            );
         }
 
         /**
@@ -568,12 +621,18 @@ namespace AZ
          */
         void GetIncompatibleServices(ComponentDescriptor::DependencyArrayType& incompatible, const Component* instance) const override
         {
-            (void)instance; // Not used by default because most components have static (not instance-dependent) services.
-            CallIncompatibleServices(incompatible, typename HasComponentIncompatibleServices<ComponentClass>::type());
+            static_assert(!(typename HasComponentIncompatibleServices<ComponentClass>::value &&
+                               typename HasComponentMemberIncompatibleServices<ComponentClass>::value),
+                             "Components using ComponentDescriptorDefault (AZ_COMPONENT macro) has both member and static GetIncompatibleServices function. Define only one in your class."
+            );
+            CallIncompatibleServices(incompatible, instance,
+                                 typename HasComponentIncompatibleServices<ComponentClass>::type(),
+                                 typename HasComponentMemberIncompatibleServices<ComponentClass>::type()
+            );
         }
 
     private:
-
+        // Reflect dispatcher
         void CallReflect(ReflectContext* reflection, const AZStd::true_type&) const
         {
             ComponentClass::Reflect(reflection);
@@ -583,39 +642,75 @@ namespace AZ
         {
         }
 
-        void CallProvidedServices(ComponentDescriptor::DependencyArrayType& provided, const AZStd::true_type&) const
+        static const ComponentClass* Cast(const Component* c_) { 
+            const Component* c = c_;
+            if (!c) return nullptr;
+            c = c->GetTemplate();
+            if (!c) return nullptr;
+            return azrtti_cast<const ComponentClass*>(c);
+        };
+
+        // GetProvidedServices dispatcher
+        void CallProvidedServices(ComponentDescriptor::DependencyArrayType& provided, const Component*, const AZStd::true_type&, const AZStd::false_type&) const
         {
             ComponentClass::GetProvidedServices(provided);
         }
-
-        void CallProvidedServices(ComponentDescriptor::DependencyArrayType&, const AZStd::false_type&) const
+        void CallProvidedServices(ComponentDescriptor::DependencyArrayType& provided, const Component* instance, const AZStd::false_type&, const AZStd::true_type&) const
+        {
+            if (const ComponentClass* realInstance = Cast(instance)) { realInstance->GetProvidedServices(provided); }
+        }
+        void CallProvidedServices(ComponentDescriptor::DependencyArrayType&, const Component*, const AZStd::true_type&, const AZStd::true_type&) const
+        {
+        }
+        void CallProvidedServices(ComponentDescriptor::DependencyArrayType&, const Component*, const AZStd::false_type&, const AZStd::false_type&) const
         {
         }
 
-        void CallDependentServices(ComponentDescriptor::DependencyArrayType& dependent, const AZStd::true_type&) const
+        // GetDependentServices dispatcher
+        void CallDependentServices(ComponentDescriptor::DependencyArrayType& dependent, const Component*, const AZStd::true_type&, const AZStd::false_type&) const
         {
             ComponentClass::GetDependentServices(dependent);
         }
-
-        void CallDependentServices(ComponentDescriptor::DependencyArrayType&, const AZStd::false_type&) const
+        void CallDependentServices(ComponentDescriptor::DependencyArrayType& dependent, const Component* instance, const AZStd::false_type&, const AZStd::true_type&) const
+        {
+            if (const ComponentClass* realInstance = Cast(instance)) { realInstance->GetDependentServices(dependent); }
+        }
+        void CallDependentServices(ComponentDescriptor::DependencyArrayType&, const Component*, const AZStd::true_type&, const AZStd::true_type&) const
+        {
+        }
+        void CallDependentServices(ComponentDescriptor::DependencyArrayType&, const Component*, const AZStd::false_type&, const AZStd::false_type&) const
         {
         }
 
-        void CallRequiredServices(ComponentDescriptor::DependencyArrayType& required, const AZStd::true_type&) const
+        // GetRequiredServices dispatcher
+        void CallRequiredServices(ComponentDescriptor::DependencyArrayType& required, const Component*, const AZStd::true_type&, const AZStd::false_type&) const
         {
             ComponentClass::GetRequiredServices(required);
         }
-
-        void CallRequiredServices(ComponentDescriptor::DependencyArrayType&, const AZStd::false_type&) const
+        void CallRequiredServices(ComponentDescriptor::DependencyArrayType& required, const Component* instance, const AZStd::false_type&, const AZStd::true_type&) const
+        {
+            if (const ComponentClass* realInstance = Cast(instance)) { realInstance->GetRequiredServices(required); }
+        }
+        void CallRequiredServices(ComponentDescriptor::DependencyArrayType&, const Component*, const AZStd::true_type&, const AZStd::true_type&) const
+        {
+        }
+        void CallRequiredServices(ComponentDescriptor::DependencyArrayType&, const Component*, const AZStd::false_type&, const AZStd::false_type&) const
         {
         }
 
-        void CallIncompatibleServices(ComponentDescriptor::DependencyArrayType& incompatible, const AZStd::true_type&) const
+        // GetIncompatibleServices dispatcher
+        void CallIncompatibleServices(ComponentDescriptor::DependencyArrayType& incompatible, const Component*, const AZStd::true_type&, const AZStd::false_type&) const
         {
             ComponentClass::GetIncompatibleServices(incompatible);
         }
-
-        void CallIncompatibleServices(ComponentDescriptor::DependencyArrayType&, const AZStd::false_type&) const
+        void CallIncompatibleServices(ComponentDescriptor::DependencyArrayType& incompatible, const Component* instance, const AZStd::false_type&, const AZStd::true_type&) const
+        {
+            if (const ComponentClass* realInstance = Cast(instance)) { realInstance->GetIncompatibleServices(incompatible); }
+        }
+        void CallIncompatibleServices(ComponentDescriptor::DependencyArrayType&, const Component*, const AZStd::true_type&, const AZStd::true_type&) const
+        {
+        }
+        void CallIncompatibleServices(ComponentDescriptor::DependencyArrayType&, const Component*, const AZStd::false_type&, const AZStd::false_type&) const
         {
         }
     };

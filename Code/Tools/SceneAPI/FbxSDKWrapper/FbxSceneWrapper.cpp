@@ -173,6 +173,11 @@ namespace AZ
                 return false;
             }
 
+            // Begin Apc:
+            // We disable auto importing of embedded data; this mainly creates a lot of garbage, and nobody seems to use it
+            m_fbxImporter->GetIOSettings()->SetBoolProp(IMP_FBX_EXTRACT_EMBEDDED_DATA, false);
+            // End Apc
+
             if (!m_fbxImporter->Import(m_fbxScene))
             {
                 FbxString error = m_fbxImporter->GetStatus().GetErrorString();

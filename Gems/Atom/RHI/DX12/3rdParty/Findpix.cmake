@@ -10,6 +10,9 @@
 #
 
 file(TO_CMAKE_PATH "$ENV{ATOM_PIX_PATH}" ATOM_PIX_PATH_CMAKE_FORMATTED)
+if ("${ATOM_PIX_PATH_CMAKE_FORMATTED}" STREQUAL "")
+	set(ATOM_PIX_PATH_CMAKE_FORMATTED "${ATOM_PIX_PATH_INTERNAL}")
+endif()
 
 if(EXISTS "${ATOM_PIX_PATH_CMAKE_FORMATTED}/include/WinPixEventRuntime/pix3.h")
     ly_add_external_target(
@@ -18,6 +21,8 @@ if(EXISTS "${ATOM_PIX_PATH_CMAKE_FORMATTED}/include/WinPixEventRuntime/pix3.h")
         3RDPARTY_ROOT_DIRECTORY ${ATOM_PIX_PATH_CMAKE_FORMATTED}
         INCLUDE_DIRECTORIES include
     )
+else()
+	#message(FATAL "Cannot find winpix")
 endif()
 
 

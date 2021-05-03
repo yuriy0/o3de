@@ -72,6 +72,8 @@ namespace EMotionFX
             static void GetRequiredServices(AZ::ComponentDescriptor::DependencyArrayType& required);
             static void GetDependentServices(AZ::ComponentDescriptor::DependencyArrayType& dependent);
 
+            static float emfx_fixedTimeStep;
+
         private:
             //unique_ptr cannot be copied -> vector of unique_ptrs cannot be copied -> class cannot be copied
             SystemComponent(const SystemComponent&) = delete;

@@ -25,16 +25,36 @@ namespace AZ
             : public SerializeContext::IDataContainer
         {
         public:
-            AZStdAnyContainer() = default;
+            SerializeContext::ClassElement m_classElement;
+            using value_type = AZStd::any;
+
+            AZStdAnyContainer() {
+                m_classElement.m_name = GetDefaultElementName();
+                m_classElement.m_nameCrc = GetDefaultElementNameCrc();
+                m_classElement.m_dataSize = sizeof(value_type*);
+                m_classElement.m_offset = 0;
+                m_classElement.m_azRtti = AZ::GetRttiHelper<value_type>();
+                m_classElement.m_flags = SerializeContext::ClassElement::FLG_DYNAMIC_FIELD;
+                m_classElement.m_genericClassInfo = SerializeGenericTypeInfo<value_type>::GetGenericInfo();
+                m_classElement.m_typeId = SerializeGenericTypeInfo<value_type>::GetClassTypeId();
+                m_classElement.m_editData = nullptr;
+            };
 
             const char* GetElementName([[maybe_unused]] int index = 0) override { return "m_data"; }
 
             u32 GetElementNameCrC([[maybe_unused]] int index = 0) override { return AZ_CRC("m_data", 0x335cc942); }
 
             /// Null if element with this name can't be found.
-            const SerializeContext::ClassElement* GetElement(u32) const override
+            const SerializeContext::ClassElement* GetElement(u32 e) const override
             {
-                return nullptr;
+                if (e == m_classElement.m_nameCrc) {
+                    // Return class element corresponding to the Any type itself
+                    return &m_classElement;
+                }
+                else {
+                    // Only recognizes the default element names
+                    return nullptr;
+                }
             }
 
             bool GetElement(SerializeContext::ClassElement& classElement, const SerializeContext::DataElement& dataElement) const override
@@ -91,8 +111,8 @@ namespace AZ
             /// Return number of elements in the container.
             size_t  Size(void* instance) const override
             {
-                (void)instance;
-                return 1;
+                auto anyPtr = reinterpret_cast<AZStd::any*>(instance);
+                return anyPtr->empty() ? 0 : 1;
             }
 
             /// Returns the capacity of the container. Returns 0 for objects without fixed capacity.
@@ -106,7 +126,7 @@ namespace AZ
             bool    IsStableElements() const override { return true; }
 
             /// Returns true if the container is fixed size, otherwise false.
-            bool    IsFixedSize() const override { return true; }
+            bool    IsFixedSize() const override { return false; }
 
             /// Returns if the container is fixed capacity, otherwise false
             bool    IsFixedCapacity() const override { return true; }
@@ -126,7 +146,7 @@ namespace AZ
                     *anyPtr = m_serializeContext->CreateAny(classElement->m_genericClassInfo ? classElement->m_genericClassInfo->GetSpecializedTypeId() : classElement->m_typeId);
                     return AZStd::any_cast<void>(anyPtr);
                 }
-                
+
                 return instance;
             }
 

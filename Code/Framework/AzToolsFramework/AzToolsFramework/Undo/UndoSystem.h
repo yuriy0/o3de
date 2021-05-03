@@ -85,6 +85,27 @@ namespace AzToolsFramework
             */
             URSequencePoint* Find(URCommandID id, const AZ::Uuid& typeOfCommand);
 
+            class LookupById
+            {
+            public:
+                URSequencePoint* Find(URCommandID id);
+                bool Empty() const;
+
+            private:
+                friend class URSequencePoint;
+                LookupById() = default;
+
+                struct hash_URSequencePoint {
+                    size_t operator() (URSequencePoint* cmd) const;
+                };
+                struct equal_URSequencePoint {
+                    bool operator() (URSequencePoint* cmd1, URSequencePoint* cmd) const;
+                };
+
+                AZStd::unordered_set<URSequencePoint*, hash_URSequencePoint, equal_URSequencePoint> m_set;
+            };
+            LookupById MakeLookupById(const AZ::Uuid& typeOfCommand);
+
             void SetName(const AZStd::string& friendlyName);
             AZStd::string& GetName();
 
@@ -114,6 +135,11 @@ namespace AzToolsFramework
         protected:
             void AddChild(URSequencePoint*);
             void RemoveChild(URSequencePoint*);
+
+        private:
+            void MakeLookupById(LookupById& out, const AZ::Uuid& typeOfCommand);
+
+        protected:
             AZStd::string m_friendlyName;
             URCommandID m_id;
 
@@ -163,6 +189,24 @@ namespace AzToolsFramework
             returns NULL on failure to make any match
             */
             URSequencePoint* Find(URCommandID id, const AZ::Uuid& typeOfCommand);
+
+            // Holds cached data for making many fast lookups by ID at a specific command type
+            class LookupById
+            {
+            public:
+                URSequencePoint* Find(URCommandID id);
+                bool Empty() const;
+
+            private:
+                friend class UndoStack;
+                LookupById() = default;
+
+                AZStd::vector<URSequencePoint::LookupById> m_SequencePointsBuffer;
+            };
+
+            /* Like `Find' but caches data for many consecutive lookups.
+             */
+            LookupById MakeLookupById(const AZ::Uuid& typeOfCommand);
 
             // Moves the clean state to the current point.
             // does not slice, you can undo back past the clean point.

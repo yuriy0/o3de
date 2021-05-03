@@ -16,6 +16,7 @@
 #include <AzCore/Component/TransformBus.h>
 #include <AzCore/std/smart_ptr/shared_ptr.h>
 #include <LmbrCentral/Shape/SplineComponentBus.h>
+#include <Rendering/EntityDebugDisplayComponent.h>
 
 namespace LmbrCentral
 {
@@ -54,6 +55,29 @@ namespace LmbrCentral
         AZ::VoidFunction m_onClearVertices = nullptr;
         AZ::VoidFunction m_onChangeType = nullptr;
         AZ::BoolFunction m_onOpenCloseChange = nullptr;
+    };
+
+    /* Holds configuration for spline display and implements drawing of the spline debug display
+     */
+    class SplineDisplay
+    {
+    public:
+        AZ_CLASS_ALLOCATOR(SplineDisplay, AZ::SystemAllocator, 0);
+        AZ_TYPE_INFO(SplineDisplay, "{8F9962D2-E9D5-4B36-84F8-B39D52549AC4}");
+        static void Reflect(AZ::ReflectContext* context);
+
+        SplineDisplay();
+
+        void Draw(const AZ::Spline& spline, const AZ::Transform& worldFromLocal, AzFramework::DebugDisplayRequests& displayContext, bool drawLabels) const;
+
+        bool showNormals;
+        bool showTangents;
+
+    private:
+        void Draw(const AZ::Spline& spline, const AZ::Transform& worldFromLocal, size_t begin, size_t end, AzFramework::DebugDisplayRequests& displayContext, bool drawLabels) const;
+        static void DrawVertices(
+            const AZ::Spline& spline, const AZ::Transform& worldFromLocal,
+            const size_t begin, const size_t end, AzFramework::DebugDisplayRequests& debugDisplay);
     };
 
     /// Component interface to core spline implementation.
@@ -117,4 +141,41 @@ namespace LmbrCentral
         AZ::Transform m_currentTransform; ///< Caches the current transform for the entity on which this component lives.
     };
 
+    class SplineDebugDisplayComponent
+        : public EntityDebugDisplayComponent
+    {
+    public:
+        AZ_COMPONENT(SplineDebugDisplayComponent, "{8246DC9A-A8F0-4CBD-9DD2-FF271BE37B2F}", EntityDebugDisplayComponent);
+
+        SplineDebugDisplayComponent() = default;
+        SplineDebugDisplayComponent(const SplineDisplay& displ)
+            : m_display(displ)
+        {}
+
+        static void Reflect(AZ::ReflectContext* context);
+        static void GetRequiredServices(AZ::ComponentDescriptor::DependencyArrayType& required)
+        {
+            required.push_back(AZ_CRC("SplineService", 0x2b674d3c));
+        }
+        static void GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType& provided)
+        {
+            provided.push_back(AZ::Crc32("SplineDebugService"));
+        }
+        static void GetIncompatibleServices(AZ::ComponentDescriptor::DependencyArrayType& incompatible)
+        {
+            incompatible.push_back(AZ::Crc32("SplineDebugService"));
+        }
+
+        // AZ::Component
+        void Activate() override;
+        void Deactivate() override;
+
+        // EntityDebugDisplayComponent
+        void Draw(AzFramework::DebugDisplayRequests& debugDisplay) override;
+
+        SplineDisplay m_display;
+        AZ::SplinePtr m_spline; ///< Reference to the underlying spline data.
+    private:
+        AZ_DISABLE_COPY_MOVE(SplineDebugDisplayComponent);
+    };
 } // namespace LmbrCentral

@@ -65,6 +65,11 @@ namespace TrackView
     {
         m_view->SetCameraTransform(cameraTransform);
         m_view->SetViewToClipMatrix(cameraProjection);
+        AZ::EntityId camId = TrackView::ActiveCameraEntityId();
+        if (camId.IsValid())
+        {
+            m_renderPipeline->SetDefaultViewFromEntity(camId);
+        }
     }
 
     bool AtomOutputFrameCapture::BeginCapture(

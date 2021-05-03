@@ -408,6 +408,7 @@ set(FILES
     FileTag/FileTagBus.h
     FileTag/FileTagComponent.h
     FileTag/FileTagComponent.cpp
+    UI/ClassSelectionParameters.h
     UnitTest/FrameworkTestTypes.h
     UnitTest/TestDebugDisplayRequests.h
     UnitTest/TestDebugDisplayRequests.cpp

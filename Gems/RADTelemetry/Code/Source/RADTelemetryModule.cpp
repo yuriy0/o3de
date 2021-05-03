@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <cstdio> // snprintf
 #include <limits>
+#include <AzCore/StringFunc/StringFunc.h>
 
 #include "ProfileTelemetryComponent.h"
 
@@ -41,8 +42,9 @@ namespace RADTelemetry
         }
 
         // Parse as a 64-bit hex string
-        MaskType maskCvarValue = strtoull(s_telemetryCaptureMask, nullptr, 16);
-        if (maskCvarValue == std::numeric_limits<MaskType>::max())
+        char* endPtr;
+        MaskType maskCvarValue = strtoull(s_telemetryCaptureMask, &endPtr, 16);
+        if (endPtr == s_telemetryCaptureMask)
         {
             MaskType defaultMask = 0;
             TelemetryRequestBus::BroadcastResult(defaultMask, &TelemetryRequests::GetDefaultCaptureMask);
@@ -125,6 +127,62 @@ namespace RADTelemetry
             char defaultCaptureMaskStr[19];
             azsnprintf(defaultCaptureMaskStr, AZ_ARRAY_SIZE(defaultCaptureMaskStr), "0x%" PRIx64, defaultCaptureMaskValue);
             REGISTER_CVAR2_CB("radtm_CaptureMask", &s_telemetryCaptureMask, defaultCaptureMaskStr, VF_NULL, "A hex bitmask for the categories to be captured, 0x0 for all", MaskCvarChangedCallback);
+
+            system.GetIConsole()->AddCommand("radtm_ToggleCaptureMaskFlags",
+            [](IConsoleCmdArgs* args) {
+                auto radBus = RADTelemetry::ProfileTelemetryRequestBus::FindFirstHandler();
+                if (!radBus) return;
+                if (args->GetArgCount() != 3)
+                {
+                    AZ_Warning("RADTelemetryGem", false, "radtm_ToggleCaptureMaskFlags: expected 2 args, got %d", args->GetArgCount()-1);
+                    return;
+                }
+
+                char* end;
+                bool setOrUnset = (bool)::strtol(args->GetArg(2), &end, 10);
+                if (end == args->GetArg(1))
+                {
+                    AZ_Warning("RADTelemetryGem", false, "radtm_ToggleCaptureMaskFlags: expected 2nd arg to be a number");
+                    return;
+                }
+
+                AZStd::vector<AZStd::string> flags;
+                AZ::StringFunc::Tokenize(args->GetArg(1), flags, ',');
+
+                static const auto namesBegin = AZ::Debug::ProfileCategoryNames;
+                static const auto namesEnd = namesBegin+AZ_ARRAY_SIZE(AZ::Debug::ProfileCategoryNames);
+
+                AZ::Debug::ProfileCategoryPrimitiveType flagsMask = 0;
+                for (const auto& flagName : flags)
+                {
+                    auto nameIt = AZStd::find_if(namesBegin, namesEnd, [&](const char* name)
+                    {
+                        return AZ::StringFunc::Equal(name, flagName.c_str(), false);
+                    });
+                    if (nameIt != namesEnd)
+                    {
+                        flagsMask |= AZ_PROFILE_CAT_TO_RAD_CAPFLAGS(nameIt - namesBegin);
+                    }
+                    else
+                    {
+                        AZ_Warning("RADTelemetryGem", false, "radtm_ToggleCaptureMaskFlags: '%s' is not a valid profiling category", flagName.c_str());
+                    }
+                }
+
+                AZ::Debug::ProfileCategoryPrimitiveType captureMask = radBus->GetCaptureMask();
+                if (setOrUnset)
+                {
+                    captureMask |= flagsMask;
+                }
+                else
+                {
+                    captureMask &= ~flagsMask; 
+                }
+                radBus->SetCaptureMask(captureMask);
+
+                // NB: must set the string cvar, we'll read back the string later
+                gEnv->pConsole->ExecuteString(AZStd::string::format("radtm_CaptureMask %p", (void*)(captureMask)).c_str());
+            }, 0, "Sets or unsets flags for particular categories for RAD Telemetry profiling.\nUsage: radtm_ToggleCaptureMaskFlags Flag0,Flag1,Flag2 [0/1]");
 #endif
         }
     };

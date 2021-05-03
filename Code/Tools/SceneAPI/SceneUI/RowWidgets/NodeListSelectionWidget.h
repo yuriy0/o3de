@@ -22,6 +22,8 @@
 #include <SceneAPI/SceneCore/Containers/SceneGraph.h>
 #endif
 
+#include <AzToolsFramework/UI/PropertyEditor/DHQComboBox.hxx>
+
 namespace AZ
 {
     namespace SceneAPI
@@ -33,7 +35,7 @@ namespace AZ
 
         namespace UI
         {
-            class NodeListSelectionWidget : public QComboBox
+            class NodeListSelectionWidget : public AzToolsFramework::DHQComboBox
             {
                 Q_OBJECT
             public:

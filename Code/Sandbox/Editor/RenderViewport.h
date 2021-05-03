@@ -610,6 +610,11 @@ private:
         const QPoint& point) const;
 
     void RestoreViewportAfterGameMode();
+    void RestoreAfterGameMode();
+    
+    bool ShouldPreviewFullscreen();
+    void StartFullscreenPreview();
+    void StopFullscreenPreview();
 
     double WidgetToViewportFactor() const
     {
@@ -632,6 +637,7 @@ private:
     QSet<int> m_keyDown;
 
     bool m_freezeViewportInput = false;
+    bool m_inFullscreenPreview = false;
 
     size_t m_cameraSetForWidgetRenderingCount = 0; ///< How many calls to PreWidgetRendering happened before
                                                    ///< subsequent calls to PostWidetRendering.

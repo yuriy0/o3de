@@ -296,6 +296,9 @@ namespace EMotionFX
 
         SystemComponent::~SystemComponent() = default;
 
+
+        float SystemComponent::emfx_fixedTimeStep = 0.f;
+
         void SystemComponent::ReflectEMotionFX(AZ::ReflectContext* context)
         {
             MCore::ReflectionSerializer::Reflect(context);
@@ -590,6 +593,7 @@ namespace EMotionFX
 
             REGISTER_CVAR2("emfx_updateEnabled", &CVars::emfx_updateEnabled, 1, VF_DEV_ONLY, "Enable main EMFX update");
             REGISTER_CVAR2("emfx_actorRenderEnabled", &CVars::emfx_actorRenderEnabled, 1, VF_DEV_ONLY, "Enable ActorRenderNode rendering");
+            REGISTER_CVAR2("emfx_fixedTimeStep", &emfx_fixedTimeStep, 1, VF_DEV_ONLY, "If greater than zero, use this fixed timestep when updating");
         }
 
         //////////////////////////////////////////////////////////////////////////
@@ -692,9 +696,8 @@ namespace EMotionFX
                         const AZ::EntityId entityId = entity->GetId();
 
                         // Check if we have any physics character controllers.
-                        bool hasCustomMotionExtractionController = false;
+                        bool hasCustomMotionExtractionController = MotionExtractionRequestBus::FindFirstHandler(entityId) != nullptr;
                         bool hasPhysicsController = false;
-
                         Physics::CharacterRequestBus::EventResult(hasPhysicsController, entityId, &Physics::CharacterRequests::IsPresent);
                         if (!hasPhysicsController)
                         {

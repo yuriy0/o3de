@@ -53,6 +53,23 @@ namespace LmbrCentral
         }
     };
 
+	class BehaviorTagGeneralNotificationsBusHandler : public TagGeneralNotificationsBus::Handler, public AZ::BehaviorEBusHandler
+	{
+	public:
+		AZ_EBUS_BEHAVIOR_BINDER(BehaviorTagGeneralNotificationsBusHandler, "{90D3DA34-8C71-41AC-B431-D5C20536259E}", AZ::SystemAllocator,
+			OnTagGeneralAdded, OnTagGeneralRemoved);
+
+		void OnTagGeneralAdded(const Tag& tag, const AZ::EntityId& entityId) override
+		{
+			Call(FN_OnTagGeneralAdded, tag, entityId);
+		}
+
+		void OnTagGeneralRemoved(const Tag& tag, const AZ::EntityId& entityId) override
+		{
+			Call(FN_OnTagGeneralRemoved, tag, entityId);
+		}
+	};
+
     class TagComponentBehaviorHelper
     {
     public:
@@ -108,7 +125,23 @@ namespace LmbrCentral
             behaviorContext->EBus<TagGlobalNotificationBus>("TagGlobalNotificationBus")
                 ->Handler<BehaviorTagGlobalNotificationBusHandler>()
                 ;
+
+			behaviorContext->EBus<TagGeneralNotificationsBus>("TagGeneralNotificationBus")
+				->Handler<BehaviorTagGeneralNotificationsBusHandler>()
+				;
         }
+    }
+
+    void TagComponent::SendRemoveTagEvent(const Tag & tag) {
+        EBUS_EVENT_ID(GetEntityId(), TagComponentNotificationsBus, OnTagRemoved, tag);
+        EBUS_EVENT_ID(tag, TagGlobalNotificationBus, OnEntityTagRemoved, GetEntityId());
+        EBUS_EVENT(TagGeneralNotificationsBus, OnTagGeneralRemoved, tag, GetEntityId());
+    }
+
+    void TagComponent::SendAddTagEvent(const Tag & tag) {
+        EBUS_EVENT_ID(GetEntityId(), TagComponentNotificationsBus, OnTagAdded, tag);
+        EBUS_EVENT_ID(tag, TagGlobalNotificationBus, OnEntityTagAdded, GetEntityId());
+        EBUS_EVENT(TagGeneralNotificationsBus, OnTagGeneralAdded, tag, GetEntityId());
     }
 
     //=========================================================================
@@ -119,7 +152,7 @@ namespace LmbrCentral
         for (const Tag& tag : m_tags)
         {
             TagGlobalRequestBus::MultiHandler::BusConnect(tag);
-            EBUS_EVENT_ID(tag, TagGlobalNotificationBus, OnEntityTagAdded, GetEntityId());
+            SendAddTagEvent(tag);
         }
         TagComponentRequestBus::Handler::BusConnect(GetEntityId());
     }
@@ -130,7 +163,7 @@ namespace LmbrCentral
         for (const Tag& tag : m_tags)
         {
             TagGlobalRequestBus::MultiHandler::BusDisconnect(tag);
-            EBUS_EVENT_ID(tag, TagGlobalNotificationBus, OnEntityTagRemoved, GetEntityId());
+            SendRemoveTagEvent(tag);
         }
     }
 
@@ -154,8 +187,7 @@ namespace LmbrCentral
     {
         if (m_tags.insert(tag).second)
         {
-            EBUS_EVENT_ID(GetEntityId(), TagComponentNotificationsBus, OnTagAdded, tag);
-            EBUS_EVENT_ID(tag, TagGlobalNotificationBus, OnEntityTagAdded, GetEntityId());
+            SendAddTagEvent(tag);
             TagGlobalRequestBus::MultiHandler::BusConnect(tag);
         }
     }
@@ -172,8 +204,7 @@ namespace LmbrCentral
     {
         if (m_tags.erase(tag) > 0)
         {
-            EBUS_EVENT_ID(GetEntityId(), TagComponentNotificationsBus, OnTagRemoved, tag);
-            EBUS_EVENT_ID(tag, TagGlobalNotificationBus, OnEntityTagRemoved, GetEntityId());
+            SendRemoveTagEvent(tag);
             TagGlobalRequestBus::MultiHandler::BusDisconnect(tag);
         }
     }

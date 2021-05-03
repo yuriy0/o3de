@@ -243,6 +243,21 @@ namespace AZ
         * code before or after an event.
         */
         using EventProcessingPolicy = EBusEventProcessingPolicy;
+
+        /*
+        * Enables customization of the low level implementation of the bus container,
+        * which is essentially some sort of container which stores handlers (typically
+        * map or multimap for IDed buses or a handler list/single handler for non-IDed
+        * buses).
+        */
+        template<class Interface, class Traits>
+        using EBusContainer = AZ::Internal::EBusContainer<Interface, Traits>;
+
+        /*
+        * Enables customization of the low level implementation of handler node, an
+        * object which stores information about the current handlers of a bus ID
+        */
+        using HandlerHolder = AZ::Internal::DefaultHandlerHolder_tag;
     };
 
     namespace Internal

@@ -119,7 +119,7 @@ namespace PhysX
                 float halfHeight = 0.5f * height - radius;
                 if (halfHeight <= 0.0f)
                 {
-                    AZ_Warning("PhysX", halfHeight < 0.0f, "Height must exceed twice the radius in capsule configuration (height: %f, radius: %f)",
+                    AZ_Warning("PhysX", !(halfHeight < 0.0f), "Height must exceed twice the radius in capsule configuration (height: %f, radius: %f)",
                         capsuleConfig.m_height, capsuleConfig.m_radius);
                     halfHeight = std::numeric_limits<float>::epsilon();
                 }
@@ -409,9 +409,9 @@ namespace PhysX
                 return {};
             }
 
-            if (subdivisions < MinFrustumSubdivisions || subdivisions > MaxFrustumSubdivisions)
+            if (subdivisions < MinFrustumSubdivisions)
             {
-                AZ_Error("PhysX", false, "Frustum subdivision count %u is not in [%u, %u] range", subdivisions, MinFrustumSubdivisions, MaxFrustumSubdivisions);
+                AZ_Error("PhysX", false, "Frustum subdivision count %u is not at least %u", subdivisions, MinFrustumSubdivisions);
                 return {};
             }
 

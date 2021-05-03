@@ -225,7 +225,7 @@ namespace EMotionFX
                 }
                 else
                 {
-                    AZ_Warning("EMotionFX", false, "Motion \"%s\" in motion set \"%s\" could not be found in the asset catalog.", motionFilename, assetFilename.c_str());
+                    AZ_Warning("EMotionFX", motionFilename == AZStd::string_view(""), "Motion \"%s\" in motion set \"%s\" could not be found in the asset catalog.", motionFilename, assetFilename.c_str());
                 }
             }
 

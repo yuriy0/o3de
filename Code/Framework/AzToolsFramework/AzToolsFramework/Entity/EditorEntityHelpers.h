@@ -163,13 +163,13 @@ namespace AzToolsFramework
 
     /// Entity Lock interface to enable/disable selection in the viewport.
     /// Setting the editor lock state on a parent will recursively set the flag on all descendants as well. (to match visibility)
-    void SetEntityLockState(AZ::EntityId entityId, bool locked);
-    void ToggleEntityLockState(AZ::EntityId entityId);
+    void SetEntityLockState(AZ::EntityId entityId, bool locked, bool recursive = true);
+    void ToggleEntityLockState(AZ::EntityId entityId, bool recursive = true);
 
     /// Entity Visibility interface to enable/disable rendering in the viewport.
     /// Setting the editor visibility on a parent will recursively set the flag on all descendants as well.
-    void SetEntityVisibility(AZ::EntityId entityId, bool visible);
-    void ToggleEntityVisibility(AZ::EntityId entityId);
+    void SetEntityVisibility(AZ::EntityId entityId, bool visible, bool recursive = true);
+    void ToggleEntityVisibility(AZ::EntityId entityId, bool recursive = true);
 
     /// Determine if an Entity is set to visible or not in the Editor.
     /// This call looks at the visibility flag of the entity (GetVisibilityFlag)

@@ -170,29 +170,44 @@ namespace EMotionFX
 
             void AnimGraphNetSyncComponent::SetParameterOnClient(const AnimParameter& value, AZ::u8 index)
             {
-                switch (value.m_type)
+                struct Visitor
                 {
-                case AnimParameter::Type::Unsupported:
-                    break;
-                case AnimParameter::Type::Float:
-                    AnimGraphComponentRequestBus::Event(GetEntityId(), &AnimGraphComponentRequestBus::Events::SetParameterFloat, index, value.m_value.f);
-                    break;
-                case AnimParameter::Type::Bool:
-                    AnimGraphComponentRequestBus::Event(GetEntityId(), &AnimGraphComponentRequestBus::Events::SetParameterBool, index, value.m_value.b);
-                    break;
-                case AnimParameter::Type::Vector2:
-                    AnimGraphComponentRequestBus::Event(GetEntityId(), &AnimGraphComponentRequestBus::Events::SetParameterVector2, index, value.m_value.v2);
-                    break;
-                case AnimParameter::Type::Vector3:
-                    AnimGraphComponentRequestBus::Event(GetEntityId(), &AnimGraphComponentRequestBus::Events::SetParameterVector3, index, value.m_value.v3);
-                    break;
-                case AnimParameter::Type::Quaternion:
-                    AnimGraphComponentRequestBus::Event(GetEntityId(), &AnimGraphComponentRequestBus::Events::SetParameterRotation, index, value.m_value.q);
-                    break;
-                default:
-                    AZ_Assert(false, "Unsupported type");
-                    break;
-                }
+                    inline void operator()(AZStd::monostate) const {}
+
+                    inline void operator()(float f) const
+                    {
+                        AnimGraphComponentRequestBus::Event(p->GetEntityId(), &AnimGraphComponentRequestBus::Events::SetParameterFloat, index, f);
+                    }
+
+                    inline void operator()(bool b) const
+                    {
+                        AnimGraphComponentRequestBus::Event(p->GetEntityId(), &AnimGraphComponentRequestBus::Events::SetParameterBool, index, b);
+                    }
+
+                    inline void operator()(const AZ::Vector2& v2) const
+                    {
+                        AnimGraphComponentRequestBus::Event(p->GetEntityId(), &AnimGraphComponentRequestBus::Events::SetParameterVector2, index, v2);
+                    }
+
+                    inline void operator()(const AZ::Vector3& v3) const
+                    {
+                        AnimGraphComponentRequestBus::Event(p->GetEntityId(), &AnimGraphComponentRequestBus::Events::SetParameterVector3, index, v3);
+                    }
+
+                    inline void operator()(const AZ::Quaternion& q) const
+                    {
+                        AnimGraphComponentRequestBus::Event(p->GetEntityId(), &AnimGraphComponentRequestBus::Events::SetParameterRotation, index, q);
+                    }
+
+                    inline void operator()(const AnimGraphString& s) const
+                    {
+                        AnimGraphComponentRequestBus::Event(p->GetEntityId(), &AnimGraphComponentRequestBus::Events::SetParameterString, index, s.str.c_str());
+                    }
+
+                    AnimGraphNetSyncComponent* p;
+                    AZ::u8 index;
+                };
+                AZStd::visit(Visitor{this, index}, value);
             }
 
             template <AZ::u8 Index>
@@ -211,14 +226,8 @@ namespace EMotionFX
                         if (parameterIndex < chunk->m_parameters.size())
                         {
                             AnimParameter param;
-                            param.m_type = AnimParameterType;
-
-                            static_assert(sizeof(FieldType) <= sizeof(param.m_value), "The largest value param.m_value can store is a Quaternion");
-                            // This is to simplify writing a value into a union.
-                            // Ideally, one would use std::variant (C++17) instead of a union.
-                            memcpy(&param.m_value, &newValue, sizeof(FieldType));
-
-                            chunk->m_parameters[parameterIndex]->Set(param);
+                            param.Assign<AnimParameterType>(newValue);
+                            chunk->m_parameters[parameterIndex]->Set(AZStd::move(param));
                         }
                         else
                         {
@@ -253,8 +262,7 @@ namespace EMotionFX
             {
                 AZ_UNUSED(parameterIndex);
                 AZ_UNUSED(beforeValue);
-                AZ_UNUSED(afterValue);
-                AZ_Warning("EMotionFX", false, "AnimGraphNetSync component does not supported synchronizing string parameters, please consider refactoring your anim graph to replace strings with integers or enum values.");
+                SetParameterOnServer<AnimParameter::Type::String>(static_cast<AZ::u8>(parameterIndex), afterValue);
             }
 
             void AnimGraphNetSyncComponent::OnAnimGraphVector2ParameterChanged(EMotionFX::AnimGraphInstance*,

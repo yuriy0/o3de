@@ -1,0 +1,218 @@
+#include <Atom/Features/SrgSemantics.azsli>
+
+#include <Atom/Features/PostProcessing/FullscreenPixelInfo.azsli>
+#include <Atom/Features/PostProcessing/FullscreenVertex.azsli>
+#include <Atom/Features/PostProcessing/PostProcessUtil.azsli>
+#include <Apc/Features/Pbr/MathUtil.azsli>
+#include <Atom/RPI/Math.azsli>
+
+/*
+// No MSAA
+ShaderResourceGroup PassSrg : SRG_PerPass
+{
+    Texture2D<float4> m_background;
+    Texture2D<float4> m_alpha;
+    Texture2D<float4> m_betaAndDiffusion;
+	
+    Sampler LinearSampler
+    {
+        MinFilter = Linear;
+        MagFilter = Linear;
+        MipFilter = Linear;
+        AddressU = Clamp;
+        AddressV = Clamp;
+        AddressW = Clamp;
+    };
+}
+
+class ResolveOITHelper
+{
+    float4 LoadBetaAndDiffusion(int2 p)
+    {
+        return PassSrg::m_betaAndDiffusion.Load(int3(p,0));
+    }
+
+    float4 LoadAlpha(int2 p)
+    {
+        return PassSrg::m_alpha.Load(int3(p,0));
+    }
+};
+*/
+
+// MSAA
+ShaderResourceGroup PassSrg : SRG_PerPass
+{
+    Texture2D<float4> m_background;
+    Texture2DMS<float4> m_alpha;
+    Texture2DMS<float4> m_betaAndDiffusion;
+	
+    Sampler LinearSampler
+    {
+        MinFilter = Linear;
+        MagFilter = Linear;
+        MipFilter = Linear;
+        AddressU = Clamp;
+        AddressV = Clamp;
+        AddressW = Clamp;
+    };
+}
+
+class ResolveOITHelper
+{
+    uint numSamples;
+
+    float4 LoadBetaAndDiffusion(int2 p)
+    {
+        float4 sum = 0.0;
+        for (int i = 0; i < numSamples; ++i)
+        {
+            sum += PassSrg::m_betaAndDiffusion.Load(int3(p,0), i);
+        }
+        return sum / float(numSamples);
+    }
+
+    float4 LoadAlpha(int2 p)
+    {
+        float4 sum = 0.0;
+        for (int i = 0; i < numSamples; ++i)
+        {
+            sum += PassSrg::m_alpha.Load(int3(p,0), i);
+        }
+        return sum / float(numSamples);
+    }
+};
+
+
+float4 LoadBackground(int2 p)
+{
+    return PassSrg::m_background.Load(int3(p,0));
+}
+
+float4 SampleBackground(float2 uv)
+{
+    return PassSrg::m_background.Sample(PassSrg::LinearSampler, uv);
+}
+
+float2 GetBackgroundDimensions()
+{
+    float2 backgroundDimensions;
+    PassSrg::m_background.GetDimensions(backgroundDimensions.x, backgroundDimensions.y);
+    return backgroundDimensions;
+}
+
+float4 ResolveOIT(VSOutput IN, ResolveOITHelper helper)
+{
+	int2 intTexelPos = int2(IN.m_position.xy);
+	float4 betaAndDiffusion = helper.LoadBetaAndDiffusion(intTexelPos);
+	float3 beta = betaAndDiffusion.rgb;
+    if (min3(beta) == 1.0)
+	{
+		// Early exit in the case of no transparency
+		return LoadBackground(intTexelPos);
+	}
+
+    /* pixelsPerUnitDiffusion corresponds to `k0 * W / (2 tan(FOV/2))' from
+     * equation 7 of the paper, where `k0' is an abritrary constant
+     * and `ViewSrg::m_projectionMatrix[1][1]' is equal to `1/tan(FOV/2)' so
+     *   k0 * W / (2 tan(FOV/2))
+     *   =
+     *   k0 * W * 0.5 * (1/ tan(FOV/2))
+     *   =
+     *   k0 * W * 0.5 * ViewSrg::m_projectionMatrix[1][1]
+     * Note: we take `k0' to be 1 here
+     */
+    float2 backgroundDimensions = GetBackgroundDimensions();
+    float pixelsPerUnitDiffusion = backgroundDimensions.x * 0.5 * ViewSrg::m_projectionMatrix[1][1];
+    float pixelsPerUnitDiffusionSq = pixelsPerUnitDiffusion*pixelsPerUnitDiffusion;
+	
+	// Now compute the rest of the basic parameters (texture inputs)
+	float diffusionSq = betaAndDiffusion.a * pixelsPerUnitDiffusionSq;
+    float2 delta = float2(0,0) * 0.375; // TODO: actually compute delta
+    float4 alpha = helper.LoadAlpha(intTexelPos);
+
+    // Handle overflow and underflow
+    if (isinf(alpha.a))
+	{
+		alpha.a = max3(alpha.rgb);
+	}
+    if (isinf(max3(alpha.rgb)))
+	{
+		alpha = f4_unit(isinf(alpha.a) ? 1.0 : alpha.a);
+	}
+
+    // Self-modulation
+    float3 betaScaled = beta;
+    static const float selfModulationMinOffset = 0.755;
+    // alpha.rgb *= f3_unit(selfModulationMinOffset) + ((1.0 - selfModulationMinOffset) * betaScaled / max(0.01, max3(betaScaled)));
+   
+    // For refraction and diffusion, offset and blur the background color
+    float3 backgroundColor;
+
+	if (diffusionSq > 0)
+	{
+		// Diffusion, perform Gaussian blur
+		int2 offsetIntTexelPos = intTexelPos + int2(delta * backgroundDimensions);
+	
+		// Blur parameters
+		static const float blurStepSize = 2.0;
+		static const int maxDiffusionPixels = 16;
+        int blurKernelRadius = int(min(sqrt(diffusionSq), maxDiffusionPixels) / float(blurStepSize)) * blurStepSize;
+
+        float weightSum = 0;
+		backgroundColor = 0;
+	   
+        // Blur kernel
+        for (float2 samplePointOffset = f2_unit(-blurKernelRadius); samplePointOffset.x <= blurKernelRadius; samplePointOffset.x += blurStepSize)
+        {
+            for (samplePointOffset.y = -blurKernelRadius; samplePointOffset.y <= blurKernelRadius; samplePointOffset.y += blurStepSize)
+            {
+                float radiusSquared = dot(samplePointOffset, samplePointOffset);
+                if (radiusSquared <= diffusionSq)
+                {
+                    int2 samplePoint = offsetIntTexelPos + int2(samplePointOffset);
+                    
+                    float diffusionSampleUnscaled = helper.LoadBetaAndDiffusion(samplePoint).a;
+                    float diffusionSample = diffusionSampleUnscaled * pixelsPerUnitDiffusionSq;
+                    
+                    if (radiusSquared <= diffusionSample)
+                    {
+                        float weight = exp(-radiusSquared/(8*diffusionSample)) / sqrt(4*PI*diffusionSampleUnscaled);
+    
+                        backgroundColor += weight * LoadBackground(samplePoint).rgb;
+                        weightSum += weight;
+                    }
+                }
+            }
+        }
+        backgroundColor /= weightSum;
+    }
+    else
+    {
+		// No diffusion, just offset sample location by the delta
+        // TODO: higher quality sampler?
+		backgroundColor = SampleBackground(IN.m_texCoord + delta).rgb;
+    }
+   
+    // Blend background and accumulated diffuse (alpha) based on accumulated transmittance (beta)
+    float3 blend = beta;
+    float3 c = blend * backgroundColor + (1.0 - blend) * (alpha.rgb / max(alpha.a, 0.00001));
+    return float4(c, 1.0);
+}
+	
+PSOutput MainPS(VSOutput IN)
+{
+    // No MSAA
+    /*
+    ResolveOITHelper helper;
+    */
+    
+    // MSAA
+    ResolveOITHelper helper;
+    uint w, h;
+    PassSrg::m_betaAndDiffusion.GetDimensions(w, h, helper.numSamples);
+        
+
+    PSOutput OUT;
+	OUT.m_color = ResolveOIT(IN, helper);
+    return OUT;
+}

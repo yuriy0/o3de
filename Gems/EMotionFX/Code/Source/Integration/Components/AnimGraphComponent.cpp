@@ -10,6 +10,12 @@
 *
 */
 
+// APC BEGIN: still needed?
+// Need to disable these warning for any_numeric_cast to work
+// Also, it seems that including any_numeric_cast causes the 2nd warning to pop up everywhere in the file (?)
+//#pragma warning(push)
+//#pragma warning(disable : 4800) // forcing value to bool 'true' or 'false' (performance warning)
+//#pragma warning(disable : 4267) // conversion from 'size_t' to 'AZ::u32', possible loss of data
 
 #include "EMotionFX_precompiled.h"
 
@@ -21,7 +27,10 @@
 #include <MCore/Source/AttributeString.h>
 #include <EMotionFX/Source/AnimGraph.h>
 
+#include <EMotionFX/Source/AnimGraphPlaySpeedModifier.h>
+
 #include <Integration/Components/AnimGraphComponent.h>
+#include <EMotionFX/Source/Parameter/StringParameter.h>
 
 namespace EMotionFX
 {
@@ -34,7 +43,7 @@ namespace EMotionFX
         public:
             AZ_EBUS_BEHAVIOR_BINDER(AnimGraphComponentNotificationBehaviorHandler, "{ECFDB974-8C47-467C-8476-258BF57B3395}", AZ::SystemAllocator,
                 OnAnimGraphInstanceCreated, OnAnimGraphInstanceDestroyed, OnAnimGraphFloatParameterChanged, OnAnimGraphBoolParameterChanged,
-                OnAnimGraphStringParameterChanged, OnAnimGraphVector2ParameterChanged, OnAnimGraphVector3ParameterChanged, OnAnimGraphRotationParameterChanged);
+                OnAnimGraphStringParameterChanged, OnAnimGraphVector2ParameterChanged, OnAnimGraphVector3ParameterChanged, OnAnimGraphRotationParameterChanged, OnAnimGraphParameterChanged);
 
             void OnAnimGraphInstanceCreated(EMotionFX::AnimGraphInstance* animGraphInstance) override
             {
@@ -75,6 +84,11 @@ namespace EMotionFX
             {
                 Call(FN_OnAnimGraphVector3ParameterChanged, animGraphInstance, parameterIndex, beforeValue, afterValue);
             }
+
+            void OnAnimGraphParameterChanged(EMotionFX::AnimGraphInstance* animGraphInstance, AZ::u32 parameterIndex, AZStd::any beforeValue, AZStd::any afterValue) override
+			{
+                Call(FN_OnAnimGraphParameterChanged, animGraphInstance, parameterIndex, beforeValue, afterValue);
+            };
         };
 
         //////////////////////////////////////////////////////////////////////////
@@ -143,11 +157,25 @@ namespace EMotionFX
             {
                 behaviorContext->Constant("InvalidParameterIndex", BehaviorConstant(static_cast<AZ::u32>(MCORE_INVALIDINDEX32)));
 
+                behaviorContext->Class<AnimGraphPlaySpeedModifier>()
+                    ->Method("Emplace", &AnimGraphPlaySpeedModifier::Emplace)
+                    ->Method("Remove", &AnimGraphPlaySpeedModifier::Remove)
+                    ->Method("Stop", &AnimGraphPlaySpeedModifier::Stop)
+                    ->Method("GetRemainingDuration", &AnimGraphPlaySpeedModifier::GetRemainingDuration)
+                    ->Method("GetSpeedMultiplier", &AnimGraphPlaySpeedModifier::GetSpeedMultiplier)
+                    ;
+
                 behaviorContext->EBus<AnimGraphComponentRequestBus>("AnimGraphComponentRequestBus")
                     // General API
                     ->Event("FindParameterIndex", &AnimGraphComponentRequestBus::Events::FindParameterIndex)
+                    // Playspeed modifier
+                    ->Event("AddPlayspeedModifier", &AnimGraphComponentRequestBus::Events::AddPlayspeedModifier)
                     ->Event("FindParameterName", &AnimGraphComponentRequestBus::Events::FindParameterName)
                     
+                // Parameter setters
+                    ->Event("SetParameter", &AnimGraphComponentRequestBus::Events::SetParameter)
+                    ->Event("SetNamedParameter", &AnimGraphComponentRequestBus::Events::SetNamedParameter)
+
                     // Setters
                     ->Event("SetParameterFloat", &AnimGraphComponentRequestBus::Events::SetParameterFloat)
                     ->Event("SetParameterBool", &AnimGraphComponentRequestBus::Events::SetParameterBool)
@@ -163,6 +191,11 @@ namespace EMotionFX
                     ->Event("SetNamedParameterVector3", &AnimGraphComponentRequestBus::Events::SetNamedParameterVector3)
                     ->Event("SetNamedParameterRotationEuler", &AnimGraphComponentRequestBus::Events::SetNamedParameterRotationEuler)
                     ->Event("SetNamedParameterRotation", &AnimGraphComponentRequestBus::Events::SetNamedParameterRotation)
+                // Parameter getters
+                    ->Event("GetParameter", &AnimGraphComponentRequestBus::Events::GetParameter)
+                    ->Event("GetNamedParameter", &AnimGraphComponentRequestBus::Events::GetNamedParameter)
+
+                    // Parameter getters
                     ->Event("SetVisualizeEnabled", &AnimGraphComponentRequestBus::Events::SetVisualizeEnabled)
                     // Getters
                     ->Event("GetParameterFloat", &AnimGraphComponentRequestBus::Events::GetParameterFloat)
@@ -183,7 +216,24 @@ namespace EMotionFX
                     // Anim Graph Sync
                     ->Event("SyncAnimGraph", &AnimGraphComponentRequestBus::Events::SyncAnimGraph)
                     ->Event("DesyncAnimGraph", &AnimGraphComponentRequestBus::Events::DesyncAnimGraph)
+
+                    // Motion sets
+                    ->Event("SetMotionSet", &AnimGraphComponentRequestBus::Events::SetMotionSet)
                 ;
+
+				behaviorContext->EBus<AnimGraphNodeRequestBus>("AnimGraphNodeRequestBus")
+					// General API
+					->Event("GetNodeIdByName", &AnimGraphNodeRequestBus::Events::GetNodeIdByName)
+					// Getters
+					->Event("GetDuration", &AnimGraphNodeRequestBus::Events::GetDuration)
+					->Event("GetPlaytime", &AnimGraphNodeRequestBus::Events::GetPlaytime)
+					->Event("GetPlayspeed", &AnimGraphNodeRequestBus::Events::GetPlayspeed)
+					// Setters
+					->Event("SetPlayTime", &AnimGraphNodeRequestBus::Events::SetPlayTime)
+					->Event("SetPlaySpeed", &AnimGraphNodeRequestBus::Events::SetPlaySpeed)
+					// Special Functions
+					->Event("Rewind", &AnimGraphNodeRequestBus::Events::Rewind)
+					;
 
                 behaviorContext->EBus<AnimGraphComponentNotificationBus>("AnimGraphComponentNotificationBus")
                     ->Handler<AnimGraphComponentNotificationBehaviorHandler>()
@@ -232,18 +282,38 @@ namespace EMotionFX
             {
                 AZ::Data::AssetBus::MultiHandler::BusConnect(cfg.m_animGraphAsset.GetId());
                 cfg.m_animGraphAsset.QueueLoad();
+                cfg.m_animGraphAsset.BlockUntilLoadComplete();
 
                 if (cfg.m_motionSetAsset.GetId().IsValid())
                 {
                     AZ::Data::AssetBus::MultiHandler::BusConnect(cfg.m_motionSetAsset.GetId());
                     cfg.m_motionSetAsset.QueueLoad();
+                    cfg.m_motionSetAsset.BlockUntilLoadComplete();
                 }
             }
 
             ActorComponentNotificationBus::Handler::BusConnect(GetEntityId());
             AnimGraphComponentRequestBus::Handler::BusConnect(GetEntityId());
+			AnimGraphNodeRequestBus::Handler::BusConnect(GetEntityId());
             AnimGraphComponentNotificationBus::Handler::BusConnect(GetEntityId());
             AnimGraphComponentNetworkRequestBus::Handler::BusConnect(GetEntityId());
+
+
+            if (!m_actorInstance)
+            {
+                AZ_Error("AnimGraphComponent", false, "Failed to get actor instance for entity \"%s\" %s.",
+                         GetEntity()->GetName().c_str(),
+                         GetEntityId().ToString().c_str());
+                return;
+            }
+
+            if (!m_animGraphInstance)
+            {
+                AZ_Error("AnimGraphComponent", false, "Failed to create anim graph instance for entity \"%s\" %s.",
+                         GetEntity()->GetName().c_str(),
+                         GetEntityId().ToString().c_str());
+                return;
+            }
         }
 
         //////////////////////////////////////////////////////////////////////////
@@ -253,6 +323,7 @@ namespace EMotionFX
             AnimGraphComponentNotificationBus::Handler::BusDisconnect();
             AnimGraphComponentRequestBus::Handler::BusDisconnect();
             ActorComponentNotificationBus::Handler::BusDisconnect();
+			AnimGraphNodeRequestBus::Handler::BusDisconnect();
             AZ::Data::AssetBus::MultiHandler::BusDisconnect();
 
             m_actorInstance.reset();
@@ -543,6 +614,11 @@ namespace EMotionFX
             }
         }
 
+        AnimGraphPlaySpeedModifierPtr AnimGraphComponent::AddPlayspeedModifier(float modifier)
+        {
+            return m_animGraphInstance ? m_animGraphInstance->AddPlayspeedModifier(modifier) : AnimGraphPlaySpeedModifierPtr();
+        }
+
         EMotionFX::AnimGraphInstance* AnimGraphComponent::GetAnimGraphInstance()
         {
             return m_animGraphInstance ? m_animGraphInstance.get() : nullptr;
@@ -561,6 +637,178 @@ namespace EMotionFX
             }
 
             return MCORE_INVALIDINDEX32;
+        }
+
+        void AnimGraphComponent::SetParameter(AZ::u32 parameterIndex, AZStd::any value) {
+            using namespace AZStd;
+
+            if (parameterIndex == MCORE_INVALIDINDEX32) {
+                AZ_Warning("EMotionFX", false, "Invalid anim graph parameter index: %u", parameterIndex);
+                return;
+            }
+
+            if (!m_animGraphInstance) return;
+
+            MCore::Attribute* param = m_animGraphInstance->GetParameterValue(parameterIndex);
+            if (!param) { 
+                AZ_Warning("EMotionFX", false, "Invalid anim graph parameter index: %u", parameterIndex);
+                return;
+            }
+
+            AZStd::any previousVal; param->ToAny(previousVal);
+            if (!param->FromAny(value)) { 
+                AZ_Warning("EMotionFX", false, "Failed to set parameter at index: %u", parameterIndex);
+                return;
+            }
+
+            SendParameterChangeEvent(previousVal, value, parameterIndex);
+        }
+
+        AZStd::any AnimGraphComponent::GetParameter(AZ::u32 parameterIndex) {
+            AZStd::any val;
+            if (parameterIndex == MCORE_INVALIDINDEX32) {
+                AZ_Warning("EMotionFX", false, "Invalid anim graph parameter index: %u", parameterIndex);
+                return val;
+            }
+            if (!m_animGraphInstance) return val;
+
+            MCore::Attribute* param = m_animGraphInstance->GetParameterValue(parameterIndex);
+            if (!param) { 
+                AZ_Warning("EMotionFX", false, "Invalid anim graph parameter index: %u", parameterIndex);
+                return val;
+            }
+
+            if (!param->ToAny(val)) { 
+                AZ_Warning("EMotionFX", false, "Failed to get parameter at index: %u", parameterIndex);
+                return val;
+            }
+
+            return val;
+        }
+
+        void AnimGraphComponent::SetNamedParameter(const char * parameterName, AZStd::any value) {
+            if (m_animGraphInstance)
+            {
+                const AZ::Outcome<size_t> parameterIndex = m_animGraphInstance->FindParameterIndex(parameterName);
+                if (!parameterIndex.IsSuccess())
+                {
+                    AZ_Warning("EmotionFX", false, "Invalid anim graph parameter name: %s", parameterName);
+                    return;
+                }
+                SetParameter(parameterIndex.GetValue(), value);
+            }
+        }
+
+        AZStd::any AnimGraphComponent::GetNamedParameter(const char * parameterName) {
+            if (m_animGraphInstance)
+            {
+                const AZ::Outcome<size_t> parameterIndex = m_animGraphInstance->FindParameterIndex(parameterName);
+                if (parameterIndex.IsSuccess())
+                {
+                    return GetParameter(parameterIndex.GetValue());
+                }
+            }
+            return AZStd::any();
+        }
+
+        //////////////////////////////////////////////////////////////////////////
+
+        AZ_FORCE_INLINE void AnimGraphComponent::SendParameterChangeEvent(const AZStd::any& prev, const AZStd::any& current, AZ::u32 parameterIndex) {
+            SendGenericAnimGraphParameterChangeEvent(GetEntityId(), m_animGraphInstance.get(), prev, current, parameterIndex);
+        }
+
+        template<class Type>
+        inline Type any_generic_cast (const AZStd::any& anyVal) { 
+            Type realVal;
+            if (!MCore::Attribute_impl::any_generic_cast(anyVal, realVal)) { 
+                AZ_Error("EmotionFX", false, "Could not cast to required type");
+            }
+            return realVal;
+        }
+
+        void SendGenericAnimGraphParameterChangeEvent(AZ::EntityId entityId, AnimGraphInstance* animGraphInstance, const AZStd::any& prev, const AZStd::any& current, AZ::u32 parameterIndex)
+        {
+#define ANIMGRAPH_SENDPARAMETERCHANGEEVENT(Ev, Ty)\
+    EBUS_EVENT_ID(entityId, AnimGraphComponentNotificationBus, OnAnimGraph##Ev##ParameterChanged,\
+                  animGraphInstance,\
+                  parameterIndex,\
+                  any_generic_cast<Ty>(prev),\
+                  any_generic_cast<Ty>(current));\
+
+            EBUS_EVENT_ID(entityId, AnimGraphComponentNotificationBus, OnAnimGraphParameterChanged,
+                          animGraphInstance,
+                          parameterIndex,
+                          prev,
+                          current);
+
+            MCore::Attribute* param = animGraphInstance->GetParameterValue(parameterIndex);
+            auto paramType = param->GetType();
+
+            switch (paramType) {
+            case MCore::AttributeFloat::TYPE_ID:
+            {
+                ANIMGRAPH_SENDPARAMETERCHANGEEVENT(Float, float);
+                break;
+            }
+            case MCore::AttributeBool::TYPE_ID:
+            {
+                ANIMGRAPH_SENDPARAMETERCHANGEEVENT(Bool, bool);
+                break;
+            }
+            case MCore::AttributeInt32::TYPE_ID:
+            {
+                ANIMGRAPH_SENDPARAMETERCHANGEEVENT(Float, float);
+                break;
+            }
+            case MCore::AttributeColor::TYPE_ID:
+            {
+                // No event for this type
+                break;
+            }
+            case MCore::AttributeQuaternion::TYPE_ID:
+            {
+                AZ::Quaternion current_;
+                if (current.is<AZ::Vector3>()) {
+                    current_.SetFromEulerRadians(any_generic_cast<AZ::Vector3>(current));
+                } else {
+                    current_ = AZStd::any_cast<AZ::Quaternion>(current);
+                }
+
+                EBUS_EVENT_ID(entityId, AnimGraphComponentNotificationBus, OnAnimGraphRotationParameterChanged,
+                              animGraphInstance,
+                              parameterIndex,
+                              any_generic_cast<AZ::Quaternion>(prev),
+                              current_);
+                break;
+            }
+            case MCore::AttributeString::TYPE_ID:
+            {
+                EBUS_EVENT_ID(entityId, AnimGraphComponentNotificationBus, OnAnimGraphStringParameterChanged,
+                  animGraphInstance,
+                  parameterIndex,
+                  any_generic_cast<AZStd::string>(prev).c_str(),
+                  any_generic_cast<AZStd::string>(current).c_str());
+                break;
+            }
+            case MCore::AttributeVector2::TYPE_ID:
+            {
+                ANIMGRAPH_SENDPARAMETERCHANGEEVENT(Vector2, AZ::Vector2);
+                break;
+            }
+            case MCore::AttributeVector3::TYPE_ID:
+            {
+                ANIMGRAPH_SENDPARAMETERCHANGEEVENT(Vector3, AZ::Vector3);
+                break;
+            }
+            case MCore::AttributeVector4::TYPE_ID:
+            {
+                // No event for this type
+                break;
+            }
+            default:
+            break;
+            }
+#undef ANIMGRAPH_SENDPARAMETERCHANGEEVENT
         }
 
         //////////////////////////////////////////////////////////////////////////
@@ -626,6 +874,12 @@ namespace EMotionFX
                     parameterIndex,
                     previousValue,
                     value);
+
+                EBUS_EVENT_ID(GetEntityId(), AnimGraphComponentNotificationBus, OnAnimGraphParameterChanged, 
+                              m_animGraphInstance.get(),
+                              parameterIndex,
+                              AZStd::any(previousValue),
+                              AZStd::any(value));
             }
         }
 
@@ -673,6 +927,12 @@ namespace EMotionFX
                 }
                 }
 
+                EBUS_EVENT_ID(GetEntityId(), AnimGraphComponentNotificationBus, OnAnimGraphParameterChanged, 
+                              m_animGraphInstance.get(),
+                              parameterIndex,
+                              AZStd::any(previousValue),
+                              AZStd::any(value));
+
                 // Notify listeners about the parameter change
                 AnimGraphComponentNotificationBus::Event(
                     GetEntityId(),
@@ -685,7 +945,7 @@ namespace EMotionFX
         }
 
         //////////////////////////////////////////////////////////////////////////
-        void AnimGraphComponent::SetParameterString(AZ::u32 parameterIndex, const char* value)
+        void AnimGraphComponent::SetParameterString(AZ::u32 parameterIndex, const char* cStringValue)
         {
             if (parameterIndex == MCORE_INVALIDINDEX32)
             {
@@ -703,7 +963,8 @@ namespace EMotionFX
                     // If the event were to change to a queued event, the parameters should be changed
                     // to AZStd::string for safety.
                     const AZStd::string previousValue(param->GetValue());
-                    param->SetValue(value);
+                    const AZStd::string currentValue(cStringValue);
+                    param->SetValue(currentValue);
 
                     // Notify listeners about the parameter change
                     AnimGraphComponentNotificationBus::Event(
@@ -712,7 +973,13 @@ namespace EMotionFX
                         m_animGraphInstance.get(),
                         parameterIndex,
                         previousValue.c_str(),
-                        value);
+                        cStringValue);
+
+                    EBUS_EVENT_ID(GetEntityId(), AnimGraphComponentNotificationBus, OnAnimGraphParameterChanged, 
+                                  m_animGraphInstance.get(),
+                                  parameterIndex,
+                                  AZStd::any(previousValue),
+                                  AZStd::any(currentValue));
                 }
                 else
                 {
@@ -746,6 +1013,12 @@ namespace EMotionFX
                         parameterIndex,
                         previousValue,
                         value);
+
+                    EBUS_EVENT_ID(GetEntityId(), AnimGraphComponentNotificationBus, OnAnimGraphParameterChanged, 
+                                  m_animGraphInstance.get(),
+                                  parameterIndex,
+                                  AZStd::any(previousValue),
+                                  AZStd::any(value));
                 }
                 else
                 {
@@ -779,6 +1052,12 @@ namespace EMotionFX
                         parameterIndex,
                         previousValue,
                         value);
+
+                    EBUS_EVENT_ID(GetEntityId(), AnimGraphComponentNotificationBus, OnAnimGraphParameterChanged, 
+                                  m_animGraphInstance.get(),
+                                  parameterIndex,
+                                  AZStd::any(previousValue),
+                                  AZStd::any(value));
                 }
                 else
                 {
@@ -815,6 +1094,7 @@ namespace EMotionFX
                     return;
                 }
 
+                auto value_quat = MCore::AzEulerAnglesToAzQuat(value);
                 // Notify listeners about the parameter change
                 AnimGraphComponentNotificationBus::Event(
                     GetEntityId(),
@@ -822,7 +1102,13 @@ namespace EMotionFX
                     m_animGraphInstance.get(),
                     parameterIndex,
                     previousValue,
-                    MCore::AzEulerAnglesToAzQuat(value));
+                    value_quat);
+
+                EBUS_EVENT_ID(GetEntityId(), AnimGraphComponentNotificationBus, OnAnimGraphParameterChanged, 
+                              m_animGraphInstance.get(),
+                              parameterIndex,
+                              AZStd::any(previousValue),
+                              AZStd::any(value_quat));
             }
         }
 
@@ -862,6 +1148,12 @@ namespace EMotionFX
                     parameterIndex,
                     previousValue,
                     value);
+
+                EBUS_EVENT_ID(GetEntityId(), AnimGraphComponentNotificationBus, OnAnimGraphParameterChanged, 
+                              m_animGraphInstance.get(),
+                              parameterIndex,
+                              AZStd::any(previousValue),
+                              AZStd::any(value));
             }
         }
 
@@ -1212,6 +1504,100 @@ namespace EMotionFX
             return AZ::Quaternion::CreateIdentity();
         }
 
+		AZ::u64 AnimGraphComponent::GetNodeIdByName(const char* nodeName)
+		{
+			if (m_animGraphInstance)
+			{
+				AnimGraphNode* node = m_animGraphInstance->GetAnimGraph()->RecursiveFindNodeByName(nodeName);
+				if (node)
+				{
+					return node->GetId();
+				}
+			}
+			return AnimGraphNodeId();
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		float AnimGraphComponent::GetDuration(const char* nodeName)
+		{
+			if (m_animGraphInstance)
+			{
+				AnimGraphNode* node = m_animGraphInstance->GetAnimGraph()->RecursiveFindNodeByName(nodeName);
+				if (node)
+				{
+					return node->GetDuration(m_animGraphInstance.get());
+				}
+			}
+			return -1;
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		float AnimGraphComponent::GetPlaytime(const char* nodeName)
+		{
+			if (m_animGraphInstance)
+			{
+				AnimGraphNode* node = m_animGraphInstance->GetAnimGraph()->RecursiveFindNodeByName(nodeName);
+				if (node)
+				{
+					return node->GetCurrentPlayTime(m_animGraphInstance.get());
+				}
+			}
+			return -1;
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		float AnimGraphComponent::GetPlayspeed(const char* nodeName)
+		{
+			if (m_animGraphInstance)
+			{
+				AnimGraphNode* node = m_animGraphInstance->GetAnimGraph()->RecursiveFindNodeByName(nodeName);
+				if (node)
+				{
+					return node->GetPlaySpeed(m_animGraphInstance.get());
+				}
+			}
+			return -1;
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		void AnimGraphComponent::SetPlayTime(const char* nodeName, float playtime)
+		{
+			if (m_animGraphInstance && playtime)
+			{
+				AnimGraphNode* node = m_animGraphInstance->GetAnimGraph()->RecursiveFindNodeByName(nodeName);
+				if (node)
+				{
+					node->SetCurrentPlayTime(m_animGraphInstance.get(), playtime);
+				}
+			}
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		void AnimGraphComponent::SetPlaySpeed(const char* nodeName, float speed)
+		{
+			if (m_animGraphInstance && speed)
+			{
+				AnimGraphNode* node = m_animGraphInstance->GetAnimGraph()->RecursiveFindNodeByName(nodeName);
+				if (node)
+				{
+					node->SetPlaySpeed(m_animGraphInstance.get(), speed);
+				}
+			}
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		void AnimGraphComponent::Rewind(const char* nodeName)
+		{
+			if (m_animGraphInstance)
+			{
+				AnimGraphNode* node = m_animGraphInstance->GetAnimGraph()->RecursiveFindNodeByName(nodeName);
+				if (node)
+				{
+					node->Rewind(m_animGraphInstance.get());
+				}
+			}
+		}
+
         //////////////////////////////////////////////////////////////////////////
         void AnimGraphComponent::SyncAnimGraph(AZ::EntityId leaderEntityId)
         {
@@ -1232,6 +1618,32 @@ namespace EMotionFX
                     leaderEntityId,
                     &AnimGraphComponentNotificationBus::Events::OnAnimGraphDesynced,
                     m_animGraphInstance.get());
+            }
+        }
+
+        void AnimGraphComponent::SetMotionSet(const AZStd::string& motionSetName)
+        {
+            if (m_animGraphInstance)
+            {
+                if (const auto currentMotionSet = m_animGraphInstance->GetMotionSet())
+                {
+                    const auto rootMotionSet = currentMotionSet->FindRootMotionSet();
+                    AZ_Assert(rootMotionSet, AZ_FUNCTION_SIGNATURE " - root motion set is null?");
+
+                    if (auto newMotionSet = rootMotionSet->RecursiveFindMotionSetByName(motionSetName, false))
+                    {
+                        if (newMotionSet != currentMotionSet)
+                        {
+                            m_animGraphInstance->SetMotionSet(newMotionSet);
+                        }
+                    }
+                    else
+                    {
+                        AZ_Warning("EMotionFX", false, "Failed to find motion set \"%s\" in motion set file %s.",
+                            motionSetName.c_str(),
+                            rootMotionSet->GetName());
+                    }
+                }
             }
         }
     } // namespace Integration

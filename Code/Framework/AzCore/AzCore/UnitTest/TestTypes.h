@@ -19,6 +19,7 @@
 #include <AzCore/Driller/Driller.h>
 #include <AzCore/Memory/MemoryDriller.h>
 #include <AzCore/Memory/AllocationRecords.h>
+#include <AzCore/std/containers/variant.h>
 
 #if defined(HAVE_BENCHMARK)
 

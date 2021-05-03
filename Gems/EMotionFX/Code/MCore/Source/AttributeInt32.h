@@ -26,11 +26,12 @@ namespace MCore
      * This attribute represents one signed int.
      */
     class MCORE_API AttributeInt32
-        : public Attribute
+        : public Attribute_tpl<int32, AttributeInt32>
     {
         AZ_CLASS_ALLOCATOR_DECL
 
         friend class AttributeFactory;
+        using Base = Attribute_tpl<int32, AttributeInt32>;
     public:
         enum
         {
@@ -62,10 +63,10 @@ namespace MCore
         int32   mValue;     /**< The signed integer value. */
 
         AttributeInt32()
-            : Attribute(TYPE_ID)
+            : Base(TYPE_ID)
             , mValue(0)  {}
         AttributeInt32(int32 value)
-            : Attribute(TYPE_ID)
+            : Base(TYPE_ID)
             , mValue(value) {}
         ~AttributeInt32() {}
 

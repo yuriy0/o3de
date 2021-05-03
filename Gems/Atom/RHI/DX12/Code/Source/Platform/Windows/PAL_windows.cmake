@@ -25,6 +25,25 @@ set(PAL_TRAIT_PIX_AVAILABLE FALSE)
 unset(pix3_header CACHE)
 
 file(TO_CMAKE_PATH "$ENV{ATOM_PIX_PATH}" ATOM_PIX_PATH_CMAKE_FORMATTED)
+if ("${ATOM_PIX_PATH_CMAKE_FORMATTED}" STREQUAL "")
+	set(ATOM_PIX_PATH_CMAKE_FORMATTED "${ATOM_PIX_PATH_INTERNAL}")
+endif()
+
+if ("${ATOM_PIX_PATH_CMAKE_FORMATTED}" STREQUAL "")
+	# Download and extract the archive
+	set(WIN_PIX_DOWNLOAD_URL "https://www.nuget.org/api/v2/package/WinPixEventRuntime/")
+	set(DOWNLOAD_TARGET_DIR "${CMAKE_CURRENT_LIST_DIR}/winpix_dl")
+	
+	message("Downloading winpix from ${WIN_PIX_DOWNLOAD_URL} ...")
+	
+	file(DOWNLOAD ${WIN_PIX_DOWNLOAD_URL} "${DOWNLOAD_TARGET_DIR}/winpix.zip" SHOW_PROGRESS)
+	file(ARCHIVE_EXTRACT INPUT "${DOWNLOAD_TARGET_DIR}/winpix.zip" DESTINATION "${DOWNLOAD_TARGET_DIR}")
+	
+	# Set the cache var and local var
+	set(ATOM_PIX_PATH_INTERNAL "${DOWNLOAD_TARGET_DIR}" CACHE INTERNAL "" FORCE)
+	set(ATOM_PIX_PATH_CMAKE_FORMATTED "${ATOM_PIX_PATH_INTERNAL}")
+endif()
+
 find_file(pix3_header
     pix3.h
     PATHS

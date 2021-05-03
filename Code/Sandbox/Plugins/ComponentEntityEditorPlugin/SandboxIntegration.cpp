@@ -913,6 +913,12 @@ void SandboxIntegrationManager::SetupSliceContextMenu(QMenu* menu)
             {
                 QObject::connect(createAction, &QAction::triggered, createAction, [this, selectedEntities] { ContextMenu_InheritSlice(selectedEntities); });
             }
+
+            QAction* replaceWithSliceAction = menu->addAction(QObject::tr("Replace with slice..."));
+            replaceWithSliceAction->setToolTip(QObject::tr("Replaces selected entities with new instances of a slice"));
+            QObject::connect(replaceWithSliceAction, &QAction::triggered, replaceWithSliceAction, [this, selectedEntities] { 
+                    ContextMenu_ReplaceWithSlice(selectedEntities); 
+                });
         }
     }
 
@@ -1448,6 +1454,109 @@ void SandboxIntegrationManager::OnLayerComponentActivated(AZ::EntityId entityId)
 void SandboxIntegrationManager::OnLayerComponentDeactivated(AZ::EntityId entityId)
 {
     m_editorEntityUiInterface->UnregisterEntity(entityId);
+}
+
+
+void SandboxIntegrationManager::ContextMenu_ReplaceWithSlice(AZStd::vector<AZ::EntityId> entsToReplace) { 
+    using namespace AzFramework;
+    using namespace AzToolsFramework;
+
+    struct PostInstantiateHandler 
+        : public SliceInstantiationResultBus::Handler
+    {
+        ~PostInstantiateHandler() = default;
+        PostInstantiateHandler(const AZ::EntityId toReplace, SliceInstantiationTicket& ticket)
+            : m_ticket(ticket)
+            , m_toReplace(toReplace)
+        {
+            SliceInstantiationResultBus::Handler::BusConnect(m_ticket);
+        }
+    
+        void OnSliceInstantiated(const AZ::Data::AssetId&, const AZ::SliceComponent::SliceInstanceAddress& sliceAddress) override { 
+            auto sliceEntities = sliceAddress.second->GetInstantiated()->m_entities;
+            for (auto ent : sliceEntities) { 
+                m_sliceEntities.insert(ent->GetId());
+            } 
+            bool success = false;
+
+            AZ::EntityId parent;
+            EBUS_EVENT_ID_RESULT(parent, m_toReplace, AZ::TransformBus, GetParentId);
+            if (parent.IsValid()) {
+                AZ::EntityId commonRoot;
+                bool commonRootFound;
+                AZStd::vector<AZ::EntityId> sliceRootEnts;
+                EBUS_EVENT_RESULT(commonRootFound, ToolsApplicationRequests::Bus, FindCommonRoot, m_sliceEntities, commonRoot, &sliceRootEnts);
+
+                if (commonRootFound) {
+                    success = true;
+
+                    AZStd::function<void(const AZ::EntityId&)> replaceParent =
+                        [&](const AZ::EntityId& ent) { EBUS_EVENT_ID(ent, AZ::TransformBus, SetParentRelative, parent); };
+
+                    if (commonRoot.IsValid()) {
+                        // Set the parent of the common root to the parent of the entity being replaced
+                        replaceParent(commonRoot);
+                    } else {
+                        for (auto ent : sliceRootEnts) {
+                            replaceParent(ent);
+                        }
+                    }
+                }
+            } else { 
+                success = true;
+            }
+
+            if (!success) { 
+                AZ_Warning("Sandbox", false, "ReplaceWithSlice: cannot replace with slice!");
+            }
+            Cleanup(success);
+        }
+        void OnSliceInstantiationFailed(const AZ::Data::AssetId&) override { 
+            Cleanup(false);
+        }
+
+        void Cleanup(bool success) { 
+            SliceInstantiationResultBus::Handler::BusDisconnect();
+            if (success) { 
+                // Delete the old entity if we succeeded
+                EBUS_EVENT(AzToolsFramework::ToolsApplicationRequestBus, DeleteEntitiesAndAllDescendants,
+                           AZStd::vector<AZ::EntityId>({m_toReplace}));
+            } else {
+                // Delete the instantiated slice if we failed to replace
+                for (auto ent : m_sliceEntities) { 
+                    EBUS_EVENT(AzToolsFramework::EditorEntityContextRequestBus, DestroyEditorEntity, ent);
+                }
+            }
+            delete this;
+        }
+
+        SliceInstantiationTicket m_ticket;
+        AZ::EntityId m_toReplace;
+        AZStd::unordered_set<AZ::EntityId> m_sliceEntities;
+    };
+
+    // Browse for a slice
+    AssetSelectionModel selection = AssetSelectionModel::AssetTypeSelection("Slice");
+    BrowseForAssets(selection);
+
+    // Ensure that the selection is valid, then create the slice asset
+    if (!selection.IsValid()) return;
+    auto product = azrtti_cast<const ProductAssetBrowserEntry*>(selection.GetResult());
+    AZ_Assert(product, "Incorrect entry type selected. Expected product.");
+    AZ::Data::Asset<AZ::SliceAsset> sliceAsset;
+    sliceAsset.Create(product->GetAssetId(), true);
+
+    // Replace each entity in the list with a new instance of the slice
+    for (auto ent : entsToReplace) { 
+        AZ::Transform entTm;
+        EBUS_EVENT_ID_RESULT(entTm, ent, AZ::TransformBus, GetWorldTM);
+
+        SliceInstantiationTicket newSliceTicket;
+        EBUS_EVENT_RESULT(newSliceTicket, AzToolsFramework::SliceEditorEntityOwnershipServiceRequestBus, InstantiateEditorSlice, sliceAsset, entTm);
+
+        // NB: this deletes itself when the slice instantiation fails or succeeds
+        new PostInstantiateHandler(ent, newSliceTicket);
+    }
 }
 
 void SandboxIntegrationManager::ContextMenu_NewEntity()

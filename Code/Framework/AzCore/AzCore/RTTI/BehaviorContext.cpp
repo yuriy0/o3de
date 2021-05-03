@@ -258,6 +258,8 @@ namespace AZ
         : m_createHandler(nullptr)
         , m_destroyHandler(nullptr)
         , m_queueFunction(nullptr)
+        , m_getNumHandlersFunction(nullptr)
+        , m_getTotalNumHandlersFunction(nullptr)
         , m_getCurrentId(nullptr)
     {
         m_idParam.m_name = "BusIdType";
@@ -298,6 +300,8 @@ namespace AZ
         delete m_destroyHandler;
 
         delete m_queueFunction;
+        delete m_getNumHandlersFunction;
+        delete m_getTotalNumHandlersFunction;
         delete m_getCurrentId;
     }
 

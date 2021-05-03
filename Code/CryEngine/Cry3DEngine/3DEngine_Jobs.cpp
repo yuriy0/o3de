@@ -19,6 +19,7 @@
 
 #include "3dEngine.h"
 
+#include <AzCore/Debug/ProfilerLocks.h>
 #include <AzFramework/Terrain/TerrainDataRequestBus.h>
 
 #include "VisAreas.h"
@@ -145,9 +146,23 @@ bool C3DEngine::IsTessellationAllowed(const CRenderObject* pObj, const SRenderin
 ///////////////////////////////////////////////////////////////////////////////
 void C3DEngine::CreateRNTmpData(CRNTmpData** ppInfo, IRenderNode* pRNode, const SRenderingPassInfo& passInfo)
 {
-    // m_checkCreateRNTmpData lock scope
+    bool doCreate = true;
+    if (*ppInfo != nullptr)
     {
-        AUTO_LOCK(m_checkCreateRNTmpData);
+        AZ_Assert(false, "C3DEngine::CreateRNTmpData called with CRNTmpData ptr which already contains data; use CheckCreateRNTmpData instead");
+        doCreate = false;
+    }
+
+    if (pRNode && ppInfo == &pRNode->m_pRNTmpData)
+    {
+        AZ_Assert(false, "C3DEngine::CreateRNTmpData called for a IRenderNode and its owned CRNTmpData; refusing to overrite");
+        doCreate = false;
+    }
+
+    // m_checkCreateRNTmpData lock scope
+    if (doCreate)
+    {
+        AZ_PROFILE_AUTO_LOCK_WRAPPER(AUTO_LOCK, AZ::Debug::ProfileCategory::ThreeDEngine, m_checkCreateRNTmpData, "CreateRNTmpData - lock");
         FUNCTION_PROFILER_3DENGINE;
 
         if (*ppInfo)
@@ -166,10 +181,10 @@ void C3DEngine::CreateRNTmpData(CRNTmpData** ppInfo, IRenderNode* pRNode, const 
         pElem->Unlink();
         pElem->Link(&m_LTPRootUsed);
 
-        pElem->pOwnerRef = ppInfo;
-        pElem->nFrameInfoId = GetFrameInfoId(ppInfo, passInfo.GetMainFrameID());
+        // pElem->pOwnerRef = ppInfo;
+        // pElem->nFrameInfoId = GetFrameInfoId(ppInfo, passInfo.GetMainFrameID());
 
-        assert(!pElem->pOwnerRef || !(*pElem->pOwnerRef));
+        // assert(!pElem->pOwnerRef || !(*pElem->pOwnerRef));
         memset(&pElem->userData, 0, sizeof(pElem->userData));
 
 
@@ -331,28 +346,45 @@ void C3DEngine::AsyncOctreeUpdate(IRenderNode* pEnt, int nSID, [[maybe_unused]] 
 
     const unsigned int dwRndFlags = pEnt->GetRndFlags();
 
-    if (!(dwRndFlags & ERF_RENDER_ALWAYS) && !(dwRndFlags & ERF_CASTSHADOWMAPS))
+    if (!(dwRndFlags & ERF_RENDER_ALWAYS))
     {
-        if (GetCVars()->e_ObjFastRegister && pEnt->m_pOcNode && ((COctreeNode*)pEnt->m_pOcNode)->IsRightNode(aabb, fObjRadiusSqr, pEnt->m_fWSMaxViewDist))
+        COctreeNode* entOccTreeNode = (COctreeNode*)pEnt->m_pOcNode;
+        if (GetCVars()->e_ObjFastRegister && entOccTreeNode && entOccTreeNode->IsRightNode(aabb, fObjRadiusSqr, pEnt->m_fWSMaxViewDist))
         { // same octree node
+            // APC TODO BEGIN: still needed?
+            bool canTakeFastPath = false; //  entOccTreeNode->OccTreeFastUpdate(pEnt);
+            // APC TODO END
             Vec3 vEntCenter = GetEntityRegisterPoint(pEnt);
 
             IVisArea* pVisArea = pEnt->GetEntityVisArea();
             if (pVisArea && pVisArea->IsPointInsideVisArea(vEntCenter))
             {
-                return; // same visarea
+                // same visarea
             }
-            IVisArea* pVisAreaFromPos = (!m_pVisAreaManager || dwRndFlags & ERF_OUTDOORONLY) ? NULL : GetVisAreaManager()->GetVisAreaFromPos(vEntCenter);
-            if (pVisAreaFromPos == pVisArea)
+            else
             {
-                // NOTE: can only get here when pVisArea==NULL due to 'same visarea' check above. So check for changed clip volume
-                if (GetClipVolumeManager()->IsClipVolumeRequired(pEnt))
+                IVisArea* pVisAreaFromPos = (!m_pVisAreaManager || dwRndFlags & ERF_OUTDOORONLY) ? NULL : GetVisAreaManager()->GetVisAreaFromPos(vEntCenter);
+                if (pVisAreaFromPos == pVisArea)
                 {
-                    GetClipVolumeManager()->UpdateEntityClipVolume(vEntCenter, pEnt);
+                    // APC BEGIN
+                    // Clip volumes disabled, no point in this check
+                    // same visarea or same outdoor
+                    // NOTE: can only get here when pVisArea==NULL due to 'same visarea' check above. So check for changed clip volume
+                    //if (GetClipVolumeManager()->IsClipVolumeRequired(pEnt))
+                    //{
+                    //    GetClipVolumeManager()->UpdateEntityClipVolume(vEntCenter, pEnt);
+                    //}
+                    // APC END
                 }
-
-                return; // same visarea or same outdoor
+                else
+                {
+                    // visarea changed
+                    canTakeFastPath = false; 
+                }
             }
+
+            // Early exit if the occtree node stays the same
+            if (canTakeFastPath) { return; }
         }
     }
 

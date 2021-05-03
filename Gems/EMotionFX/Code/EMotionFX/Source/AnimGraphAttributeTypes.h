@@ -57,6 +57,9 @@ namespace EMotionFX
         AnimGraphPose* GetValue() const                                    { return mValue; }
         AnimGraphPose* GetValue()                                          { return mValue; }
 
+        bool FromAny(const AZStd::any&) override { return false; };
+        bool ToAny(AZStd::any&) override { return false; };
+
         // overloaded from the attribute base class
         MCore::Attribute* Clone() const override                            { return Create(mValue); }
         const char* GetTypeString() const override                          { return "Pose"; }
@@ -107,6 +110,9 @@ namespace EMotionFX
         void SetValue(MotionInstance* value)                                { mValue = value; }
         MotionInstance* GetValue() const                                    { return mValue; }
         MotionInstance* GetValue()                                          { return mValue; }
+
+        bool FromAny(const AZStd::any&) override { return false; };
+        bool ToAny(AZStd::any&) override { return false; };
 
         // overloaded from the attribute base class
         MCore::Attribute* Clone() const override                            { return Create(mValue); }

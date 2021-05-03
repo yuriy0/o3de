@@ -75,6 +75,7 @@ namespace AzToolsFramework
                 const AZStd::unordered_set<AZ::Crc32>& platformTags) const override;
 
             AZ::Component* GetTemplate() const { return m_template; }
+            AZ::Component* GetTemplate() override { return m_template; }
 
             /// Forget about, and release ownership of, template component.
             AZ::Component* ReleaseTemplate();

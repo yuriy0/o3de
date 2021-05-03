@@ -2004,6 +2004,34 @@ TEST_F(SerializeBasicTest, BasicTypeTest_Succeed)
 
     }
 
+
+    TEST_F(Serialization, AttributeRTTI)
+    {
+        {
+            AttributeInvocable<AZStd::function<AZStd::string(AZStd::string)>> fn([](AZStd::string x) { return x + x; });
+            Attribute* fnDownCast = &fn;
+            auto fnUpCast = azrtti_cast<AttributeInvocable<AZStd::function<int(int)>>*>(fnDownCast);
+            EXPECT_EQ(fnUpCast, nullptr);
+            if (fnUpCast)
+            {
+                int val = (*fnUpCast)(0);
+                AZ_TracePrintf("AttributeRTTITest", "Oops: %d", val);
+            }
+        }
+
+        {
+            AttributeFunction<AZStd::string(AZStd::string)> fn([](AZStd::string x) { return x + x; });
+            Attribute* fnDownCast = &fn;
+            auto fnUpCast = azrtti_cast<AttributeFunction<int(int)>*>(fnDownCast);
+            EXPECT_EQ(fnUpCast, nullptr);
+            if (fnUpCast)
+            {
+                int val = fnUpCast->Invoke(nullptr, 0);
+                AZ_TracePrintf("AttributeRTTITest", "Oops: %d", val);
+            }
+        }
+    }
+
     /*
     * Deprecation
     */

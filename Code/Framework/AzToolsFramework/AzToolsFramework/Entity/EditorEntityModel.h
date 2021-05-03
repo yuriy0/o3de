@@ -355,6 +355,7 @@ namespace AzToolsFramework
             AZStd::set<AZ::ComponentId> m_addedRemovedComponents;
         };
 
+        void OnFinishedLoadingEntitiesFromStream();
         EditorEntityModelEntry& GetInfo(const AZ::EntityId& entityId);
         AZStd::unordered_map<AZ::EntityId, EditorEntityModelEntry> m_entityInfoTable;
         AZStd::unordered_map<AZ::EntityId, AZStd::unordered_set<AZ::EntityId>> m_entityOrphanTable;
@@ -366,6 +367,9 @@ namespace AzToolsFramework
         // Track if the context is being reset. If so, steps during entity removal can be skipped
         // because we know that all entities are going to be removed as part of the context reset.
         bool m_preparingForContextReset = false;
+
+        // Track if we're loading from stream, if is, defer ca
+        bool m_loadingEntitiesFromStream = false;
 
         // Don't add new entities to the model until they're all ready to go.
         // This lets us add the entities in a more efficient manner.

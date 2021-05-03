@@ -44,6 +44,10 @@ namespace AZ
                 // One mapping coordinate for the whole polygon.
                 fbxElementIndex = polygonIndex;
                 break;
+            case FbxGeometryElement::eAllSame:
+                 // Only one mapping coordinate, whose index is zero
+                 fbxElementIndex = 0;
+                break;
             default:
                 AZ_TraceContext("Unknown value", elementArray->GetMappingMode());
                 AZ_TracePrintf(AZ::SceneAPI::Utilities::ErrorWindow, "Invalid ElementArrayType mapping mode");

@@ -49,9 +49,12 @@ namespace LmbrCentral
         : public SplineComponentNotificationBus::Handler
     {
     public:
-        AZ_RTTI(SplineAttribute<AttributeType>, "{A8E73C3D-65DD-43D8-A25E-2E35674B4B78}");
+        AZ_RTTI(((SplineAttribute<AttributeType>), "{A8E73C3D-65DD-43D8-A25E-2E35674B4B78}", AttributeType));
+
         AZ_CLASS_ALLOCATOR(SplineAttribute<AttributeType>, AZ::SystemAllocator, 0);
+
         static void Reflect(AZ::SerializeContext& context);
+        static void Reflect(AZ::ReflectContext* context);
 
         SplineAttribute() = default;
         explicit SplineAttribute(size_t size);
@@ -60,30 +63,32 @@ namespace LmbrCentral
         void Deactivate();
 
         /// Interpolation function. 
-        using Interpolator = AZStd::function<AttributeType(AttributeType, AttributeType, float)>;
+        using Interpolator = AZStd::function<AttributeType(const AttributeType&, const AttributeType&, float)>;
 
         /// Sets an element in the spline attribute.
         /// @param index The index of the element to set.
         /// @param value The value of the element to set.
-        void SetElement(size_t index, AttributeType value);
+        void SetElement(size_t index, const AttributeType& value);
+        void SetElement(size_t index, AttributeType&& value);
 
         /// Gets an element in the attribute.
         /// @param index The index of the element to get.
         /// @return the value of the point at the index specified.
-        AttributeType GetElement(size_t index) const;
+        const AttributeType& GetElement(size_t index) const;
+        AttributeType&       GetElement(size_t index);
 
         /// Evaluates an interpolated value between two elements in the attribute.
         /// @param index The beginning index.
         /// @param fraction The percentage between this index and the next.
         /// @param interpolator A function to interpolate between the elements.
         /// @return the interpolated value.
-        AttributeType GetElementInterpolated(size_t index, float fraction, Interpolator interpolator) const;
+        AttributeType GetElementInterpolated(size_t index, float fraction, const Interpolator& interpolator) const;
 
         /// Evaluates an interpolated value between two elements in the attribute.
         /// @param address The address along the spline.
         /// @param interpolator A function to interpolate between the elements.
         /// @return the interpolated value.
-        AttributeType GetElementInterpolated(const AZ::SplineAddress& address, Interpolator interpolator) const;
+        AttributeType GetElementInterpolated(const AZ::SplineAddress& address, const Interpolator& interpolator) const;
 
         /// Returns the number of elements in the attribute.
         /// @return The number of elements in the attribute.

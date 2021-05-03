@@ -108,6 +108,47 @@ namespace LmbrCentral
         static void Reflect(AZ::ReflectContext* context);
     };
 
+    struct Triangle
+    {
+        AZ_TYPE_INFO(Triangle, "{79D5CB43-DACE-4353-85A1-9DE757F94248}");
+        Triangle()
+        {
+            vertices.fill(AZ::Vector3());
+        }
+        Triangle(const AZ::Vector3& v0, const AZ::Vector3& v1, const AZ::Vector3& v2)
+        {
+            vertices[0] = v0;
+            vertices[1] = v1;
+            vertices[2] = v2;
+        }
+        AZStd::array<AZ::Vector3, 3> vertices;
+    };
+
+    /*
+        A shape triangulation is the surface of the shape broken up into triangles (approximately or exactly); no guarantee is made
+        about which triangulation this is, but implementations should endeavor to use the fewest number of triangles possible (i.e. most
+        efficient triangulation possible).
+
+        The interface contains some metadata about the triangulation (currently, only whether it is exact or not)
+        and the actual triangles.
+    */
+    struct ShapeTriangulation
+    {
+        AZ_TYPE_INFO(ShapeTriangulation, "{96DEB5BD-DE14-4B31-A6D1-496041F51B51}");
+        ShapeTriangulation()
+            : isExact(false)
+        {}
+
+        bool IsValid() const { return !triangles.empty(); }
+
+        ///< If the shape only has planar faces, i.e. it is equalivent to some triangular mesh or meshes, then this member is 'true'
+        ///< and the triangles returned by 'GetTriangles' are one of those equivalent triangular meshes.
+        bool isExact;
+
+        ///< The triangles of which this shape is composed.
+        AZStd::vector<Triangle> triangles;
+    };
+
     /// Services provided by the Shape Component
     class ShapeComponentRequests : public AZ::ComponentBus
     {
@@ -161,6 +202,14 @@ namespace LmbrCentral
         {
             AZ_Warning("ShapeComponentRequests", false, "IntersectRay not implemented");
             return false;
+        }
+
+        /**
+        * @brief Returns the triangulation of the shape.
+        */
+        virtual ShapeTriangulation GetShapeTriangulation()
+        {
+            return ShapeTriangulation();
         }
 
         virtual ~ShapeComponentRequests() = default;

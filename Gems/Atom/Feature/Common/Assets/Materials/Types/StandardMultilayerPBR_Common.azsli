@@ -112,7 +112,7 @@ ShaderResourceGroup MaterialSrg : SRG_PerMaterial
 enum class DebugDrawMode { None, BlendMaskValues, DepthMaps };
 option DebugDrawMode o_debugDrawMode;
 
-enum class BlendMaskSource { TextureMap, VertexColors, Fallback };
+enum class BlendMaskSource { TextureMap, VertexColors, TextureMapAndVertexColors, Fallback };
 option BlendMaskSource o_blendSource;
 
 // Indicates whether the vertex input struct's "m_optional_blendMask" is bound. If false, it is not safe to read from m_optional_blendMask.
@@ -120,6 +120,11 @@ option BlendMaskSource o_blendSource;
 // (search "m_optional_" in ShaderVariantAssetBuilder for details on the naming convention).
 // [GFX TODO][ATOM-14475]: Come up with a more elegant way to associate the isBound flag with the input stream.
 option bool o_blendMask_isBound;
+
+enum class BlendSourceCombine { Sum, Product, Min, Max };
+option BlendSourceCombine o_blendSourceCombine;
+
+option bool o_blendWeightsNormalize = true;
 
 //! Returns the BlendMaskSource that will actually be used when rendering (not necessarily the same BlendMaskSource specified by the user)
 BlendMaskSource GetFinalBlendMaskSource()
@@ -139,10 +144,47 @@ BlendMaskSource GetFinalBlendMaskSource()
             return BlendMaskSource::TextureMap;
         }
     }
+    else if(o_blendSource == BlendMaskSource::TextureMapAndVertexColors)
+    {
+        if(o_blendMask_isBound)
+        {
+            return BlendMaskSource::TextureMapAndVertexColors;
+        }
+    else
+    {
+            return BlendMaskSource::TextureMap;
+        }
+    }
     else
     {
         return BlendMaskSource::Fallback;
     }
+}
+
+//! Combines two blend mask values based on options
+float3 CombineBlendMaskValues(float3 b0, float3 b1)
+{
+    switch(o_blendSourceCombine)
+    {
+        case BlendSourceCombine::Sum:
+        {
+            return b0 + b1;
+        }
+        case BlendSourceCombine::Product:
+        {
+            return b0 * b1;
+        }
+        case BlendSourceCombine::Min:
+        {
+            return float3(min(b0.x, b1.x), min(b0.y, b1.y), min(b0.z, b1.z));
+        }
+        case BlendSourceCombine::Max:
+        {
+            return float3(max(b0.x, b1.x), max(b0.y, b1.y), max(b0.z, b1.z));
+        }
+    }
+
+    return b0;
 }
 
 //! Return the final blend mask values to be used for rendering, based on the available data and configuration.
@@ -158,12 +200,22 @@ float3 GetBlendMaskValues(float2 uv, float3 vertexBlendMask)
         case BlendMaskSource::VertexColors:
             blendMaskValues = vertexBlendMask;
             break;
+        case BlendMaskSource::TextureMapAndVertexColors:
+            blendMaskValues = CombineBlendMaskValues(
+                MaterialSrg::m_blendMaskTexture.Sample(MaterialSrg::m_sampler, uv).rgb,
+                vertexBlendMask
+            );
+            break;
         case BlendMaskSource::Fallback:
             blendMaskValues = float3(1,1,1);
             break;
     }
 
-    blendMaskValues = blendMaskValues / (blendMaskValues.r + blendMaskValues.g + blendMaskValues.b);
+    if (o_blendWeightsNormalize)
+    {
+        float3 blendMaskValueSum = blendMaskValues.r + blendMaskValues.g + blendMaskValues.b;
+        blendMaskValues = blendMaskValueSum > 0 ? blendMaskValues / blendMaskValueSum : 0;
+    }
 
     return blendMaskValues;
 }

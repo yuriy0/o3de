@@ -25,11 +25,12 @@ namespace MCore
      * This attribute represents one bool.
      */
     class MCORE_API AttributeBool
-        : public Attribute
+        : public Attribute_tpl<bool, AttributeBool>
     {
         AZ_CLASS_ALLOCATOR_DECL
 
         friend class AttributeFactory;
+        using Base = Attribute_tpl<bool, AttributeBool>;
     public:
         enum
         {
@@ -61,11 +62,12 @@ namespace MCore
         bool    mValue;     /**< The boolean value, false on default. */
 
         AttributeBool()
-            : Attribute(TYPE_ID)
-            , mValue(false) {}
+            : AttributeBool(false)
+        {}
         AttributeBool(bool value)
-            : Attribute(TYPE_ID)
-            , mValue(value) {}
+            : Base(TYPE_ID)
+            , mValue(value)
+        {}
         ~AttributeBool() {}
 
         uint32 GetDataSize() const override                         { return sizeof(int8); }

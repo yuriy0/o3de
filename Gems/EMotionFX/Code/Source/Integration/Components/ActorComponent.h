@@ -51,6 +51,23 @@ namespace EMotionFX
             AZ_COMPONENT(ActorComponent, "{BDC97E7F-A054-448B-A26F-EA2B5D78E377}");
             friend class EditorActorComponent;
 
+            struct BoundingBoxConfiguration
+            {
+                AZ_TYPE_INFO(BoundingBoxConfiguration, "{EBCFF975-00A5-4578-85C7-59909F52067C}");
+
+                BoundingBoxConfiguration() = default;
+
+                EMotionFX::ActorInstance::EBoundsType m_boundsType          = EMotionFX::ActorInstance::BOUNDS_STATIC_BASED;
+                bool                                  m_autoUpdateBounds    = true;
+                float                                 m_updateTimeFrequency = 0.f;
+                AZ::u32                               m_updateItemFrequency = 1;
+
+                void Set(ActorInstance* inst) const;
+                void SetAndUpdate(ActorInstance* inst) const;
+
+                static void Reflect(AZ::ReflectContext* context);
+            };
+
             /**
             * Configuration struct for procedural configuration of Actor Components.
             */
@@ -73,6 +90,7 @@ namespace EMotionFX
                 // default, joints level update (beside the root joint) on
                 // actor are disabled when the actor is out of view. 
                 bool m_forceUpdateJointsOOV = false;
+				BoundingBoxConfiguration m_bboxConfig; ///< Configuration for bounding box type and updates
 
                 static void Reflect(AZ::ReflectContext* context);
             };
@@ -167,6 +185,7 @@ namespace EMotionFX
         private:
             // AZ::TransformNotificationBus::MultiHandler
             void OnTransformChanged(const AZ::Transform& local, const AZ::Transform& world) override;
+            void OnParentChanged(AZ::EntityId oldParent, AZ::EntityId newParent) override;
 
             // AZ::TickBus::Handler
             void OnTick(float deltaTime, AZ::ScriptTimePoint time) override;
@@ -178,6 +197,7 @@ namespace EMotionFX
             void CheckActorCreation();
             void DestroyActor();
             void CheckAttachToEntity();
+            void ListenForAttachmentOwnerTransformChanges();
 
             Configuration                                   m_configuration;            ///< Component configuration.
                                                                                         /// Live state

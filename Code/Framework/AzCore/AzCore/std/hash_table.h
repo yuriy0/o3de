@@ -454,7 +454,7 @@ namespace AZStd
         }
 
         AZ_FORCE_INLINE hash_table(this_type&& rhs)
-            : m_data(rhs.get_allocator())
+            : m_data(rhs.m_data)
             , m_keyEqual(rhs.m_keyEqual)
             , m_hasher(rhs.m_hasher)
         {

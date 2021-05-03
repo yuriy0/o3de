@@ -112,6 +112,11 @@ namespace GradientSignal
         services.push_back(AZ_CRC("GradientService", 0x21c18d23));
     }
 
+    void GradientSurfaceDataComponent::GetDependentServices(AZ::ComponentDescriptor::DependencyArrayType & dep)
+    {
+        dep.push_back(AZ_CRC("ShapeService", 0xe86aa5fe));
+    }
+
     void GradientSurfaceDataComponent::Reflect(AZ::ReflectContext* context)
     {
         GradientSurfaceDataConfig::Reflect(context);
@@ -174,6 +179,16 @@ namespace GradientSignal
         if (m_configuration.m_shapeConstraintEntityId.IsValid())
         {
             LmbrCentral::ShapeComponentNotificationsBus::Handler::BusConnect(m_configuration.m_shapeConstraintEntityId);
+            AZ::EntityBus::Handler::BusConnect(m_configuration.m_shapeConstraintEntityId);
+        }
+        else if (LmbrCentral::ShapeComponentRequestsBus::FindFirstHandler(GetEntityId()))
+        {
+            m_configuration.m_shapeConstraintEntityId = GetEntityId();
+            LmbrCentral::ShapeComponentNotificationsBus::Handler::BusConnect(m_configuration.m_shapeConstraintEntityId);
+        }
+        else
+        {
+            AZ_Error("GradientSurfaceData", false, "GradientSurfaceDataComponent(%s) without a shape constraint configured", m_entity->GetName().c_str());
         }
 
         // Register with the SurfaceData system and update our cached shape information if necessary.
@@ -184,6 +199,7 @@ namespace GradientSignal
 
     void GradientSurfaceDataComponent::Deactivate()
     {
+        AZ::EntityBus::Handler::BusDisconnect();
         LmbrCentral::ShapeComponentNotificationsBus::Handler::BusDisconnect();
         LmbrCentral::DependencyNotificationBus::Handler::BusDisconnect();
         SurfaceData::SurfaceDataSystemRequestBus::Broadcast(&SurfaceData::SurfaceDataSystemRequestBus::Events::UnregisterSurfaceDataModifier, m_modifierHandle);
@@ -359,6 +375,18 @@ namespace GradientSignal
     void GradientSurfaceDataComponent::OnShapeChanged([[maybe_unused]] LmbrCentral::ShapeComponentNotifications::ShapeChangeReasons reasons)
     {
         LmbrCentral::DependencyNotificationBus::Event(GetEntityId(), &LmbrCentral::DependencyNotificationBus::Events::OnCompositionChanged);
+    }
+
+    void GradientSurfaceDataComponent::OnEntityActivated(const AZ::EntityId &)
+    {
+        // If we're inside Activate (ie state is Activating), then we haven't registered our modifier yet, so calling OnCompositionChanged is an error
+        // Otherwise we need to update the shape bounds, because the bounds registered in Activate were wrong 
+        if (m_entity && m_entity->GetState() == AZ::Entity::State::Active)
+        {
+            LmbrCentral::DependencyNotificationBus::Event(GetEntityId(), &LmbrCentral::DependencyNotificationBus::Events::OnCompositionChanged);
+        }
+
+        AZ::EntityBus::Handler::BusDisconnect();
     }
 
     AZ::EntityId GradientSurfaceDataComponent::GetShapeConstraintEntityId() const

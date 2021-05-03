@@ -159,7 +159,7 @@ namespace AZ
             /**
              * Contains all of the addresses on the EBus.
              */
-            using BusesContainer = AZ::Internal::EBusContainer<Interface, Traits>;
+            using BusesContainer = typename Traits::template EBusContainer<Interface, Traits>;
 
             /**
              * Locking primitive that is used when executing events in the event queue.

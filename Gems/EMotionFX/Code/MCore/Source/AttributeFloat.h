@@ -26,11 +26,12 @@ namespace MCore
      * This attribute represents one float.
      */
     class MCORE_API AttributeFloat
-        : public Attribute
+        : public Attribute_tpl<float, AttributeFloat>
     {
         AZ_CLASS_ALLOCATOR_DECL
 
         friend class AttributeFactory;
+        using Base = Attribute_tpl<float, AttributeFloat>;
     public:
         enum
         {
@@ -64,10 +65,10 @@ namespace MCore
         uint32 GetDataSize() const override                         { return sizeof(float); }
 
         AttributeFloat()
-            : Attribute(TYPE_ID)
+            : Base(TYPE_ID)
             , mValue(0.0f)  {}
         AttributeFloat(float value)
-            : Attribute(TYPE_ID)
+            : Base(TYPE_ID)
             , mValue(value) {}
         ~AttributeFloat() {}
 

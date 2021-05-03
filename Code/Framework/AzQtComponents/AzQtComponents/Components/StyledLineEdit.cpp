@@ -22,6 +22,14 @@ namespace AzQtComponents
     {
         setFlavor(Plain);
         connect(this, &StyledLineEdit::textChanged, this, &StyledLineEdit::validateEntry);
+
+        connect(this, &QLineEdit::editingFinished, this, [this]() {
+            auto currentValue = text();
+            if (m_editing && currentValue != m_valueAtEditingStart) {
+                emit editingFinishedTextChanged(currentValue);
+                m_editing = false;
+            }
+        }, Qt::UniqueConnection);
     }
 
     StyledLineEdit::~StyledLineEdit()
@@ -44,6 +52,9 @@ namespace AzQtComponents
 
     void StyledLineEdit::focusInEvent(QFocusEvent* event)
     {
+        m_valueAtEditingStart = text();
+        m_editing = true;
+
         emit(onFocus()); // Required for focus dependent custom widgets, e.g. ConfigStringLineEditCtrl.
         QLineEdit::focusInEvent(event);
     }

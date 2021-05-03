@@ -471,6 +471,9 @@ namespace AZ
             m_console->LinkDeferredFunctors(AZ::ConsoleFunctorBase::GetDeferredHead());
             m_settingsRegistryConsoleFunctors = AZ::SettingsRegistryConsoleUtils::RegisterAzConsoleCommands(*m_settingsRegistry, *m_console);
         }
+
+        // NB: assumes that the main function constructs this directly
+        m_tickThreadId = AZStd::this_thread::get_id();
     }
 
     //=========================================================================

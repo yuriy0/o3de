@@ -748,6 +748,8 @@ namespace ScriptCanvas
                     AZ_Verify(m_ebus->m_createHandler->InvokeResult(m_handler, &m_definition), "Behavior Context EBus handler creation failed %s", m_definition.GetName().c_str());
 
                     AZ_Assert(m_handler, "Ebus create handler failed %s", m_definition.GetName().c_str());
+
+                    return m_ebus != nullptr;
                 }
 
                 return true;
@@ -755,6 +757,7 @@ namespace ScriptCanvas
 
             bool ReceiveScriptEvent::SetupHandler()
             {
+                AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::ScriptCanvas);
                 if (!m_handler)
                 {
                     if (!m_asset.IsReady() && m_scriptEventAssetId.IsValid())

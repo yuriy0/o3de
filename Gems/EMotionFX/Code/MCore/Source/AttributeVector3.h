@@ -26,11 +26,12 @@ namespace MCore
      * This attribute represents one Vector3.
      */
     class MCORE_API AttributeVector3
-        : public Attribute
+        : public Attribute_tpl<AZ::Vector3, AttributeVector3>
     {
         AZ_CLASS_ALLOCATOR(AttributeVector3, AttributeAllocator, 0)
 
         friend class AttributeFactory;
+        using Base = Attribute_tpl<AZ::Vector3, AttributeVector3>;
     public:
         enum
         {
@@ -78,9 +79,9 @@ namespace MCore
         AZ::Vector3  mValue;     /**< The Vector3 value. */
 
         AttributeVector3()
-            : Attribute(TYPE_ID)                    { mValue.Set(0.0f, 0.0f, 0.0f); }
+            : Base(TYPE_ID)                    { mValue.Set(0.0f, 0.0f, 0.0f); }
         AttributeVector3(const AZ::Vector3& value)
-            : Attribute(TYPE_ID)
+            : Base(TYPE_ID)
             , mValue(value)     { }
         ~AttributeVector3() { }
 

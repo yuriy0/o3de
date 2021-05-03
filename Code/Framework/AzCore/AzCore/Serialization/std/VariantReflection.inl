@@ -13,6 +13,8 @@
 
 #include <AzCore/Memory/OSAllocator.h>
 #include <AzCore/std/containers/variant.h>
+#include <AzCore/Serialization/ClassSelectionParameters.h>
+#include <AzCore/Serialization/SerializeContext.h>
 
 namespace AZ
 {
@@ -67,19 +69,34 @@ namespace AZ
             AZStdVariantContainer()
             {
                 CreateClassElementArray(AZStd::make_index_sequence<s_variantSize>{});
+
+                // Set basic information about this type
+                m_thisClassElement.m_name = GetDefaultElementName();
+                m_thisClassElement.m_nameCrc = GetDefaultElementNameCrc();
+                m_thisClassElement.m_dataSize = sizeof(VariantType);
+                m_thisClassElement.m_offset = 0;
+                m_thisClassElement.m_azRtti = GetRttiHelper<VariantType>();
+                m_thisClassElement.m_flags = SerializeContext::ClassElement::FLG_DYNAMIC_FIELD;
+                m_thisClassElement.m_typeId = SerializeGenericTypeInfo<VariantType>::GetClassTypeId();
+
+                // Setup attribute allocates
+                m_thisClassElement.m_attributes.set_allocator(AZ::AZStdFunctorAllocator([]() -> AZ::IAllocatorAllocate& { return AZ::GetCurrentSerializeContextModule().GetAllocator(); }));
+
+                // Set attribute for class selection parameters
+                using ContainerType = AttributeContainerType<ClassSelectionParameters>;
+                m_thisClassElement.m_attributes.emplace_back(
+                    Edit::Attributes::ClassSelectionParameters,
+                    AZ::CreateModuleAttribute<ContainerType>(
+                        ClassSelectionParameters( AZStd::vector<AZ::Uuid>(
+                            { AZ::SerializeGenericTypeInfo<Types>::GetClassTypeId()... }
+                        )))
+                );
             }
 
             /// Returns the element generic (offsets are mostly invalid 0xbad0ffe0, there are exceptions). Null if element with this name can't be found.
             const SerializeContext::ClassElement* GetElement(u32 elementNameCrc) const override
             {
-                for (const SerializeContext::ClassElement& classElement : m_alternativeClassElements)
-                {
-                    if (classElement.m_nameCrc == elementNameCrc)
-                    {
-                        return &classElement;
-                    }
-                }
-                return nullptr;
+                return elementNameCrc == m_thisClassElement.m_nameCrc ? &m_thisClassElement : nullptr;
             }
 
             bool GetElement(SerializeContext::ClassElement& resultClassElement, const SerializeContext::DataElement& dataElement) const override
@@ -100,9 +117,9 @@ namespace AZ
             void EnumElements(void* instance, const ElementCB& cb) override
             {
                 auto variantInst = reinterpret_cast<VariantType*>(instance);
-                auto enumElementsVisitor = [cb, altClassElement = m_alternativeClassElements[variantInst->index()]](auto&& elementAlt)
+                auto enumElementsVisitor = [&cb, altClassElement = &m_alternativeClassElements[variantInst->index()]](auto&& elementAlt)
                 {
-                    cb(&const_cast<AZStd::remove_cvref_t<decltype(elementAlt)>&>(elementAlt), altClassElement.m_typeId, altClassElement.m_genericClassInfo ? altClassElement.m_genericClassInfo->GetClassData() : nullptr, &altClassElement);
+                    cb(&const_cast<AZStd::remove_cvref_t<decltype(elementAlt)>&>(elementAlt), altClassElement->m_typeId, altClassElement->m_genericClassInfo ? altClassElement->m_genericClassInfo->GetClassData() : nullptr, altClassElement);
                 };
                 AZStd::visit(AZStd::move(enumElementsVisitor), *variantInst);
             }
@@ -137,7 +154,7 @@ namespace AZ
             bool IsFixedCapacity() const override { return true; }
 
             /// Returns true if the container is a smart pointer.
-            bool IsSmartPointer() const override { return false; }
+            bool IsSmartPointer() const override { return true; }
 
             /// Returns true if elements can be retrieved by index.
             bool CanAccessElementsByIndex() const override { return false; }
@@ -218,6 +235,8 @@ namespace AZ
             }
 
             SerializeContext::ClassElement m_alternativeClassElements[s_variantSize];
+            SerializeContext::ClassElement m_thisClassElement;
+
         private:
             template <typename AltType>
             void CreateClassElementAtIndex(SerializeContext::ClassElement& altClassElement, const char* elementName)
@@ -276,7 +295,7 @@ namespace AZ
 
                 // Next check if the convertible type id is exactly equal to one of the non-pointer alternatives 
                 // i.e Variant<int*, int> would match can only match the `int` alternative at this point
-                for (const SerializeContext::ClassElement& altClassElement : m_dataContainer.m_alternativeClassElements)
+                for (const SerializeContext::ClassElement& altClassElement : m_dataContainer->m_alternativeClassElements)
                 {
                     const bool isPointerType = (altClassElement.m_flags & SerializeContext::ClassElement::FLG_POINTER) != 0;
                     if (!isPointerType && altClassElement.m_typeId == convertibleTypeId)
@@ -286,7 +305,7 @@ namespace AZ
                 }
 
                 // Finally check if the alternative has an IDataConverter instance located on it's ClassData and invoke its CanConvertFromType function
-                for (const SerializeContext::ClassElement& altClassElement : m_dataContainer.m_alternativeClassElements)
+                for (const SerializeContext::ClassElement& altClassElement : m_dataContainer->m_alternativeClassElements)
                 {
                     // The Asset Class Id case must be handled in a special way since it does not register it's asset data with the serialize context
                     const SerializeContext::ClassData* altClassData = serializeContext.FindClassData(altClassElement.m_typeId);
@@ -330,7 +349,7 @@ namespace AZ
                  * The second alternative of `int*` is not viable at this point to as non pointer types are being explicitly checked
                  */
 
-                for (const SerializeContext::ClassElement& altClassElement : m_dataContainer.m_alternativeClassElements)
+                for (const SerializeContext::ClassElement& altClassElement : m_dataContainer->m_alternativeClassElements)
                 {
                     const bool isPointerType = (altClassElement.m_flags & SerializeContext::ClassElement::FLG_POINTER) != 0;
                     if (!isPointerType && altClassElement.m_typeId == convertibleTypeId && ReserveElement(convertibleTypePtr, classPtr, altClassElement, serializeContext))
@@ -356,7 +375,7 @@ namespace AZ
                  *
                  * Then the AZStd::list<int> is given a chance to an determine if it can stored the serialized data via its ConvertFromType function
                  */
-                for (const SerializeContext::ClassElement& altClassElement : m_dataContainer.m_alternativeClassElements)
+                for (const SerializeContext::ClassElement& altClassElement : m_dataContainer->m_alternativeClassElements)
                 {
                     const SerializeContext::ClassData* altClassData = serializeContext.FindClassData(altClassElement.m_typeId);
                     AZ_Error("Serialize", altClassData, R"("Unable to find class data for class element with type "%s" for variant "%s".)"
@@ -378,7 +397,7 @@ namespace AZ
         private:
             bool ReserveElement(void*& convertibleTypePtr, void* classPtr, const SerializeContext::ClassElement &altClassElement, SerializeContext &serializeContext)
             {
-                void* reserveAddress = m_dataContainer.ReserveElement(classPtr, &altClassElement);
+                void* reserveAddress = m_dataContainer->ReserveElement(classPtr, &altClassElement);
                 if (!reserveAddress)
                 {
                     AZ_Error("Serialize", false, R"(Failed to reserve storage in the variant "%s" for alternative of type"%s")",
@@ -416,8 +435,9 @@ namespace AZ
 
                 return true;
             }
-
-            VariantSerializationInternal::AZStdVariantContainer<Types...> m_dataContainer;
+			
+		public:
+            VariantSerializationInternal::AZStdVariantContainer<Types...>* m_dataContainer;
         };
 
         class GenericClassVariant
@@ -440,6 +460,10 @@ namespace AZ
                 using ContainerType = AttributeData<AZStd::function<void(SerializeContext::EnumerateInstanceCallContext&,
                     const void*, const SerializeContext::ClassData&, const SerializeContext::ClassElement*)>>;
                 m_classData.m_attributes.emplace_back(AZ_CRC("ObjectStreamWriteElementOverride", 0x35eb659f), CreateModuleAttribute<ContainerType>(&ObjectStreamWriter));
+
+                // Tie the knot
+                m_variantContainer.m_thisClassElement.m_genericClassInfo = this;
+                m_dataConverter.m_dataContainer = &m_variantContainer;
             }
 
             SerializeContext::ClassData* GetClassData() override
@@ -526,7 +550,8 @@ namespace AZ
 
         static const Uuid& GetClassTypeId()
         {
-            return GetGenericInfo()->GetClassData()->m_typeId;
+            static const Uuid typ = azrtti_typeid<VariantType>();
+            return typ;
         }
     };
 }

@@ -70,22 +70,6 @@
                 },
                 // Outputs...
                 {
-                    "Name": "DiffuseOutput",
-                    "SlotType": "Output",
-                    "ScopeAttachmentUsage": "RenderTarget",
-                    "LoadStoreAction": {
-                        "ClearValue": {
-                            "Value": [
-                                0.0,
-                                0.0,
-                                0.0,
-                                0.0
-                            ]
-                        },
-                        "LoadAction": "Clear"
-                    }
-                },
-                {
                     "Name": "SpecularOutput",
                     "SlotType": "Output",
                     "ScopeAttachmentUsage": "RenderTarget",
@@ -95,6 +79,22 @@
                                 0.4000000059604645,
                                 0.4000000059604645,
                                 0.4000000059604645,
+                                0.0
+                            ]
+                        },
+                        "LoadAction": "Clear"
+                    }
+                },
+                {
+                    "Name": "DiffuseOutput",
+                    "SlotType": "Output",
+                    "ScopeAttachmentUsage": "RenderTarget",
+                    "LoadStoreAction": {
+                        "ClearValue": {
+                            "Value": [
+                                0.0,
+                                0.0,
+                                0.0,
                                 0.0
                             ]
                         },

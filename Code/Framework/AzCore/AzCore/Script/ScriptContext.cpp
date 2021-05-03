@@ -20,6 +20,7 @@
 #include <AzCore/Script/lua/lua.h>
 #include <AzCore/IO/GenericStreams.h>
 #include <AzCore/RTTI/AttributeReader.h>
+#include <AzCore/Script/ScriptValueRef.h>
 #include <AzCore/RTTI/BehaviorContext.h>
 
 #include <AzCore/Script/ScriptPropertyTable.h>
@@ -429,7 +430,7 @@ namespace AZ
         {
             lua_pushlightuserdata(lua, (void*)typeId.GetHash());
         }
-        
+
         bool azlua_istable(lua_State* lua, int stackIndex)
         {
             return lua_istable(lua, stackIndex);
@@ -1081,6 +1082,18 @@ namespace AZ
     }
 
     //////////////////////////////////////////////////////////////////////////
+    void ScriptValue<signed char>::StackPush(lua_State* l, signed int value)
+    {
+        lua_pushinteger(l, value);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    signed char ScriptValue<signed char>::StackRead(lua_State* l, int stackIndex)
+    {
+        return azlua_checknumber<signed char>(l, stackIndex);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
     void ScriptValue<unsigned char>::StackPush(lua_State* l, unsigned int value)
     {
         lua_pushinteger(l, aznumeric_caster(value));
@@ -1212,6 +1225,10 @@ namespace AZ
         {
             lua_pushnil(l);
         }
+        else if (value.is<ScriptValueRef>()) {
+            // NB: any_cast on pointer to avoid copy of ScriptValueRef
+            AZStd::any_cast<ScriptValueRef>(&value)->StackPush();
+        }
         else CHECK_BUILTIN(bool)
         else CHECK_BUILTIN(char)
         else CHECK_BUILTIN(u8)
@@ -1239,6 +1256,18 @@ namespace AZ
 
         switch (lua_type(lua, stackIndex))
         {
+        case LUA_TTABLE:
+        {
+            value = AZStd::make_any<ScriptValueRef>(ScriptValueRef(lua, stackIndex));
+        }
+        break;
+
+        case LUA_TNIL:
+        {
+            // Return empty any; nothing to do since empty is the default value
+        }
+        break;
+
         case LUA_TNUMBER:
         {
             lua_Number number = lua_tonumber(lua, stackIndex);
@@ -1344,8 +1373,6 @@ namespace AZ
         }
         break;
 
-        case LUA_TNIL:
-        case LUA_TTABLE:
         case LUA_TFUNCTION:
         case LUA_TTHREAD:
         default:
@@ -2698,7 +2725,7 @@ LUA_API const Node* lua_getDummyNode()
 
                 if (isUserdataTrackingRequired)
                 {
-                    // check if we already track this pointer in the lua VM
+                // check if we already track this pointer in the lua VM
                     lua_rawgeti(lua, metatableIndex, AZ_LUA_CLASS_METATABLE_INSTANCES); // load the instance table
                     lua_pushlightuserdata(lua, value); // load the address
                     lua_rawget(lua, -2); // get the cached userdata
@@ -3211,6 +3238,7 @@ LUA_API const Node* lua_getDummyNode()
             else if (Internal::LuaScriptNumber<short>::FromStack(param, result)) return result;
             else if (Internal::LuaScriptNumber<AZ::s64>::FromStack(param, result)) return result;
             else if (Internal::LuaScriptNumber<long>::FromStack(param, result)) return result;
+            else if (Internal::LuaScriptNumber<signed char>::FromStack(param, result)) return result;
             else if (Internal::LuaScriptNumber<unsigned char>::FromStack(param, result)) return result;
             else if (Internal::LuaScriptNumber<unsigned short>::FromStack(param, result)) return result;
             else if (Internal::LuaScriptNumber<unsigned int>::FromStack(param, result)) return result;
@@ -3240,7 +3268,7 @@ LUA_API const Node* lua_getDummyNode()
                     customReaderWriter.Read<ScriptContext::CustomReaderWriter>(readerWriter);
 
                     result = readerWriter.m_fromLua;
-                }
+                    }
                 else
                 {
                     // handle specific pointer types
@@ -3295,6 +3323,7 @@ LUA_API const Node* lua_getDummyNode()
             else if (Internal::LuaScriptNumber<int>::ToStack(param, result, prepareParam)) return result;
             else if (Internal::LuaScriptNumber<AZ::s64>::ToStack(param, result, prepareParam)) return result;
             else if (Internal::LuaScriptNumber<long>::ToStack(param, result, prepareParam)) return result;
+            else if (Internal::LuaScriptNumber<signed char>::ToStack(param, result, prepareParam)) return result;
             else if (Internal::LuaScriptNumber<unsigned char>::ToStack(param, result, prepareParam)) return result;
             else if (Internal::LuaScriptNumber<unsigned short>::ToStack(param, result, prepareParam)) return result;
             else if (Internal::LuaScriptNumber<unsigned int>::ToStack(param, result, prepareParam)) return result;
@@ -4100,6 +4129,25 @@ LUA_API const Node* lua_getDummyNode()
 
             static void OnEventGenericHook(void* userData, const char* eventName, int eventIndex, BehaviorValueParameter* result, int numParameters, BehaviorValueParameter* parameters)
             {
+                static const auto GetFunctionName = [](lua_State* lua, int index)
+                {
+                    AZStd::array<char, 256> nm;
+                    nm[255] = '\0';
+
+                    // Assumes the function is already at the top of the stack; make a copy
+                    lua_pushvalue(lua, index);
+                    lua_Debug debugInfo;
+                    const int ret = lua_getinfo(lua, ">S", &debugInfo);
+                    AZ_Assert(ret != 0, "Could not get Lua function debug info");
+
+                    std::snprintf(nm.data(), nm.array_size, "%s:%d",
+                        debugInfo.short_src ? debugInfo.short_src : "<unknown file>",
+                        debugInfo.linedefined
+                    );
+
+                    return nm;
+                };
+
                 (void)eventName;
                 (void)eventIndex;
 
@@ -4132,6 +4180,8 @@ LUA_API const Node* lua_getDummyNode()
                     lua_pop(lua, 2);
                     return;
                 }
+
+                AZ_PROFILE_SCOPE_DYNAMIC(AZ::Debug::ProfileCategory::Script, "%s", GetFunctionName(lua, -2).data());
 
                 for (int iParam = 0; iParam < numParameters; ++iParam)
                 {
@@ -4804,7 +4854,7 @@ LUA_API const Node* lua_getDummyNode()
                 }
                 return source;
             }
-            
+
             //////////////////////////////////////////////////////////////////////////
             void BindClassMethodAndProperties(BehaviorClass* behaviorClass)
             {
@@ -4827,7 +4877,7 @@ LUA_API const Node* lua_getDummyNode()
                     {
                         continue; // skip this operator
                     }
-                    
+
                     if (method->m_overload)
                     {
                         auto overload = method;
@@ -4846,10 +4896,10 @@ LUA_API const Node* lua_getDummyNode()
                     }
                     else
                     {
-                        lua_pushstring(m_lua, methodName); // push method name on the stack
-                        BindMethodOnStack(m_context, method); // push the method
-                        lua_rawset(m_lua, -3); // member function set it in the class table
-                    }
+                    lua_pushstring(m_lua, methodName); // push method name on the stack
+                    BindMethodOnStack(m_context, method); // push the method
+                    lua_rawset(m_lua, -3); // member function set it in the class table
+                }
                 }
 
                 // properties
@@ -5095,7 +5145,7 @@ LUA_API const Node* lua_getDummyNode()
                 //lua_rawseti(l, -2, AZ_LUA_CLASS_METATABLE_STORAGE_CREATOR_INDEX);
 
                 BindClassMethodAndProperties(behaviorClass);
-
+                
                 if (AZ::Attribute* eventHandlerCreationFunctionAttribute = FindAttribute(AZ::Script::Attributes::EventHandlerCreationFunction, behaviorClass->m_attributes))
                 {
                     BindEventSupport();
@@ -5311,6 +5361,22 @@ LUA_API const Node* lua_getDummyNode()
                     lua_rawset(m_lua, -3); // store the QueueFunction in the table
                 }
 
+                // GetNumHandlers function
+                if (ebus->m_getNumHandlersFunction)
+                {
+                    lua_pushliteral(m_lua, "GetNumHandlers");
+                    BindMethodOnStack(m_context, ebus->m_getNumHandlersFunction);
+                    lua_rawset(m_lua, -3); // store the GetNumHandlers in the table
+                }
+
+                // GetTotalNumHandlers function
+                if (ebus->m_getTotalNumHandlersFunction)
+                {
+                    lua_pushliteral(m_lua, "GetTotalNumHandlers");
+                    BindMethodOnStack(m_context, ebus->m_getTotalNumHandlersFunction);
+                    lua_rawset(m_lua, -3); // store the GetTotalNumHandlers in the table
+                }
+
                 // handlers
                 BehaviorClass* idClass = nullptr;
                 LuaLoadFromStack idFromLua = FromLuaStack(m_context, &ebus->m_idParam, idClass);
@@ -5352,7 +5418,7 @@ LUA_API const Node* lua_getDummyNode()
 
                 Internal::azlua_setglobal(m_lua, ValidateName(ebusName));
             }
-                        
+
             static int ConnectToExposedEvent(lua_State* lua)
             {
                 if (!(lua_isuserdata(lua, -2) && !lua_islightuserdata(lua, -2)))
@@ -5888,8 +5954,8 @@ LUA_API const Node* lua_getDummyNode()
         else
         {
             lua_pop(m_impl->m_lua, 1);
-            AZ_Warning("Script", false, "%s is not a function!", functionName);
-        }
+                AZ_Warning("Script", false, "%s is not a function!", functionName);
+            }
         return false;
     }
 

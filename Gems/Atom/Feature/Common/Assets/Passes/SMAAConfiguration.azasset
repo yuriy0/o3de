@@ -4,8 +4,8 @@
   "ClassName": "SMAAConfigurationDescriptor",
   "ClassData": {
     "Name": "Default",
-    "Enable": 0,
-    "EdgeDetectionMode": 2,
+    "Enable": 1,
+    "EdgeDetectionMode": 1,
     "OutputMode": 0,
     "Quality": 3
   }

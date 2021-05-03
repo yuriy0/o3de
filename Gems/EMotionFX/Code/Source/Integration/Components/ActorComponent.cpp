@@ -59,13 +59,64 @@ namespace EMotionFX
         };
 
         //////////////////////////////////////////////////////////////////////////
+        void ActorComponent::BoundingBoxConfiguration::Set(ActorInstance* actor) const
+        {
+            if (m_autoUpdateBounds)
+            {
+                actor->SetupAutoBoundsUpdate(m_updateTimeFrequency, m_boundsType, m_updateItemFrequency);
+            }
+            else
+            {
+                actor->SetBoundsUpdateType(m_boundsType);
+                actor->SetBoundsUpdateEnabled(false);
+            }
+        }
+
+        void ActorComponent::BoundingBoxConfiguration::SetAndUpdate(ActorInstance* actor) const
+        {
+            Set(actor);
+            auto freq = actor->GetBoundsUpdateEnabled() ? actor->GetBoundsUpdateItemFrequency() : 1;
+            actor->UpdateBounds(0, actor->GetBoundsUpdateType(), freq);
+        }
+
+        void ActorComponent::BoundingBoxConfiguration::Reflect(AZ::ReflectContext * context)
+        {
+            if (auto* serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
+            {
+                serializeContext->Class<BoundingBoxConfiguration>()
+                    ->Version(2, [](AZ::SerializeContext& sc, AZ::SerializeContext::DataElementNode& node)
+                    {
+                        if (node.GetVersion() < 2)
+                        {
+                            // m_boundsType used to be an enum class with `int' underlying type, is now `u8'
+                            static const char* m_boundsType_name = "m_boundsType";
+                            static AZ::Crc32 m_boundsType_nameCrc(m_boundsType_name);
+
+                            int m_boundsType_as_int;
+                            if (!node.GetChildData(m_boundsType_nameCrc, m_boundsType_as_int)) return false;
+                            if (!node.RemoveElementByName(m_boundsType_nameCrc)) return false;
+                            if (node.AddElementWithData(sc, m_boundsType_name, (AZ::u8)m_boundsType_as_int) == -1) return false;
+                        }
+                        return true;
+                    })
+                    ->Field("m_boundsType", &BoundingBoxConfiguration::m_boundsType)
+                    ->Field("m_autoUpdateBounds", &BoundingBoxConfiguration::m_autoUpdateBounds)
+                    ->Field("m_updateTimeFrequency", &BoundingBoxConfiguration::m_updateTimeFrequency)
+                    ->Field("m_updateItemFrequency", &BoundingBoxConfiguration::m_updateItemFrequency)
+                    ;
+            }
+        }
+
+        //////////////////////////////////////////////////////////////////////////
         void ActorComponent::Configuration::Reflect(AZ::ReflectContext* context)
         {
+            BoundingBoxConfiguration::Reflect(context);
+
             auto* serializeContext = azrtti_cast<AZ::SerializeContext*>(context);
             if (serializeContext)
             {
                 serializeContext->Class<Configuration>()
-                    ->Version(3)
+                    ->Version(4)
                     ->Field("ActorAsset", &Configuration::m_actorAsset)
                     ->Field("MaterialPerLOD", &Configuration::m_materialPerLOD)
                     ->Field("RenderSkeleton", &Configuration::m_renderSkeleton)
@@ -75,6 +126,7 @@ namespace EMotionFX
                     ->Field("AttachmentTarget", &Configuration::m_attachmentTarget)
                     ->Field("SkinningMethod", &Configuration::m_skinningMethod)
                     ->Field("LODLevel", &Configuration::m_lodLevel)
+                    ->Field("BoundingBoxConfig", &Configuration::m_bboxConfig)
                     ->Field("ForceJointsUpdateOOV", &Configuration::m_forceUpdateJointsOOV)
                 ;
             }
@@ -205,6 +257,7 @@ namespace EMotionFX
                 {
                     cfg.m_actorAsset->GetActor()->LoadRemainingAssets();
                 }
+                cfg.m_actorAsset.BlockUntilLoadComplete();
             }
 
             AZ::TickBus::Handler::BusConnect();
@@ -217,6 +270,13 @@ namespace EMotionFX
             if (cfg.m_attachmentTarget.IsValid())
             {
                 AttachToEntity(cfg.m_attachmentTarget, cfg.m_attachmentType);
+            }
+
+            if (!m_actorInstance)
+            {
+                AZ_Error("ActorComponent", false, "Failed to create actor instance for entity \"%s\" %s.",
+                         GetEntity()->GetName().c_str(),
+                         GetEntityId().ToString().c_str());
             }
         }
 
@@ -239,6 +299,32 @@ namespace EMotionFX
         }
 
         //////////////////////////////////////////////////////////////////////////
+        void ActorComponent::ListenForAttachmentOwnerTransformChanges() {
+            static const auto IsTransitiveParentOf = [](const AZ::EntityId& parent, AZ::EntityId candidate) {
+                while (candidate.IsValid()) {
+                    EBUS_EVENT_ID_RESULT(candidate, candidate, AZ::TransformBus, GetParentId);
+                    if (candidate == parent) { return true; }
+                }
+                return false;
+            };
+
+            // Propogate transform changes of the attachment target (`targetEntityId`) to the attachment (this entity)
+            // but only if this entity is not a transitive child of the attachment target; if it is, then the transform
+            // hierarchy naturally ensures that transform changes of the parent (attachment target) are propogated to the
+            // child (attachment). If it is not, warn about that case, as the synchronization is not accurate!
+            if (!IsTransitiveParentOf(m_attachmentTargetEntityId, GetEntityId())) {
+                AZ::TransformNotificationBus::MultiHandler::BusConnect(m_attachmentTargetEntityId);
+
+                AZ_Warning("ActorComponent", false,
+                           "Actor %s has attachment %s which is not a transitive child entity of the root actor entity. "
+                           "This may lead to the attachment desynchronizing from its owner. "
+                           "To fix this, parent the attachment entity to the root actor entity, directly or transitively.",
+                           m_attachmentTargetEntityId.ToString().c_str(),
+                           GetEntityId().ToString().c_str()
+                );
+            }
+        }
+
         void ActorComponent::AttachToEntity(AZ::EntityId targetEntityId, [[maybe_unused]] AttachmentType attachmentType)
         {
             if (targetEntityId.IsValid() && targetEntityId != GetEntityId())
@@ -246,8 +332,8 @@ namespace EMotionFX
                 ActorComponentNotificationBus::Handler::BusDisconnect();
                 ActorComponentNotificationBus::Handler::BusConnect(targetEntityId);
 
-                AZ::TransformNotificationBus::MultiHandler::BusConnect(targetEntityId);
                 m_attachmentTargetEntityId = targetEntityId;
+                ListenForAttachmentOwnerTransformChanges();
 
                 // There's no guarantee that we will receive a on transform change call for the target entity because of the entity activate order.
                 // Enforce a transform query on target to get the correct initial transform.
@@ -379,6 +465,8 @@ namespace EMotionFX
             AZ::TransformNotificationBus::MultiHandler::BusConnect(GetEntityId());
 
             m_actorInstance->UpdateWorldTransform();
+            // Set bounds update mode and compute bbox first time 
+            m_configuration.m_bboxConfig.SetAndUpdate(m_actorInstance.get());
             m_actorInstance->UpdateBounds(0, ActorInstance::EBoundsType::BOUNDS_STATIC_BASED);
 
             // Creating the render actor AFTER both actor asset and mesh asset loaded.
@@ -496,6 +584,16 @@ namespace EMotionFX
                         m_actorInstance->SetLocalSpaceScale(localTransform.mScale);
                     )
                 }
+            }
+        }
+
+        void ActorComponent::OnParentChanged(AZ::EntityId, AZ::EntityId) {
+            const AZ::EntityId* busIdPtr = AZ::TransformNotificationBus::GetCurrentBusId();
+            if (m_attachmentTargetEntityId.IsValid() && busIdPtr && *busIdPtr == GetEntityId())
+            {
+                // When this actor is an attachment, and its parent changes, re-check whether manual transform updates need to be performed
+                AZ::TransformNotificationBus::MultiHandler::BusDisconnect(m_attachmentTargetEntityId);
+                ListenForAttachmentOwnerTransformChanges();
             }
         }
 

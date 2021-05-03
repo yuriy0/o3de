@@ -18,12 +18,15 @@
 #include "Asset/RuntimeAsset.h"
 #include "Execution/ExecutionState.h"
 
+#include <ScriptCanvas/Execution/VariableBus.h>
+
 struct lua_State;
 
 namespace ScriptCanvas
 {
     class ExecutionStateInterpreted
         : public ExecutionState
+        , public VariableRuntimeRequestBus::Handler
     {
     public:
         AZ_RTTI(ExecutionStateInterpreted, "{824E3CF1-5403-4AF7-AC5F-B69699FFF669}", ExecutionState);
@@ -61,6 +64,10 @@ namespace ScriptCanvas
 
         void ReleaseExecutionStateUnchecked();
 
+        // VariableRuntimeRequestBus
+        VariableSetResult SetVariable(AZStd::string_view name, const AZStd::any& value) override;
+        VariableGetResult GetVariable(AZStd::string_view name) override;
+
     protected:
         lua_State* m_luaState;
 
@@ -68,6 +75,7 @@ namespace ScriptCanvas
         
     private:
         AZ::Data::Asset<AZ::ScriptAsset> m_interpretedAsset;
+        const RuntimeData& m_runtimeData;
         int m_luaRegistryIndex = LUA_NOREF;
     };
 } 

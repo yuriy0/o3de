@@ -307,6 +307,9 @@ namespace ScriptCanvas
                 , bool printModelToConsole = false);
         };
 
+        struct VariableSourceInfo;
+        using RuntimeVariableInfo = AZStd::unordered_map<AZStd::string, VariableSourceInfo>;
+
         AZStd::string ToTypeSafeEBusResultName(const Data::Type& type);
         AZStd::string ToSafeName(const AZStd::string& name);
         NamespacePath ToNamespacePath(AZStd::string_view path, AZStd::string_view name);

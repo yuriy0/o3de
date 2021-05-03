@@ -234,6 +234,7 @@ namespace AZ
         /// TickRequestBus
         float GetTickDeltaTime() override;
         ScriptTimePoint GetTimeAtCurrentTick() override;
+        AZStd::thread_id GetTickThreadId() override { return m_tickThreadId; }
         //////////////////////////////////////////////////////////////////////////
 
         Descriptor& GetDescriptor() { return m_descriptor; }
@@ -433,5 +434,7 @@ namespace AZ
         };
         using EventLoggerPtr = AZStd::unique_ptr<AZ::Debug::LocalFileEventLogger, EventLoggerDeleter>;
         EventLoggerPtr m_eventLogger;
+
+        AZStd::thread_id                            m_tickThreadId;
     };
 }

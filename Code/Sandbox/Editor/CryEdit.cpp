@@ -392,6 +392,11 @@ void CCryEditApp::RegisterActionHandlers()
     ON_COMMAND(ID_GENERATORS_STATICOBJECTS, OnGeneratorsStaticobjects)
     ON_COMMAND(ID_FILE_EXPORTTOGAMENOSURFACETEXTURE, OnFileExportToGameNoSurfaceTexture)
     ON_COMMAND(ID_VIEW_SWITCHTOGAME, OnViewSwitchToGame)
+    MainWindow::instance()->GetActionManager()->RegisterActionHandler(ID_VIEW_SWITCHTOGAME_FULLSCREEN, [this]() {
+        auto fs = gEnv->pConsole->GetCVar("ed_previewGameInFullscreen_once");
+        fs->Set(1);
+        OnViewSwitchToGame();
+    });
     ON_COMMAND(ID_EDIT_SELECTALL, OnEditSelectAll)
     ON_COMMAND(ID_EDIT_SELECTNONE, OnEditSelectNone)
     ON_COMMAND(ID_EDIT_DELETE, OnEditDelete)
@@ -438,6 +443,7 @@ void CCryEditApp::RegisterActionHandlers()
     ON_COMMAND(ID_TOOLBAR_WIDGET_REDO, OnRedo)
     ON_COMMAND(ID_RELOAD_TEXTURES, OnReloadTextures)
     ON_COMMAND(ID_FILE_OPEN_LEVEL, OnOpenLevel)
+    ON_COMMAND(ID_FILE_RELOAD_LEVEL, OnReloadLevel)
 #ifdef ENABLE_SLICE_EDITOR
     ON_COMMAND(ID_FILE_NEW_SLICE, OnCreateSlice)
     ON_COMMAND(ID_FILE_OPEN_SLICE, OnOpenSlice)
@@ -846,6 +852,12 @@ void CCryEditApp::OnUpdateDocumentReady(QAction* action)
 void CCryEditApp::OnUpdateFileOpen(QAction* action)
 {
     action->setEnabled(!m_bIsExportingLegacyData && !m_creatingNewLevel && !m_openingLevel && !m_savingLevel);
+}
+
+//////////////////////////////////////////////////////////////////////////
+void CCryEditApp::OnUpdateReloadLevel(QAction * action)
+{
+    action->setEnabled(GetIEditor() && GetIEditor()->GetDocument() && GetIEditor()->GetDocument()->IsDocumentReady() && !m_creatingNewLevel && !m_openingLevel && !m_savingLevel);
 }
 
 bool CCryEditApp::ShowEnableDisableGemDialog(const QString& title, const QString& message)
@@ -4279,6 +4291,21 @@ void CCryEditApp::OnOpenLevel()
 }
 
 //////////////////////////////////////////////////////////////////////////
+void CCryEditApp::OnReloadLevel()
+{
+    if (auto* doc = GetIEditor()->GetDocument())
+    {
+        OpenDocumentFileWrapper([&]{
+            if (doc->SaveModified())
+            {
+                // Actually open the level file
+                doc->OnOpenDocument(doc->GetLevelPathName());
+            }
+        });
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
 void CCryEditApp::OnOpenSlice()
 {
     QString fileName = QFileDialog::getOpenFileName(MainWindow::instance(),
@@ -4294,6 +4321,14 @@ void CCryEditApp::OnOpenSlice()
 
 //////////////////////////////////////////////////////////////////////////
 CCryEditDoc* CCryEditApp::OpenDocumentFile(LPCTSTR lpszFileName)
+{
+    return OpenDocumentFileWrapper([&]{
+        m_pDocManager->OpenDocumentFile(lpszFileName, true);
+    });
+}
+
+template<class DoOpen>
+inline CCryEditDoc* CCryEditApp::OpenDocumentFileWrapper(DoOpen&& doOpen)
 {
     if (m_openingLevel)
     {
@@ -4335,7 +4370,7 @@ CCryEditDoc* CCryEditApp::OpenDocumentFile(LPCTSTR lpszFileName)
 
         // in this case, we set bAddToMRU to always be true because adding files to the MRU list
         // automatically culls duplicate and normalizes paths anyway
-        m_pDocManager->OpenDocumentFile(lpszFileName, true);
+        doOpen();
 
         if (openDocTraceHandler.HasAnyErrors())
         {

@@ -76,12 +76,14 @@
 #include "ProcessInfo.h"
 #include "IPostEffectGroup.h"
 #include "EditorPreferencesPageGeneral.h"
+#include "LayoutWnd.h"
 
 #include "ViewPane.h"
 #include "CustomResolutionDlg.h"
 #include "AnimationContext.h"
 #include "Objects/SelectionGroup.h"
 #include "Core/QtEditorApplication.h"
+#include "MainWindow.h"
 
 // ComponentEntityEditorPlugin
 #include <Plugins/ComponentEntityEditorPlugin/Objects/ComponentEntityObject.h>
@@ -1543,7 +1545,14 @@ void CRenderViewport::OnEditorNotifyEvent(EEditorNotifyEvent event)
             }
             else
             {
-                m_previousContext = SetCurrentContext();
+                if (ShouldPreviewFullscreen())
+                {
+                    StartFullscreenPreview();
+                }
+                else
+                {
+                    m_previousContext = SetCurrentContext();
+                }
             }
             SetCurrentCursor(STD_CURSOR_GAME);
         }
@@ -1565,13 +1574,15 @@ void CRenderViewport::OnEditorNotifyEvent(EEditorNotifyEvent event)
             {
                 outputToHMD->Set(0);
             }
-            RestorePreviousContext(m_previousContext);
-            m_bInRotateMode = false;
-            m_bInMoveMode = false;
-            m_bInOrbitMode = false;
-            m_bInZoomMode = false;
 
-            RestoreViewportAfterGameMode();
+            if (m_inFullscreenPreview)
+            {
+                StopFullscreenPreview();
+            }
+            else
+            {
+                RestoreAfterGameMode();
+            }
         }
         break;
 
@@ -4439,6 +4450,14 @@ CRenderViewport::SPreviousContext CRenderViewport::SetCurrentContext(int newWidt
     x.width = m_renderer->GetCurrentContextViewportWidth();
     x.height = m_renderer->GetCurrentContextViewportHeight();
     x.rendererCamera = m_renderer->GetCamera();
+    if (x.width <= 0)
+    {
+        x.width = x.rendererCamera.GetViewSurfaceX();
+    }
+    if (x.height <= 0)
+    {
+        x.height = x.rendererCamera.GetViewSurfaceZ();
+    }
 
     const float scale = CLAMP(gEnv->pConsole->GetCVar("r_ResolutionScale")->GetFVal(), MIN_RESOLUTION_SCALE, MAX_RESOLUTION_SCALE);
     const QSize newSize = WidgetToViewport(QSize(newWidth, newHeight)) * scale;
@@ -4674,6 +4693,150 @@ void CRenderViewport::RestoreViewportAfterGameMode()
     {
         SetViewTM(m_gameTM);
     }
+}
+
+bool CRenderViewport::ShouldPreviewFullscreen()
+{
+    CLayoutWnd* layout = GetIEditor()->GetViewManager()->GetLayout();
+    if (!layout)
+    {
+        AZ_Assert(false, "CRenderViewport: No View Manager layout");
+        return false;
+    }
+
+    // Doesn't work with split layout (TODO: figure out why and make it work)
+    if (layout->GetLayout() != EViewLayout::ET_Layout0) { return false; }
+
+    // Not supported in VR
+    if (gSettings.bEnableGameModeVR) { return false; }
+
+    // If level not loaded, don't preview in fullscreen (preview shouldn't work at all without a level, but it does)
+    if (auto ge = GetIEditor()->GetGameEngine())
+    {
+        if (!ge->IsLevelLoaded()) { return false; }
+    }
+
+    // Check 'ed_previewGameInFullscreen_once' and 'ed_previewGameInFullscreen' cvars
+    if (gEnv->pConsole)
+    {
+        if (auto v = gEnv->pConsole->GetCVar("ed_previewGameInFullscreen_once"))
+        {
+            if (v->GetIVal() != 0)
+            {
+                v->Set(0);
+                return true;
+            }
+        }
+
+        {
+            auto v = gEnv->pConsole->GetCVar("ed_previewGameInFullscreen");
+            return v && v->GetIVal() != 0; //  if it doesn't exist, assume its value is 0
+        }
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void CRenderViewport::StartFullscreenPreview()
+{
+    AZ_Assert(!m_inFullscreenPreview, AZ_FUNCTION_SIGNATURE " - called when already in full screen preview");
+    m_inFullscreenPreview = true;
+
+    QScreen* screen = QGuiApplication::primaryScreen();
+    QRect  screenGeometry = screen->geometry();
+    int fullscreenWidth = screenGeometry.width();
+    int fullscreenHeight = screenGeometry.height();
+
+    // Unparent this and show it, which turns it into a free floating window
+    // Also set style to frameless and disable resizing by user
+    setParent(nullptr);
+    setWindowFlag(Qt::FramelessWindowHint, true);
+    setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, true);
+    setFixedSize(screenGeometry.size());
+    move(QPoint(screenGeometry.x(), screenGeometry.y()));
+    showMaximized();
+
+    // Hide the main window
+    MainWindow::instance()->hide();
+
+    // Set the current context to a size equal to the screen size
+    m_previousContext = SetCurrentContext(fullscreenWidth, fullscreenHeight);
+}
+
+void CRenderViewport::StopFullscreenPreview()
+{
+    AZ_Assert(m_inFullscreenPreview, AZ_FUNCTION_SIGNATURE " - called when not in full screen preview");
+    m_inFullscreenPreview = false;
+
+    // Unset frameless window flags
+    setWindowFlag(Qt::FramelessWindowHint, false);
+    setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
+
+    // Unset fixed size (note that 50x50 is the minimum set in the constructor)
+    setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    setMinimumSize(50, 50);
+
+    // Attach this viewport to the primary view pane (whose index is 0).
+    if (CLayoutWnd* layout = GetIEditor()->GetViewManager()->GetLayout())
+    {
+        if (CLayoutViewPane* viewPane = layout->GetViewPaneByIndex(0))
+        {
+            // Force-reattach this viewport to its view pane by first detaching
+            viewPane->DetachViewport();
+            viewPane->AttachViewport(this);
+
+            // Set the main widget of the layout, which causes this widgets size to be bound to the layout
+            // and the viewport title bar to be displayed
+            layout->SetMainWidget(viewPane);
+        }
+        else
+        {
+            AZ_Assert(false, "CRenderViewport: No view pane with ID 0 (primary view pane)");
+        }
+    }
+    else
+    {
+        AZ_Assert(false, "CRenderViewport: No View Manager layout");
+    }
+
+    // Set this as the selected viewport
+    GetIEditor()->GetViewManager()->SelectViewport(this);
+
+    // Show this widget (setting flags may hide it)
+    showNormal();
+
+    // Show the main window
+    MainWindow::instance()->show();
+
+    // Restore renderer context
+    // Full screen preview only allowed from main viewport, so restore to main viewport (unclear what this actually does...)
+    auto previousContext = m_previousContext;
+    m_previousContext.mainViewport = true;
+    RestoreAfterGameMode();
+
+    // Also set camera properties manually, which is not done by RestorePreviousContext
+    // if the context hwnd does not change.
+    m_renderer->ChangeViewport(0, 0, previousContext.width, previousContext.height, previousContext.mainViewport);
+    m_renderer->SetCamera(previousContext.rendererCamera);
+}
+
+void CRenderViewport::RestoreAfterGameMode()
+{
+    // Restore context
+    RestorePreviousContext(m_previousContext);
+
+    // Set all editor gizmo modes to default
+    m_bInRotateMode = false;
+    m_bInMoveMode = false;
+    m_bInOrbitMode = false;
+    m_bInZoomMode = false;
+
+    // Restore viewport
+    RestoreViewportAfterGameMode();
 }
 
 #include <moc_RenderViewport.cpp>

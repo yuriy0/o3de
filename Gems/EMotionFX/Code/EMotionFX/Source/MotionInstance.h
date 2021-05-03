@@ -86,8 +86,9 @@ namespace EMotionFX
          * @param oldTime The previous time value of the current motion time.
          * @param newTime The new current motion time.
          * @param outEventBuffer The output event buffer. This can be nullptr if you want to skip triggering events.
+         * @param The animgraph instance relative to which to synchronize event times. Unused if 'outEventBuffer' is null
          */
-        void UpdateByTimeValues(float oldTime, float newTime, AnimGraphEventBuffer* outEventBuffer);
+        void UpdateByTimeValues(float oldTime, float newTime, AnimGraphEventBuffer* outEventBuffer, AnimGraphInstance* animGraphInstance);
 
         void ProcessEvents(float oldTime, float newTime);
 

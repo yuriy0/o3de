@@ -21,6 +21,7 @@ class UiCanvasProxyRefComponent
     , public UiCanvasRefBus::Handler
     , public UiCanvasProxyRefBus::Handler
     , public UiCanvasRefNotificationBus::Handler
+    , public UiCanvasAssetRefNotificationBus::Handler
 {
 public: // member functions
 
@@ -39,6 +40,9 @@ public: // member functions
     // UiCanvasRefListener
     void OnCanvasRefChanged(AZ::EntityId uiCanvasRefEntity, AZ::EntityId uiCanvasEntity) override;
     // ~UiCanvasRefListener
+
+    // UiCanvasAssetRefNotificationBus
+    void OnCanvasLoadedIntoEntity(AZ::EntityId uiCanvasEntity) override;
 
 public: // static member functions
 

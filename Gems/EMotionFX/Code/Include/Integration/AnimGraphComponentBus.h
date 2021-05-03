@@ -23,6 +23,8 @@
 namespace EMotionFX
 {
     class AnimGraphInstance;
+    class AnimGraphPlaySpeedModifier;
+    using AnimGraphPlaySpeedModifierPtr = AZStd::shared_ptr<AnimGraphPlaySpeedModifier>;
 }
 
 namespace EMotionFX
@@ -44,11 +46,33 @@ namespace EMotionFX
             /// \return pointer to anim graph instance.
             virtual EMotionFX::AnimGraphInstance* GetAnimGraphInstance() { return nullptr; }
 
+            /// Add a playspeed modifier which is inactive.
+            /// \param modifier The play speed modifier to apply. Must be zero or positive.
+            virtual AnimGraphPlaySpeedModifierPtr AddPlayspeedModifier(float modifier) = 0;
+
             /// Retrieve parameter index for a given parameter name.
             /// Retrieving the index and using it to set parameter values is more performant than setting by name.
             /// \param parameterName - name of parameter for which to retrieve the index.
             /// \return parameter index
             virtual AZ::u32 FindParameterIndex(const char* parameterName) = 0;
+
+            /// Updates a anim graph property given a value whose dynamic type matches the property type
+            /// \param parameterIndex - index of parameter to set
+            /// \param value - value to set
+            virtual void SetParameter(AZ::u32 parameterIndex, AZStd::any value) = 0;
+
+            /// Retrieves a anim graph property as a dynamic value
+            /// \param parameterIndex - index of parameter to set
+            virtual AZStd::any GetParameter(AZ::u32 parameterIndex) = 0;
+
+            /// Updates a anim graph property given a value whose dynamic type matches the property type
+            /// \param parameterName - name of parameter to set
+            /// \param value - value to set
+            virtual void SetNamedParameter(const char* parameterName, AZStd::any value) = 0;
+
+            /// Retrieves a anim graph property as a dynamic value
+            /// \param parameterName - name of parameter to set
+            virtual AZStd::any GetNamedParameter(const char* parameterName) = 0;
 
             /// Retrieve parameter name for a given parameter index.
             /// \param parameterName - index of parameter for which to retrieve the name.
@@ -195,9 +219,45 @@ namespace EMotionFX
             /// Making a request to desync from the anim graph to its leader graph
             /// \param leaderEntityId - the entity id of another anim graph.
             virtual void DesyncAnimGraph(AZ::EntityId leaderEntityId) = 0;
+
+            /// Set the current active motion set to the given child
+            virtual void SetMotionSet(const AZStd::string& motionSetName) = 0;
         };
 
         using AnimGraphComponentRequestBus = AZ::EBus<AnimGraphComponentRequests>;
+
+		class AnimGraphNodeRequests
+			: public AZ::ComponentBus
+		{
+		public:
+			virtual ~AnimGraphNodeRequests() = default;
+			
+			static const AZ::EBusHandlerPolicy HandlerPolicy = AZ::EBusHandlerPolicy::Single;
+
+			/// Retrieves a node Id by name given.
+			/// \param parameterName - name of node to get
+			virtual AZ::u64 GetNodeIdByName(const char* nodeName) = 0;
+
+			/// Retrieves the duration of an animgraph node
+			virtual float GetDuration(const char* nodeName) = 0;
+
+			/// Retrieves the current play time of an animgraph node
+			virtual float GetPlaytime(const char* nodeName) = 0;
+
+			/// Retrieves the play speed of an animgraph node
+			virtual float GetPlayspeed(const char* nodeName) = 0;
+
+			/// Sets the current play time of an animgraph node
+			virtual void SetPlayTime(const char* nodeName, float playtime) = 0;
+
+			/// Sets the play speed of an animgraph node
+			virtual void SetPlaySpeed(const char* nodeName, float speed) = 0;
+
+			/// Rewind the anim graph node
+			virtual void Rewind(const char* nodeName) = 0;
+		};
+
+		using AnimGraphNodeRequestBus = AZ::EBus<AnimGraphNodeRequests>;
 
         /**
          * EmotionFX Anim Graph Component Notification Bus
@@ -239,6 +299,13 @@ namespace EMotionFX
             /// Notifies listeners when the component is destroying a graph instance.
             /// \param animGraphInstance - pointer to anim graph instance
             virtual void OnAnimGraphInstanceDestroyed(EMotionFX::AnimGraphInstance* /*animGraphInstance*/) {};
+
+            /// Notifies listeners when any parameter changes
+            /// \param animGraphInstance - pointer to anim graph instance
+            /// \param parameterIndex - index of changed parameter
+            /// \param beforeValue - value before the change
+            /// \param afterValue - value after the change
+            virtual void OnAnimGraphParameterChanged(EMotionFX::AnimGraphInstance* /*animGraphInstance*/, [[maybe_unused]] AZ::u32 parameterIndex, [[maybe_unused]] AZStd::any beforeValue, [[maybe_unused]] AZStd::any afterValue) {};
 
             /// Notifies listeners when a float parameter changes
             /// \param animGraphInstance - pointer to anim graph instance

@@ -22,6 +22,7 @@
 #include <AzToolsFramework/UI/PropertyEditor/PropertyEditorAPI.h>
 #include <AzToolsFramework/API/ToolsApplicationAPI.h>
 #include <AzToolsFramework/API/EditorAssetSystemAPI.h>
+#include <AzToolsFramework/API/EntityCompositionRequestBus.h>
 #include <AzCore/std/sort.h>
 #include <AzCore/Script/ScriptContextDebug.h>
 
@@ -779,6 +780,7 @@ namespace AzToolsFramework
             if (m_scriptComponent.LoadInContext())
             {
                 LoadProperties();
+                ServicesHaveChanged();
             }
 
             if (pausedBreakpoints)
@@ -917,6 +919,7 @@ namespace AzToolsFramework
             if (m_scriptAsset != m_scriptComponent.GetScript())
             {
                 m_scriptComponent.m_properties.Clear();
+                m_scriptComponent.ClearServices();
                 ClearDataElements();
             }
 
@@ -933,6 +936,17 @@ namespace AzToolsFramework
             }
 
             return AZ::Edit::PropertyRefreshLevels::EntireTree;
+        }
+
+        AZ::u32 AzToolsFramework::Components::ScriptEditorComponent::ServicesHaveChanged()
+        {
+            bool isDuringUndoRedo;
+            ToolsApplicationRequests::Bus::BroadcastResult(isDuringUndoRedo, &ToolsApplicationRequests::Bus::Events::IsDuringUndoRedo);
+            if (!isDuringUndoRedo)
+            {
+                EntityCompositionRequestBus::Broadcast(&EntityCompositionRequestBus::Events::ScrubEntities, AZStd::vector<AZ::Entity*>({ GetEntity() }));
+            }
+            return AZ::Edit::PropertyRefreshLevels::None;
         }
 
         void ScriptEditorComponent::LaunchLuaEditor(const AZ::Data::AssetId& assetId, const AZ::Data::AssetType&)
@@ -998,6 +1012,30 @@ namespace AzToolsFramework
         {
             const ScriptEditorComponent* owner = reinterpret_cast<const ScriptEditorComponent*>(handlerPtr);
             return owner->GetDataElement(elementPtr, elementType);
+        }
+
+        void ScriptEditorComponent::GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType & provided) const {
+            for (auto s : m_scriptComponent.m_providedServices) {
+                provided.push_back(s);
+            }
+        }
+
+        void ScriptEditorComponent::GetDependentServices(AZ::ComponentDescriptor::DependencyArrayType & dependent) const {
+            for (auto s : m_scriptComponent.m_dependentServices) {
+                dependent.push_back(s);
+            }
+        }
+
+        void ScriptEditorComponent::GetRequiredServices(AZ::ComponentDescriptor::DependencyArrayType & required) const {
+            for (auto s : m_scriptComponent.m_requiredServices) {
+                required.push_back(s);
+            }
+        }
+
+        void ScriptEditorComponent::GetIncompatibleServices(AZ::ComponentDescriptor::DependencyArrayType & incompatible) const {
+            for (auto s : m_scriptComponent.m_incompatibleServices) {
+                incompatible.push_back(s);
+            }
         }
 
         void ScriptEditorComponent::Reflect(AZ::ReflectContext* context)

@@ -14,6 +14,7 @@
 
 #include "Parameter.h"
 #include <MCore/Source/Config.h>
+#include <AzCore/std/containers/unordered_set.h>
 
 namespace MCore
 {
@@ -53,6 +54,7 @@ namespace EMotionFX
         virtual bool SetDefaultValueFromAttribute(MCore::Attribute* attribute) = 0;
         virtual bool SetMinValueFromAttribute(MCore::Attribute* attribute) { AZ_UNUSED(attribute); return false; }
         virtual bool SetMaxValueFromAttribute(MCore::Attribute* attribute) { AZ_UNUSED(attribute); return false; }
+        virtual AZStd::unordered_set<AZ::TypeId> GetAcceptedTypes() const = 0;
     };
 
     typedef AZStd::vector<ValueParameter*> ValueParameterVector;

@@ -24,7 +24,6 @@
 #include <scenesrg.srgi>
 #include <Atom/RPI/ShaderResourceGroups/DefaultDrawSrg.azsli>
 #include <Atom/Features/PBR/DefaultObjectSrg.azsli>
-#include <Atom/Features/PBR/ForwardPassSrg.azsli>
 
 // Math
 #include <Atom/RPI/Math.azsli>

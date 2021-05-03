@@ -35,6 +35,9 @@ namespace EMotionFX
 
         ValueType GetDefaultValue() const { return m_defaultValue; }
         void SetDefaultValue(const ValueType& newValue) { m_defaultValue = newValue; }
+        AZStd::unordered_set<AZ::TypeId> GetAcceptedTypes() const override {
+            return { AZ::AzTypeInfo<ValueType>::Uuid() };
+        };
 
     protected:
         ValueType m_defaultValue;

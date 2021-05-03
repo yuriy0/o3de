@@ -181,6 +181,7 @@ set(FILES
     Include/ScriptCanvas/Execution/RuntimeBus.h
     Include/ScriptCanvas/Execution/RuntimeComponent.h
     Include/ScriptCanvas/Execution/RuntimeComponent.cpp
+    Include/ScriptCanvas/Execution/VariableBus.h
     Include/ScriptCanvas/Execution/Interpreted/ExecutionInterpretedAPI.h
     Include/ScriptCanvas/Execution/Interpreted/ExecutionInterpretedAPI.cpp
     Include/ScriptCanvas/Execution/Interpreted/ExecutionInterpretedCloningAPI.h

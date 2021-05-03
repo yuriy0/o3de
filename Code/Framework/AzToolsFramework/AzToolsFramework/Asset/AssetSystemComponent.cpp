@@ -270,8 +270,8 @@ namespace AzToolsFramework
             auto foundIt = m_assetSourceRelativePathToFullPathCache.find(relPath);
             if (foundIt != m_assetSourceRelativePathToFullPathCache.end())
             {
-                fullPath = foundIt->second;
-                return true;
+                fullPath = foundIt->second.GetValueOr("");
+                return foundIt->second.IsSuccess();
             }
 
             AzFramework::SocketConnection* engineConnection = AzFramework::SocketConnection::GetInstance();
@@ -300,6 +300,7 @@ namespace AzToolsFramework
             else
             {
                 fullPath = "";
+                m_assetSourceRelativePathToFullPathCache[relPath] = AZ::Failure();
                 return false;
             }
         }

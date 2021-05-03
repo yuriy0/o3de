@@ -330,6 +330,12 @@ QVariant OutlinerListModel::dataForName(const QModelIndex& index, int role) cons
     return dataForAll(index, role);
 }
 
+bool OutlinerListModel::GetShouldToggleRecursively() const
+{
+    const auto kbMods = QApplication::keyboardModifiers();
+    return !kbMods.testFlag(Qt::ControlModifier);
+}
+
 QVariant OutlinerListModel::GetEntityIcon(const AZ::EntityId& id) const
 {
     AZ::Entity* entity = nullptr;
@@ -581,11 +587,11 @@ bool OutlinerListModel::setData(const QModelIndex& index, const QVariant& value,
             switch (index.column())
             {
                 case ColumnVisibilityToggle:
-                    AzToolsFramework::ToggleEntityVisibility(entityId);
+                    AzToolsFramework::ToggleEntityVisibility(entityId, GetShouldToggleRecursively());
                     break;
 
                 case ColumnLockToggle:
-                    AzToolsFramework::ToggleEntityLockState(entityId);
+                    AzToolsFramework::ToggleEntityLockState(entityId, GetShouldToggleRecursively());
                     break;
             }
         }

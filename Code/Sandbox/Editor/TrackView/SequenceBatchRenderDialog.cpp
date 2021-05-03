@@ -47,7 +47,12 @@ namespace
 {
     const int g_useActiveViewportResolution = -1;   // reserved value to indicate the use of the active viewport resolution
     int resolutions[][2] = {
-        { 1280, 720 }, { 1920, 1080 }, { 1998, 1080 }, { 2048, 858 }, { 2560, 1440 }, 
+        {1280, 720},
+        {1920, 1080},
+        {1998, 1080},
+        {2048, 858},
+        {2560, 1440},
+        {3840, 2160},
         { g_useActiveViewportResolution, g_useActiveViewportResolution }    // active viewport res must be the last element of the resolution array
     };
 

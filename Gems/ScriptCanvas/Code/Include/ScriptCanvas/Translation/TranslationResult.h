@@ -64,6 +64,9 @@ namespace ScriptCanvas
             // when the system can't pass in the input from C++.
             AZStd::vector<AZStd::pair<VariableId, AZStd::any>> m_staticVariables;
 
+            // Metadata relating editor graph variables to runtime graph variables
+            Grammar::RuntimeVariableInfo m_runtimeVariableInfo;
+
             RuntimeInputs() = default;
             RuntimeInputs(const RuntimeInputs&) = default;
             RuntimeInputs(RuntimeInputs&&);

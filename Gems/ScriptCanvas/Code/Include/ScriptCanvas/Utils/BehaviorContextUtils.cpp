@@ -61,6 +61,47 @@ namespace ScriptCanvas
         return { typeID };
     }
 
+    template<class InputIterator, class Predicate>
+    constexpr auto find_if_opt(InputIterator first, InputIterator last, Predicate pred)
+        -> decltype(pred(*first))
+    {
+        for (; first != last; ++first)
+        {
+            if (auto x = pred(*first))
+            {
+                return x;
+            }
+        }
+        return {};
+    }
+
+    AZStd::optional<AZ::BehaviorMethod*> BehaviorContextUtils::FindMethodOrProperty(const AZ::BehaviorClass* behaviorClass, AZStd::string_view methodName)
+    {
+        if (const auto methodIter(behaviorClass->m_methods.find(methodName.data())); methodIter != behaviorClass->m_methods.end())
+        {
+            return { methodIter->second };
+        }
+
+        // try to find the matching property getter/setter
+        return find_if_opt(
+            behaviorClass->m_properties.begin(),
+            behaviorClass->m_properties.end(),
+            [&](const auto& nameProperty) -> AZStd::optional<AZ::BehaviorMethod*>
+            {
+                AZ::BehaviorProperty* prop = nameProperty.second;
+                if (!prop) return {};
+                if (prop->m_setter && prop->m_setter->m_name == methodName)
+                {
+                    return { prop->m_setter };
+                }
+                if (prop->m_getter && prop->m_getter->m_name == methodName)
+                {
+                    return { prop->m_getter };
+                }
+                return {};
+            });
+    }
+
     bool BehaviorContextUtils::FindClass(const AZ::BehaviorMethod*& outMethod, const AZ::BehaviorClass*& outClass, [[maybe_unused]] AZStd::string_view className, [[maybe_unused]] AZStd::string_view methodName, [[maybe_unused]] AZStd::string* outPrettyClassName, [[maybe_unused]] bool warnOnMissing)
     {
         AZ::BehaviorContext* behaviorContext(nullptr);
@@ -81,8 +122,8 @@ namespace ScriptCanvas
         const AZ::BehaviorClass* behaviorClass(classIter->second);
         AZ_Assert(behaviorClass, "BehaviorContext Class entry %s has no class pointer", className.data());
 
-        const auto methodIter(behaviorClass->m_methods.find(methodName.data()));
-        if (methodIter == behaviorClass->m_methods.end())
+        const auto mbMethod = FindMethodOrProperty(behaviorClass, methodName);
+        if (!mbMethod)
         {
             AZ_Warning("Script Canvas", !warnOnMissing, "No method by name of %s found in BehaviorContext class %s", methodName.data(), className.data());
             return false;
@@ -90,7 +131,7 @@ namespace ScriptCanvas
 
         // this argument is the first argument...so perhaps remove the distinction between class and member functions, since it probably won't follow polymorphism
         // if it will, keep the distinction, and add the first argument separately
-        AZ::BehaviorMethod* method(methodIter->second);
+        AZ::BehaviorMethod* method(*mbMethod);
         if (!method)
         {
             AZ_Warning("Script Canvas", !warnOnMissing, "BehaviorContext Method entry %s has no method pointer", methodName.data());

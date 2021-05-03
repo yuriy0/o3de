@@ -27,6 +27,8 @@ namespace ScriptCanvas
         static const AZ::EBusHandlerPolicy HandlerPolicy = AZ::EBusHandlerPolicy::Single;
 
         virtual void OnSignalOut(ID, SlotId) = 0;
+
+        virtual AZ::EntityId GetFunctionGraphEntity() = 0;
     };
 
     using FunctionRequestBus = AZ::EBus<FunctionRequests>;

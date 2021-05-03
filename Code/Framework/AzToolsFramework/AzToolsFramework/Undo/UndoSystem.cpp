@@ -43,12 +43,24 @@ namespace AzToolsFramework
             m_children.clear();
         }
 
+        static const char* BadURSequencePointRun =
+            "Children of URSequencePoint '%s' (0x%llu) changed during the execution of %s. "
+            "This is an internal error; you should not change the children of an Undo batch while it's running "
+            "(by adding or removing undo points by calling `SetParent(currentRunningUndoBatch)`)"
+            ;
+
         void URSequencePoint::RunUndo()
         {
             // reversed children, then me
-            for (ChildVec::reverse_iterator it = m_children.rbegin(); it != m_children.rend(); ++it)
+			auto children = m_children;
+            for (ChildVec::reverse_iterator it = children.rbegin(); it != children.rend(); ++it)
             {
                 (*it)->RunUndo();
+            }
+
+            if (m_children != children)
+            {
+                AZ_Warning("UndoSystem", false, BadURSequencePointRun, m_friendlyName.c_str(), (size_t)this, "RunUndo");
             }
 
             Undo();
@@ -58,9 +70,15 @@ namespace AzToolsFramework
             // me, then children forward
             Redo();
 
-            for (ChildVec::iterator it = m_children.begin(); it != m_children.end(); ++it)
+			auto children = m_children;
+            for (ChildVec::iterator it = children.begin(); it != children.end(); ++it)
             {
                 (*it)->RunRedo();
+            }
+
+            if (m_children != children)
+            {
+                AZ_Warning("UndoSystem", false, BadURSequencePointRun, m_friendlyName.c_str(), (size_t)this, "RunRedo");
             }
         }
 
@@ -119,6 +137,47 @@ namespace AzToolsFramework
 
             m_parent = parent;
             m_parent->AddChild(this);
+        }
+
+
+        bool URSequencePoint::LookupById::equal_URSequencePoint::operator()(URSequencePoint* cmd1, URSequencePoint* cmd2) const
+        {
+            return *cmd1 == cmd2->m_id;
+        }
+        size_t URSequencePoint::LookupById::hash_URSequencePoint::operator()(URSequencePoint* cmd) const
+        {
+            size_t h = 0;
+            AZStd::hash_combine(h, cmd->m_id);
+            return h;
+        }
+
+        URSequencePoint* URSequencePoint::LookupById::Find(URCommandID id)
+        {
+            auto it = m_set.find_as(id, AZStd::hash<URCommandID>{}, [](URCommandID id, URSequencePoint* sequencePoint) { return *sequencePoint == id; });
+            return it == m_set.end() ? nullptr : *it;
+        }
+        void URSequencePoint::MakeLookupById(LookupById& l, const AZ::Uuid& typeOfCommand)
+        {
+            if (this->RTTI_IsTypeOf(typeOfCommand))
+            {
+                l.m_set.insert(this);
+            }
+
+            for (ChildVec::const_iterator it = m_children.begin(); it != m_children.end(); ++it)
+            {
+                (*it)->MakeLookupById(l, typeOfCommand);
+            }
+        }
+
+        URSequencePoint::LookupById URSequencePoint::MakeLookupById(const AZ::Uuid& typeOfCommand)
+        {
+            LookupById l;
+            MakeLookupById(l, typeOfCommand);
+            return l;
+        }
+        bool URSequencePoint::LookupById::Empty() const
+        {
+            return m_set.empty();
         }
 
         void URSequencePoint::SetName(const AZStd::string& friendlyName)
@@ -362,6 +421,33 @@ namespace AzToolsFramework
                 }
             }
             return nullptr;
+        }
+
+        URSequencePoint* UndoStack::LookupById::Find(URCommandID id)
+        {
+            for (auto& l : m_SequencePointsBuffer) {
+                if (auto c = l.Find(id)) { return c; }
+            }
+            return nullptr;
+        }
+        bool UndoStack::LookupById::Empty() const
+        {
+            return m_SequencePointsBuffer.empty();
+        }
+
+        UndoStack::LookupById UndoStack::MakeLookupById(const AZ::Uuid & typeOfCommand)
+        {
+            LookupById l;
+
+            for (const auto sequencePoint : m_SequencePointsBuffer)
+            {
+                auto spL = sequencePoint->MakeLookupById(typeOfCommand);
+                if (!spL.Empty()) {
+                    l.m_SequencePointsBuffer.push_back(AZStd::move(spL));
+                }
+            }
+
+            return l;
         }
 
         URSequencePoint* UndoStack::GetTop()

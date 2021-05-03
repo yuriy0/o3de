@@ -25,6 +25,7 @@
 #include <AzCore/std/typetraits/void_t.h>
 #include <AzCore/std/typetraits/internal/is_template_copy_constructible.h>
 #include <AzCore/std/string/string.h>
+#include <AzCore/std/containers/unordered_map.h>
 
 namespace AZStd
 {
@@ -276,6 +277,8 @@ namespace AZStd
             other.move_from(AZStd::move(tmp));
         }
 
+        bool operator==(const any& o) const;
+
         /// Returns true if this hasn't been initialized yet or has been cleared
         bool empty() const { return type().IsNull(); }
         /// Returns the type id of the stored type
@@ -287,6 +290,11 @@ namespace AZStd
         const type_info& get_type_info() const { return m_typeInfo; }
 
     private:
+        using CompareFnT = AZStd::function<bool(const void*, const void*)>;
+        static AZStd::unordered_map<AZ::Uuid, CompareFnT> compareFunctions;
+        static bool make_compare_fn(AZ::Uuid type, CompareFnT& fn);
+        static bool find_compare_fn(AZ::Uuid type, CompareFnT& fn);
+
         // Any elements must be copy constructible
         template<typename ValueType, typename ParamType> // ParamType must be deduced to allow universal ref
         static void construct(AZStd::any* dest, ParamType&& value, AZStd::enable_if_t<AZStd::is_constructible_v<ValueType, ParamType>, AZStd::true_type*> = nullptr /* AZStd::is_constructible_v<ValueType, ParamType>*/)
@@ -528,6 +536,7 @@ namespace AZStd
         {
             result = *value;
         }
+        else CHECK_TYPE(bool)
         else CHECK_TYPE(char)
         else CHECK_TYPE(short)
         else CHECK_TYPE(int)

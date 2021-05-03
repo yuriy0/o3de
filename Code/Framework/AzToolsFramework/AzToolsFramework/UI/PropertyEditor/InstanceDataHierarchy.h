@@ -21,8 +21,11 @@
 
 #include <algorithm>
 
+#include <AzFramework/UI/ClassSelectionParameters.h>
+
 namespace AzToolsFramework
 {
+    using ClassSelectionParameters = AzFramework::ClassSelectionParameters;
     using DynamicEditDataProvider = AZStd::function<const AZ::Edit::ElementData*(const void* /*objectPtr*/, const AZ::SerializeContext::ClassData* /*classData*/)>;
 
     class InstanceDataHierarchy;
@@ -130,7 +133,7 @@ namespace AzToolsFramework
         //@}
         */
 
-        typedef AZStd::function<const AZ::SerializeContext::ClassData* (const AZ::Uuid& classId, const AZ::Uuid& typeId, AZ::SerializeContext* context)> SelectClassCallback;
+        typedef AZStd::function<const AZ::SerializeContext::ClassData* (const ClassSelectionParameters&, AZ::SerializeContext* context)> SelectClassCallback;
         typedef AZStd::function<bool (void* dataPtr, const AZ::SerializeContext::ClassElement* classElement, bool noDefaultData, AZ::SerializeContext* context)> FillDataClassCallback;
         typedef AZStd::function<void (const AZ::Uuid& classId)> CustomElementCreationHandler;
 

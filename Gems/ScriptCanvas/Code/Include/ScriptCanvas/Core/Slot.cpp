@@ -737,6 +737,13 @@ namespace ScriptCanvas
 
                 if (!matchForOutcome)
                 {
+                    // HACK! if the connection is from a data output of any type,
+                    // to a data output of type `AZStd::any', allow it
+                    if (otherType.GetAZType() == azrtti_typeid<AZStd::any>())
+                    {
+                        return AZ::Success();
+                    }
+
                     return matchForOutcome;
                 }
             }

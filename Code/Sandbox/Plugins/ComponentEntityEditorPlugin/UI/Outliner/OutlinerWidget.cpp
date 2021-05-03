@@ -242,10 +242,9 @@ OutlinerWidget::OutlinerWidget(QWidget* pParent, Qt::WindowFlags flags)
     if (serializeContext)
     {
         AzToolsFramework::ComponentPaletteUtil::ComponentDataTable componentDataTable;
-        AzToolsFramework::ComponentPaletteUtil::ComponentIconTable componentIconTable;
         AZStd::vector<AZ::ComponentServiceType> serviceFilter;
-
-        AzToolsFramework::ComponentPaletteUtil::BuildComponentTables(serializeContext, AzToolsFramework::AppearsInGameComponentMenu, serviceFilter, componentDataTable, componentIconTable);
+            
+        AzToolsFramework::ComponentPaletteUtil::BuildComponentTables(serializeContext, AzToolsFramework::AppearsInGameComponentMenu, serviceFilter, &componentDataTable, nullptr);
 
         for (const auto& categoryPair : componentDataTable)
         {

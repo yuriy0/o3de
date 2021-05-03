@@ -43,6 +43,10 @@ namespace EMotionFX
             ->ClassElement(AZ::Edit::ClassElements::EditorData, "")
                 ->Attribute(AZ::Edit::Attributes::AutoExpand, true)
                 ->Attribute(AZ::Edit::Attributes::Visibility, AZ::Edit::PropertyVisibility::ShowChildrenOnly)
+
+            ->DataElement(0, &Event::m_eventDatas,
+                "Event data",
+                "The data to be sent when this event fires")
             ;
     }
 

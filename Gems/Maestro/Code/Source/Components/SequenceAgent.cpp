@@ -67,6 +67,8 @@ namespace Maestro
 
         for (AZ::Component* component : entityComponents)
         {
+            component = component->GetTemplate();
+
             auto findClassIter = behaviorContext->m_typeToClassMap.find(GetComponentTypeUuid(*component));
             if (findClassIter != behaviorContext->m_typeToClassMap.end())
             {            

@@ -25,11 +25,12 @@ namespace MCore
      * This attribute represents one string.
      */
     class MCORE_API AttributeString
-        : public Attribute
+        : public Attribute_tpl<AZStd::string, AttributeString>
     {
         AZ_CLASS_ALLOCATOR(AttributeString, AttributeAllocator, 0)
 
         friend class AttributeFactory;
+        using Base = Attribute_tpl<AZStd::string, AttributeString>;
     public:
         enum
         {
@@ -68,12 +69,12 @@ namespace MCore
         AZStd::string   mValue;     /**< The string value. */
 
         AttributeString()
-            : Attribute(TYPE_ID)  { }
+            : Base(TYPE_ID)  { }
         AttributeString(const AZStd::string& value)
-            : Attribute(TYPE_ID)
+            : Base(TYPE_ID)
             , mValue(value) { }
         AttributeString(const char* value)
-            : Attribute(TYPE_ID)
+            : Base(TYPE_ID)
             , mValue(value) { }
         ~AttributeString()                              { mValue.clear(); }
 

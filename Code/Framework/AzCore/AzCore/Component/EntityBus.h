@@ -33,7 +33,38 @@ namespace AZ
     class EntitySystemEvents
         : public AZ::EBusTraits
     {
+    private:
+        template<class Bus>
+        struct EntitySystemEventsConnectionPolicy
+            : public EBusConnectionPolicy<Bus>
+        {
+            static void Dispatcher(typename Bus::HandlerNode& handler, AZ::Entity* ent) { 
+                auto entId = ent->GetId();
+
+                switch (ent->GetState()) {
+                case Entity::State::Init:
+                handler->OnEntityInitialized(entId);
+                break;
+                case Entity::State::Active:
+                handler->OnEntityActivated(entId);
+                break;
+                default:
+                break;
+                }
+            }
+
+            static void Connect(typename Bus::BusPtr& busPtr, typename Bus::Context& context, typename Bus::HandlerNode& handler, typename Bus::Context::ConnectLockGuard& connectLock, const typename Bus::BusIdType& id = NullBusId())
+            {
+                EBusConnectionPolicy<Bus>::Connect(busPtr, context, handler, connectLock, id);
+                EBUS_EVENT(AZ::ComponentApplicationBus, EnumerateEntities, [&handler](auto ent) { Dispatcher(handler, ent); });
+            }
+        };
+
     public:
+        /* Custom connection policy which sends events regarding all already-existing entities 
+         */
+        template<class Bus>
+        using ConnectionPolicy = EntitySystemEventsConnectionPolicy<Bus>;
 
         /**
          * Destroys the instance of the class.

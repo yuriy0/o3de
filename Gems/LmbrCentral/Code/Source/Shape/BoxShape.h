@@ -53,6 +53,7 @@ namespace LmbrCentral
         float DistanceSquaredFromPoint(const AZ::Vector3& point) override;
         AZ::Vector3 GenerateRandomPointInside(AZ::RandomDistributionType randomDistribution) override;
         bool IntersectRay(const AZ::Vector3& src, const AZ::Vector3& dir, float& distance) override;
+        ShapeTriangulation GetShapeTriangulation() override;
 
         // BoxShapeComponentRequestBus::Handler
         BoxShapeConfig GetBoxConfiguration() override { return m_boxShapeConfig; }
@@ -81,6 +82,12 @@ namespace LmbrCentral
         class BoxIntersectionDataCache
             : public IntersectionTestDataCache<BoxShapeConfig>
         {
+            BoxIntersectionDataCache()
+            {
+                m_triangulation.isExact = true;
+                m_triangulation.triangles.reserve(12); // Maximum of two triangles per box side
+            }
+
             void UpdateIntersectionParamsImpl(
                 const AZ::Transform& currentTransform, const BoxShapeConfig& configuration,
                 const AZ::Vector3& currentNonUniformScale = AZ::Vector3::CreateOne()) override;
@@ -92,6 +99,7 @@ namespace LmbrCentral
             AZ::Vector3 m_currentPosition; ///< Position of the Box.
             AZ::Vector3 m_scaledDimensions; ///< Dimensions of Box (including entity scale and non-uniform scale).
             bool m_axisAligned = true; ///< Indicates whether the box is axis or object aligned.
+            ShapeTriangulation m_triangulation;
         };
 
         BoxShapeConfig m_boxShapeConfig; ///< Underlying box configuration.

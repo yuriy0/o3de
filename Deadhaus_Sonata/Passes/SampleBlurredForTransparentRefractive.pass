@@ -1,0 +1,36 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "SampleBlurredForTransparentRefractivePassTemplate",
+            "PassClass": "FullScreenTriangle",
+            "Slots": [
+                {
+                    "Name": "Alpha",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ShaderInputName": "m_alpha"
+                },
+                {
+                    "Name": "OpaqueCopy",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ShaderInputName": "m_opaqueCopy"
+                },
+                { 
+                    "Name": "InputOutput",
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "RenderTarget"
+                }
+            ],
+            "PassData": {
+                "$type": "FullscreenTrianglePassData", 
+                "ShaderAsset": {
+                    "FilePath": "Shaders/SampleBlurredForTransparentRefractive.shader"
+                }
+            }
+        }
+    }
+}

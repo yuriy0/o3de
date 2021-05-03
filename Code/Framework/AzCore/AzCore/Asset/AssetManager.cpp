@@ -31,6 +31,18 @@
 #include <utility>
 #include <AzCore/Serialization/ObjectStream.h>
 
+
+#ifndef ASSET_MANAGER_DELAYED_RELEASE
+    // Delayed asset release fixes a common editor display issue but also causes other more severe issues, e.g.
+    // updating an FBX asset causes asset compilation to fail due to 'duplicate product IDs', or worse yet,
+    // goes into an infinite loop.
+    #define ASSET_MANAGER_DELAYED_RELEASE 0
+#endif
+
+#if ASSET_MANAGER_DELAYED_RELEASE
+#include <AzCore/Component/TickBus.h>
+#endif
+
 namespace AZ
 {
     namespace Data
@@ -1184,7 +1196,17 @@ namespace AZ
             }
             else
             {
+#if ASSET_MANAGER_DELAYED_RELEASE
+                // Note that if asset release is deferred, the asset may still be in the asset map but might otherwise not be found
+                // via e.g. FindAsset. Here we will recycle the asset data. This raises the refcount, so when deferred release occurs, it
+                // will decide not to release the asset after all.
+                AssetData* assetData = it->second;
+                Asset<AssetData> asset(assetReferenceLoadBehavior);
+                asset.SetData(assetData);
+                return asset;
+#else
                 AZ_Error("AssetDatabase", false, "Asset (id=%s, type=%s) already exists in the database! Asset not created!", assetId.ToString<AZ::OSString>().c_str(), assetType.ToString<AZ::OSString>().c_str());
+#endif
             }
             return Asset<AssetData>(assetReferenceLoadBehavior);
         }
@@ -1196,10 +1218,31 @@ namespace AZ
         {
             AZ_Assert(asset, "Cannot release NULL AssetPtr!");
 
+#if ASSET_MANAGER_DELAYED_RELEASE
+            AZ_Assert(asset->m_weakUseCount == 0, "ReleaseAsset called on an asset data which has (weak) references remaining");
+#endif
+
             if(m_suspendAssetRelease)
             {
                 return;
             }
+
+
+#if ASSET_MANAGER_DELAYED_RELEASE
+            AZ::SystemTickBus::QueueFunction([=]{
+
+            // Since calling ReleaseAsset, the refcount may have increased again; if so, abort releasing the asset
+            if (asset->m_weakUseCount > 0)
+            {
+                return;
+            }
+
+            // Since calling ReleaseAsset, releasing may have been suspended again; if so, abort releasing the asset
+            if (m_suspendAssetRelease)
+            {
+                return;
+            }
+#endif
 
             bool wasInAssetsHash = false; // We do support assets that are not registered in the asset manager (with the same ID too).
             bool destroyAsset = false;
@@ -1233,7 +1276,7 @@ namespace AZ
             // while the lock is not held since destroying the asset while holding the lock can cause a deadlock.
             if (destroyAsset)
             {
-                if(m_debugAssetEvents)
+                if (m_debugAssetEvents)
                 {
                     m_debugAssetEvents->ReleaseAsset(assetId);
                 }
@@ -1258,6 +1301,10 @@ namespace AZ
                     AZ_Assert(false, "No handler was registered for asset of type %s but it was still in the AssetManager as %s", assetType.ToString<AZ::OSString>().c_str(), asset->GetId().ToString<AZ::OSString>().c_str());
                 }
             }
+
+#if ASSET_MANAGER_DELAYED_RELEASE
+            });
+#endif
         }
 
         void AssetManager::OnAssetUnused(AssetData* asset)
@@ -1273,6 +1320,24 @@ namespace AZ
 
         void AssetManager::ReleaseAssetContainersForAsset(AssetData* asset)
         {
+#if ASSET_MANAGER_DELAYED_RELEASE
+            AZ_Assert(asset->m_useCount == 0, "ReleaseAssetContainersForAsset called on an asset data which has references remaining");
+
+            AZ::SystemTickBus::QueueFunction([=] {
+
+            // Since calling ReleaseAsset, the refcount may have increased again; if so, abort releasing the asset
+            if (asset->m_useCount > 0)
+            {
+                return;
+            }
+
+            // Since calling ReleaseAsset, releasing may have been suspended again; if so, abort releasing the asset
+            if (m_suspendAssetRelease)
+            {
+                return;
+            }
+#endif
+
             // Release any containers that were loading this asset
             AZStd::scoped_lock lock(m_assetContainerMutex);
 
@@ -1300,6 +1365,10 @@ namespace AZ
                     ++itr;
                 }
             }
+
+#if ASSET_MANAGER_DELAYED_RELEASE
+            });
+#endif
         }
 
         //=========================================================================

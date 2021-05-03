@@ -224,7 +224,7 @@ namespace Maestro
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
     void EditorSequenceComponent::RemoveEntityToAnimate(AZ::EntityId removedEntityId)
     {
-        const Maestro::SequenceAgentEventBusId ebusId(GetEntityId(), removedEntityId);
+        const Maestro::SequenceAgentEventBusId ebusId(GetEntity() ? GetEntityId() : AZ::EntityId(), removedEntityId);
 
         // Notify the SequenceAgentComponent that we're disconnecting from it
         EBUS_EVENT_ID(ebusId, Maestro::SequenceAgentComponentRequestBus, DisconnectSequence);

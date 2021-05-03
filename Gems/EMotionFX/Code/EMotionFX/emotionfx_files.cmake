@@ -171,6 +171,8 @@ set(FILES
     Source/AnimGraphInstance.h
     Source/AnimGraphManager.cpp
     Source/AnimGraphManager.h
+	Source/AnimGraphMotionEventAction.cpp
+	Source/AnimGraphMotionEventAction.h
     Source/AnimGraphMotionNode.cpp
     Source/AnimGraphMotionNode.h
     Source/AnimGraphNetworkSerializer.cpp
@@ -188,6 +190,7 @@ set(FILES
     Source/AnimGraphObjectFactory.cpp
     Source/AnimGraphObjectFactory.h
     Source/AnimGraphObjectIds.h
+    Source/AnimGraphPlaySpeedModifier.cpp
     Source/AnimGraphPose.cpp
     Source/AnimGraphPose.h
     Source/AnimGraphPosePool.cpp

@@ -32,62 +32,58 @@ AZ_POP_DISABLE_WARNING
 
 namespace AzToolsFramework
 {
-    const AZ::SerializeContext::ClassData* CreateContainerElementSelectClassCallback(const AZ::Uuid& classId, const AZ::Uuid& typeId, AZ::SerializeContext* context)
+    const AZ::SerializeContext::ClassData* CreateContainerElementSelectClassCallback(const ClassSelectionParameters& params, AZ::SerializeContext* context)
     {
-        AZStd::vector<const AZ::SerializeContext::ClassData*> derivedClasses;
-        context->EnumerateDerived(
-            [&derivedClasses]
-        (const AZ::SerializeContext::ClassData* classData, const AZ::Uuid& /*knownType*/) -> bool
+        auto mbClasses = params.GetClasses(*context);
+        if (!mbClasses.IsSuccess())
         {
-            derivedClasses.push_back(classData);
-            return true;
-        },
-            classId,
-            typeId
-            );
-
-        if (derivedClasses.empty())
-        {
-            const AZ::SerializeContext::ClassData* classData = context->FindClassData(typeId);
-            const char* className = classData ?
-                (classData->m_editData ? classData->m_editData->m_name : classData->m_name)
-                : "<unknown>";
-
             QMessageBox mb(QMessageBox::Information,
                 QObject::tr("Select Class"),
-                QObject::tr("No classes could be found that derive from \"%1\".").arg(className),
+                QObject::tr("%1").arg(mbClasses.GetError().c_str()),
                 QMessageBox::Ok);
             mb.exec();
             return nullptr;
         }
 
+
+        AZStd::vector<const AZ::SerializeContext::ClassData*> derivedClasses = mbClasses.GetValue();
+
+        // If there is only one option, don't prompt: just return that one
+        if (derivedClasses.size() == 1) { return derivedClasses[0]; }
+
         QStringList derivedClassNames;
         for (auto& derivedClass : derivedClasses)
         {
-            const char* derivedClassName = derivedClass->m_editData ? derivedClass->m_editData->m_name : derivedClass->m_name;
-            derivedClassNames.push_back(derivedClassName);
+            const char* className = derivedClass->m_editData ? derivedClass->m_editData->m_name : derivedClass->m_name;
+            const char* classDesc = derivedClass->m_editData ? derivedClass->m_editData->m_description : nullptr;
+            // TODO! we would like to display descriptions as tooltips, but QInputDialog doesn't support this.
+            // A custom widget like QInputDialog that does support tooltips per-option. QInputDialog itself is based on QComboBox (or QListView)
+            // which both support tooltips; it doesn't seem like those can be accessed through QInputDialog
+
+            AZStd::string itemName =
+                classDesc
+                ? AZStd::string::format("%s - %s", className, classDesc)
+                : AZStd::string::format(className)
+                ;
+            derivedClassNames.push_back(itemName.c_str());
         }
 
-        QString item;
+        // Configure dialogue
         QInputDialog dialog(nullptr);
         dialog.setWindowTitle(QObject::tr("Class to create"));
         dialog.setLabelText(QObject::tr("Classes"));
         dialog.setComboBoxItems(derivedClassNames);
         dialog.setTextValue(derivedClassNames.value(0));
+        dialog.setOption(QInputDialog::UseListViewForComboBoxItems);
         dialog.setComboBoxEditable(false);
         dialog.setModal(true);
         // Dialog box won't adjust size until after it is shown.
         dialog.show();
         dialog.adjustSize();
-        bool ok = dialog.exec();
-        if (ok)
-        {
-            item = dialog.textValue();
-        }
-        else
-        {
-            return nullptr;
-        }
+
+        bool ok = dialog.exec() != 0;
+        if (!ok) { return nullptr; }
+        QString item = dialog.textValue();
 
         // Reverse lookup the derived class from the class name selected
         for (int derivedClassNameIndex = 0; derivedClassNameIndex < derivedClassNames.size(); ++derivedClassNameIndex)
@@ -175,7 +171,7 @@ namespace AzToolsFramework
         RowContainerType m_widgetsInDisplayOrder;
         UserWidgetToDataMap m_userWidgetsToData;
         VisibilityCallback m_visibilityCallback;
-        void AddProperty(InstanceDataNode* node, PropertyRowWidget* pParent, int depth, AZStd::string_view labelOverride = "");
+        void AddProperty(InstanceDataNode* node, PropertyRowWidget* pParent, int depth, AZStd::string_view labelOverride = "", ReadOnlyQueryFunction readOnlyOverride = nullptr);
         void CreateEditorWidget(PropertyRowWidget* pWidget);
         void ExpandChildren(PropertyRowWidget* pWidget, bool expand, bool checkWhetherChildShouldExpand);
         void UpdateExpansionState();
@@ -660,7 +656,7 @@ namespace AzToolsFramework
         }
     }
 
-    void ReflectedPropertyEditor::Impl::AddProperty(InstanceDataNode* node, PropertyRowWidget* pParent, int depth, AZStd::string_view labelOverride)
+    void ReflectedPropertyEditor::Impl::AddProperty(InstanceDataNode* node, PropertyRowWidget* pParent, int depth, AZStd::string_view labelOverride, const ReadOnlyQueryFunction readOnlyOverride)
     {
         // Removal markers should not be displayed in the property grid.
         if (!node || node->IsRemovedVersusComparison())
@@ -706,10 +702,61 @@ namespace AzToolsFramework
             IsPairContainer(node) &&
             node->FindAttribute(AZ::Edit::InternalAttributes::ElementInstances);
         
+              
+        // APC BEGIN
+        // Determine if this is an associate              
+        // APC BEGIN
+        // Determine if this is an associated container and if we should display as two elements (one for key and one for value)
+        //   (in which case `displayAssociativeContainerKeyAsLabel' will be nullopt)
+        // or display as one elements with the key being represented by the values label
+        //   (in which case `displayAssociativeContainerKeyAsLabel' will be `some(the label)')
+        const auto displayAssociativeContainerKeyAsLabel = [&]() -> AZStd::optional<AZStd::string_view>
+        {
+            if (isParentAssociativeContainer && isAssociativeContainerPair)
+            {
+                AZStd::string_view name = "";
+                if (node->GetElementEditMetadata())
+                {
+                    name = node->GetElementEditMetadata()->m_name;
+                }
+
+                // If the display name looks like it doesn't identify the element very well, display the actual edit data property row for the key value
+                // Check for empty string
+                if (name.empty()) return {};
+
+                // Check for strings of the form `[N]' where `N' is a number
+                if (name.size() > 2 && name[0] == '[' && name[name.size()-1] == ']')
+                {
+                    AZStd::string_view nameInnerPart = AZStd::string_view(&name[1], &name[name.size()-2]);
+
+                    char* out;
+                    size_t val = std::strtol(nameInnerPart.data(), &out, 10);
+                    if (out != nameInnerPart.data())
+                    {
+                        // we don't really care about the value parsed, just as long as its a number
+                        (void)val;
+                        return {};
+                    }
+                }
+
+                return { name };
+            }
+            else
+            {
+                return {};
+            }
+        }();
+        // APC END
+
         PropertyRowWidget* pWidget = nullptr;
         if (visibility == NodeDisplayVisibility::Visible || visibility == NodeDisplayVisibility::HideChildren)
         {
-            if (isParentAssociativeContainer && isAssociativeContainerPair && visibility == NodeDisplayVisibility::Visible)
+            if (isParentAssociativeContainer && isAssociativeContainerPair && visibility == NodeDisplayVisibility::Visible
+                // APC BEGIN
+                // Only hide the pair node if we're going to display the key as the values label
+                && displayAssociativeContainerKeyAsLabel
+                // APC END
+                )
             {
                 // For associative containers, hide the pair node itself and only show the children
                 visibility = NodeDisplayVisibility::ShowChildrenOnly;
@@ -740,6 +787,12 @@ namespace AzToolsFramework
                 }
 
                 pWidget = CreateOrPullFromPool();
+
+                // APC BEGIN
+                // Apply read-only query function override if it exists
+                if (readOnlyOverride) { pWidget->SetReadOnlyQueryFunction(readOnlyOverride); }
+                // APC END
+
                 pWidget->show();
 
                 pWidget->SetFilterString(m_editor->GetFilterString());
@@ -778,16 +831,25 @@ namespace AzToolsFramework
             if (isParentAssociativeContainer && isAssociativeContainerPair)
             {
                 // For pairs, show only the 2nd child and use the pair's display name (which should be the key string) as the label text
-
-                AZ_Assert(children.size() == 2, "Pair must have only two children");
-                const char* displayName = "";
-
-                if (node->GetElementEditMetadata())
+                // APC BEGIN
+                if (displayAssociativeContainerKeyAsLabel)
                 {
-                    displayName = node->GetElementEditMetadata()->m_name;
+                    // if we're going to display the key as the values label, add only the 2nd child (which is assumed to be the value of the key/value pair)
+                    // and override its label with the display name of the key
+                    AddProperty(&children.back(), pParent, depth, *displayAssociativeContainerKeyAsLabel);
                 }
+                else
+                {
+                    // ... otherwise display the children normally, but override the key value to be readonly
+                    AZ_Error("ReflectionPropertyEditor", pWidget != nullptr,
+                        "Internal Error - Displaying an associative container element as a pair of key/value elements; but, this pair did not have a parent container "
+                        "created for it. The property editor layou will be broken!"
+                    );
 
-                AddProperty(&children.back(), pParent, depth, displayName);
+                    AddProperty(&children.front(), pParent, depth, "Key", [](const InstanceDataNode*) { return true; });
+                    AddProperty(&children.back(), pParent, depth, "Value");
+                }
+                // APC END
             }
             else
             {
@@ -818,7 +880,7 @@ namespace AzToolsFramework
 
                 for (WeightedNode& pair : sortedChildrenNodes)
                 {
-                    AddProperty(pair.second, pParent, depth);
+                    AddProperty(pair.second, pParent, depth, "", readOnlyOverride);
                 }
             }
         }
@@ -1094,14 +1156,21 @@ namespace AzToolsFramework
             );
 
             QObject::connect(newWidget, &PropertyRowWidget::onRequestedSelection, m_editor, &ReflectedPropertyEditor::SelectInstance);
-
-            newWidget->SetReadOnlyQueryFunction(m_readOnlyQueryFunction);
         }
         else
         {
             newWidget = m_widgetPool.back();
             m_widgetPool.erase(m_widgetPool.begin() + m_widgetPool.size() - 1);
         }
+
+        // APC BEGIN
+        // Set some configs (like the read-only query function) every time the widget is pulled from the pool,
+        // not just when creating it the first time, because such configs might be changed dynamically by the property editor
+        // IMPORTANT NOTE: If you change ReflectedPropertyEditor to configure dynamically any properties of PropertyRowWidget,
+        // you must reset those to default here
+        newWidget->SetReadOnlyQueryFunction(m_readOnlyQueryFunction);
+        // APC END
+
         return newWidget;
     }
 
@@ -1716,6 +1785,17 @@ namespace AzToolsFramework
         AzToolsFramework::ToolsApplicationEvents::Bus::Broadcast(
             &AzToolsFramework::ToolsApplicationEvents::InvalidatePropertyDisplay,
             AzToolsFramework::Refresh_EntireTree);
+    }
+
+    bool IsAddableByUser(const AZ::SerializeContext::ClassData* classData) {
+        if (classData->m_editData)
+            if (auto editorDataElement = classData->m_editData->FindElementData(AZ::Edit::ClassElements::EditorData))
+                if (auto addableAttribute = editorDataElement->FindAttribute(AZ::Edit::Attributes::AddableByUser)) {
+                    AZ::AttributeReader reader(nullptr, addableAttribute);
+                    bool isAddable;
+                    if (reader.Read<bool>(isAddable)) return isAddable;
+                }
+        return true;
     }
 
     // Helper functions to populate a dataPtr with a default constructed type, if it's in a list of supported, default-constructable types.

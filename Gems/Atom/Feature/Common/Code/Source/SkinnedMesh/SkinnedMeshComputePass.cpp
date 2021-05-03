@@ -55,7 +55,7 @@ namespace AZ
             //(i.e. if the same skinnedMesh exists in multiple views, it can call AddDispatchItem multiple times with the same item)
             m_dispatches.insert(dispatchItem);  
         }
-        
+
         void SkinnedMeshComputePass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
             RHI::CommandList* commandList = context.GetCommandList();

@@ -138,10 +138,34 @@ namespace AzToolsFramework
 
         AZ::ComponentTypeList m_requiredSliceMetadataComponentTypes; /**< The list of components that entities in this context are required to have. */
 
-        AZStd::unordered_map<AZ::EntityId, AZ::EntityId> m_editorEntityToMetadataEntityMap; /**< A quick lookup map for finding the metadata entity associated with an editor entity. */
+        using MetadataEntityId = AZ::EntityId;
+        using EditorEntityId   = AZ::EntityId;
+        using MetadataEntity   = AZ::Entity*;
+        using SliceInstanceId  = AZ::SliceComponent::SliceInstanceAddress;
 
-        AZStd::unordered_map<AZ::SliceComponent::SliceInstanceAddress, AZ::EntityId> m_sliceAddressToRootMetadataMap; /**< A quick lookup map for finding the metadata entity associated with the given slice instance. */
+        struct MetadataEntityInfo
+        {
+            MetadataEntityInfo()
+                : entity(nullptr)
+            {}
 
-        AZStd::unordered_map<AZ::EntityId, AZ::Entity*> m_metadataEntityByIdMap; /**< All of the entities owned by this context, keyed by their IDs. */
+            // The metadata entity pointer
+            MetadataEntity entity;
+
+            // The editor entities which have this metadata entity
+            AZStd::set<EditorEntityId> associatedEntities;
+
+            // The slice instance which has this metadata entity
+           SliceInstanceId associatedSlice;
+        };
+
+        /**< A quick lookup map for finding the metadata entity associated with an editor entity. */
+        AZStd::unordered_map<EditorEntityId, MetadataEntityId> m_editorEntityToMetadataEntityMap;
+
+        /**< A quick lookup map for finding the metadata entity associated with the given slice instance. */
+        AZStd::unordered_map<SliceInstanceId, MetadataEntityId> m_sliceAddressToRootMetadataMap;
+
+        /**< All of the entities owned by this context, keyed by their IDs. */
+        AZStd::unordered_map<MetadataEntityId, MetadataEntityInfo> m_metadataEntityByIdMap;
     };
 } // namespace AzToolsFramework

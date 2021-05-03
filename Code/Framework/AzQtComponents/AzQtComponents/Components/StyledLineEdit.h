@@ -52,9 +52,17 @@ namespace AzQtComponents
         void onFocus(); // Required for focus dependent custom widgets, e.g. ConfigStringLineEditCtrl.
         void onFocusOut();
 
+        // A combination of 'QLineEdit::textChanged' and 'QLineEdit::editingFinished'
+        // Only emitted when editing is definitely finished, i.e. this widget looses focus,
+        // and the text has definitely changed, i.e. it is different than when editing began
+        void editingFinishedTextChanged(const QString& text);
+
     private:
         void validateEntry();
 
+		// APC TODO: still needed?
+        QString m_valueAtEditingStart;
+        bool m_editing;
         Flavor m_flavor;
     };
 } // namespace AzQtComponents

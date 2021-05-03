@@ -1288,7 +1288,7 @@ void CEntityObject::OnEvent(ObjectEvent event)
         break;
     }
     default:
-        AZ_TracePrintf("CEntityObject", "Unhandled object event: %d", event);
+        // AZ_TracePrintf("CEntityObject", "Unhandled object event: %d", event);
         break;
     }
 }

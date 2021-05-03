@@ -138,6 +138,21 @@ namespace AZ
             /// [Phase 1] Compiles the cross-queue scope graph.
             CompileQueueCentricScopeGraph(frameGraph, request.m_compileFlags);
 
+            // APC BEGIN
+            // At this point all attachment should have scopes, else further phases will crash due to assuming the scopes exist
+            {
+                const FrameGraphAttachmentDatabase& attachmentDatabase = frameGraph.GetAttachmentDatabase();
+                for (FrameAttachment* transientImage : attachmentDatabase.GetTransientImageAttachments())
+                {
+                    if (!transientImage->GetFirstScope())
+                    {
+                        return AZ::Failure(AZStd::string::format("FrameAttachment %s has no scopes!", transientImage->GetId().GetCStr()));
+                    }
+                }
+            }
+
+            // APC END
+
             /// [Phase 2] Compile transient attachments across all scopes.
             CompileTransientAttachments(
                 frameGraph,

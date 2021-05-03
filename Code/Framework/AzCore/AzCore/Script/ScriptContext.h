@@ -522,6 +522,13 @@ namespace AZ
         static long StackRead(lua_State* l, int stackIndex);
     };
     template<>
+    struct ScriptValue<signed char>
+    {
+        static const bool isNativeValueType = true;  // We use native type for internal representation
+        static void StackPush(lua_State* l, signed int value);
+        static signed char StackRead(lua_State* l, int stackIndex);
+    };
+    template<>
     struct ScriptValue<unsigned char>
     {
         static const bool isNativeValueType = true;  // We use native type for internal representation
@@ -570,6 +577,7 @@ namespace AZ
         static void StackPush(lua_State* l, double value);
         static double StackRead(lua_State* l, int stackIndex);
     };
+
     template<>
     struct ScriptValue<bool>
     {
@@ -778,7 +786,7 @@ namespace AZ
         CryScriptContextId = 1
     };
 
-    using StackVariableAllocator = AZStd::static_buffer_allocator<256, 16>;
+    using StackVariableAllocator = AZStd::static_buffer_allocator<1024, 16>;
 
     /**
     * Lua VM context.

@@ -562,7 +562,8 @@ namespace AzToolsFramework
 
     static void SetEntityLockStateRecursively(
         const AZ::EntityId entityId, const bool locked,
-        const AZ::EntityId toggledEntityId, const bool toggledEntityWasLayer)
+        const AZ::EntityId toggledEntityId, const bool toggledEntityWasLayer,
+        const bool recursive)
     {
         AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
 
@@ -604,7 +605,7 @@ namespace AzToolsFramework
                 newLockState);
         }
 
-        if (notifyChildrenOfLayer)
+        if (notifyChildrenOfLayer && recursive)
         {
             EntityIdList children;
             EditorEntityInfoRequestBus::EventResult(
@@ -612,7 +613,7 @@ namespace AzToolsFramework
 
             for (auto childId : children)
             {
-                SetEntityLockStateRecursively(childId, locked, toggledEntityId, toggledEntityWasLayer);
+                SetEntityLockStateRecursively(childId, locked, toggledEntityId, toggledEntityWasLayer, recursive);
             }
         }
     }
@@ -658,7 +659,7 @@ namespace AzToolsFramework
         notifyChildrenOfLockChange(entityId);
     }
 
-    void SetEntityLockState(const AZ::EntityId entityId, const bool locked)
+    void SetEntityLockState(const AZ::EntityId entityId, const bool locked, const bool recursive)
     {
         AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
 
@@ -693,10 +694,10 @@ namespace AzToolsFramework
         Layers::EditorLayerComponentRequestBus::EventResult(
             isLayer, entityId, &Layers::EditorLayerComponentRequestBus::Events::HasLayer);
 
-        SetEntityLockStateRecursively(entityId, locked, entityId, isLayer);
+        SetEntityLockStateRecursively(entityId, locked, entityId, isLayer, recursive);
     }
 
-    void ToggleEntityLockState(const AZ::EntityId entityId)
+    void ToggleEntityLockState(const AZ::EntityId entityId, const bool recursive)
     {
         AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
 
@@ -720,14 +721,14 @@ namespace AzToolsFramework
 
                 for (auto selectedId : selectedEntityIds)
                 {
-                    SetEntityLockState(selectedId, !locked);
+                    SetEntityLockState(selectedId, !locked, recursive);
                 }
             }
             else
             {
                 // just change the single clicked entity in the outliner
                 // without affecting the current selection (should one exist)
-                SetEntityLockState(entityId, !locked);
+                SetEntityLockState(entityId, !locked, recursive);
             }
         }
     }
@@ -790,7 +791,8 @@ namespace AzToolsFramework
 
     static void SetEntityVisibilityStateRecursively(
         const AZ::EntityId entityId, const bool visible,
-        const AZ::EntityId toggledEntityId, const bool toggledEntityWasLayer)
+        const AZ::EntityId toggledEntityId, const bool toggledEntityWasLayer,
+        const bool recursive)
     {
         AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
 
@@ -826,7 +828,7 @@ namespace AzToolsFramework
                 newVisibilityState);
         }
 
-        if (notifyChildrenOfLayer)
+        if (notifyChildrenOfLayer && recursive)
         {
             EntityIdList children;
             EditorEntityInfoRequestBus::EventResult(
@@ -834,12 +836,12 @@ namespace AzToolsFramework
 
             for (auto childId : children)
             {
-                SetEntityVisibilityStateRecursively(childId, visible, toggledEntityId, toggledEntityWasLayer);
+                SetEntityVisibilityStateRecursively(childId, visible, toggledEntityId, toggledEntityWasLayer, recursive);
             }
         }
     }
 
-    void SetEntityVisibility(const AZ::EntityId entityId, const bool visible)
+    void SetEntityVisibility(const AZ::EntityId entityId, const bool visible, const bool recursive)
     {
         AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
 
@@ -874,10 +876,10 @@ namespace AzToolsFramework
         Layers::EditorLayerComponentRequestBus::EventResult(
             isLayer, entityId, &Layers::EditorLayerComponentRequestBus::Events::HasLayer);
 
-        SetEntityVisibilityStateRecursively(entityId, visible, entityId, isLayer);
+        SetEntityVisibilityStateRecursively(entityId, visible, entityId, isLayer, recursive);
     }
 
-    void ToggleEntityVisibility(const AZ::EntityId entityId)
+    void ToggleEntityVisibility(const AZ::EntityId entityId, const bool recursive)
     {
         AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
 
@@ -899,14 +901,14 @@ namespace AzToolsFramework
 
                 for (AZ::EntityId selectedId : selectedEntityIds)
                 {
-                    SetEntityVisibility(selectedId, !visible);
+                    SetEntityVisibility(selectedId, !visible, recursive);
                 }
             }
             else
             {
                 // just change the single clicked entity in the outliner
                 // without affecting the current selection (should one exist)
-                SetEntityVisibility(entityId, !visible);
+                SetEntityVisibility(entityId, !visible, recursive);
             }
         }
     }
