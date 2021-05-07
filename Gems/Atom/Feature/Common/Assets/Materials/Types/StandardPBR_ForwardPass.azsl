@@ -300,6 +300,11 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
         // It's done this way because surface transparency doesn't really change specular response (eg, glass).
         lightingOutput.m_diffuseColor.rgb *= lightingOutput.m_diffuseColor.w; // pre-multiply diffuse
         lightingOutput.m_diffuseColor.rgb += lightingOutput.m_specularColor.rgb; // add specular
+
+        // HACK: diffuse/spec RTs got swapped to support A2C with SSS by placing coverage in specular alpha channel,
+        // which must be RT0 to work with A2C. But the transparent pass and opaque pass use the same output semantics
+        // and the transparent pass has only SV_Target0, which is now specular color
+        lightingOutput.m_specularColor = lightingOutput.m_diffuseColor;
     }
     else
     {

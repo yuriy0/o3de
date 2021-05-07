@@ -34,6 +34,8 @@ function ConfigureAlphaBlending(shaderItem)
     shaderItem:GetRenderStatesOverride():SetBlendSource(0, BlendFactor_One)
     shaderItem:GetRenderStatesOverride():SetBlendDest(0, BlendFactor_AlphaSourceInverse)
     shaderItem:GetRenderStatesOverride():SetBlendOp(0, BlendOp_Add)
+
+    shaderItem:SetDrawListTagOverride("transparent")
 end
 
 function ConfigureDualSourceBlending(shaderItem)
