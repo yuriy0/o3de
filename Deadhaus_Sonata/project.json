@@ -1,0 +1,11 @@
+{
+    "project_name": "Deadhaus_Sonata",
+    "origin": "The primary repo for Deadhaus_Sonata goes here: i.e. http://www.mydomain.com",
+    "license": "What license Deadhaus_Sonata uses goes here: i.e. https://opensource.org/licenses/MIT",
+    "display_name": "Deadhaus_Sonata",
+    "summary": "A short description of Deadhaus_Sonata.",
+    "canonical_tags": ["Project"],
+    "user_tags": ["Deadhaus_Sonata"],
+    "icon_path": "preview.png",
+    "engine": "o3de"
+}
