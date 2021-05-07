@@ -7,9 +7,11 @@
            Uuid="{5EFD2942-AFF9-4137-939C-023AEAA72EB0}"
            Base="ScriptCanvas::Node"
            Icon="Editor/Icons/ScriptCanvas/Placeholder.png"
-           Version="1"
+           Version="4"
            GeneratePropertyFriend="True"
-           Description="Node for setting a property within the graph">
+           Description="Node for setting a property within the graph"
+		   DependentReflections="PropertySetterMetadata"
+		>
         <In Name="In" Description="When signaled sends the variable referenced by this node to a Data Output slot"/>
         <Out Name="Out" Description="Signaled after the referenced variable has been pushed to the Data Output slot"/>
         <SerializedProperty Name="m_variableId" />
@@ -20,5 +22,6 @@
             <EditAttribute Key="AZ::Edit::Attributes::GenericValueList" Value="&amp;SetVariableNode::GetGraphVariables"/>
             <EditAttribute Key="AZ::Edit::Attributes::PostChangeNotify" Value="&amp;SetVariableNode::OnIdChanged"/>
         </EditProperty>
+        <SerializedProperty Name="m_propertySetters" />
     </Class>
 </ScriptCanvas>

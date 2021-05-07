@@ -1,0 +1,46 @@
+set(GEM_DEPENDENCIES
+    Gem::Maestro.Editor
+    Gem::TextureAtlas
+    Gem::LmbrCentral.Editor
+    Gem::LyShine.Editor
+    Gem::SceneProcessing.Editor
+    Gem::EditorPythonBindings.Editor
+    Gem::Camera.Editor
+    Gem::CameraFramework
+    Gem::Atom_RHI.Private
+    Gem::EMotionFX.Editor
+    Gem::Atom_RPI.Builders
+    Gem::Atom_RPI.Editor
+    Gem::Atom_Feature_Common.Builders
+    Gem::Atom_Feature_Common.Editor
+    Gem::ImGui.Editor
+    Gem::Atom_Bootstrap
+    Gem::Atom_Asset_Shader.Builders
+    Gem::Atom_Component_DebugCamera
+    Gem::AtomImGuiTools
+    Gem::AtomLyIntegration_CommonFeatures.Editor
+    Gem::EMotionFX_Atom.Editor
+    Gem::ImageProcessingAtom.Editor
+    Gem::Atom_AtomBridge.Editor
+    Gem::ImguiAtom
+    Gem::AtomFont
+    Gem::AtomToolsFramework.Editor
+    Gem::GradientSignal.Editor
+    Gem::Deadhaus_Sonata.Editor
+	
+	# TODO: Use editor gem
+	Gem::Kythera.Editor
+	Gem::Genvid.Editor
+	Gem::ApcUtilities.Editor
+	Gem::StartingPointInput.Editor
+	Gem::ProceduralGeneration.Editor
+	Gem::ApcAtomExt
+	Gem::PhysX.Editor
+	Gem::ScriptCanvas.Editor
+	Gem::NvCloth.Editor
+	Gem::GraphCanvas.Editor
+	Gem::ScriptEvents.Editor
+	Gem::ExpressionEvaluation
+	
+	Gem::PopcornFX.Editor
+)

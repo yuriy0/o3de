@@ -49,7 +49,8 @@ float GetMatAlpha(VSOutput IN)
 {
     float2 baseColorUV = IN.m_uv[MaterialSrg::m_baseColorMapUvIndex];
     float2 opacityUV = IN.m_uv[MaterialSrg::m_opacityMapUvIndex];
-    float alpha = GetAlphaInputAndClip(MaterialSrg::m_baseColorMap, MaterialSrg::m_opacityMap, baseColorUV, opacityUV, MaterialSrg::m_sampler, MaterialSrg::m_opacityFactor, o_opacity_source);
+    static const float cutoutMipScale = 1; // NB: unused, as this pass only occurs in Blended, and this parameter is used only in Cutout
+    float alpha = GetAlphaInputAndClip(MaterialSrg::m_baseColorMap, MaterialSrg::m_opacityMap, baseColorUV, opacityUV, MaterialSrg::m_sampler, MaterialSrg::m_opacityFactor, o_opacity_source, cutoutMipScale);
 
     return alpha;
 }

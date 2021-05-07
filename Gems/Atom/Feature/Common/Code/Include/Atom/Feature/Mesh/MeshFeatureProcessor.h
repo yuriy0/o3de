@@ -150,6 +150,8 @@ namespace AZ
             void SetTransform(const MeshHandle& meshHandle, const AZ::Transform& transform) override;
             Transform GetTransform(const MeshHandle& meshHandle) override;
 
+            void SetLocalAabb(const MeshHandle& meshHandle, const AZ::Aabb& localAabb) override;
+
             void SetSortKey(const MeshHandle& meshHandle, RHI::DrawItemSortKey sortKey) override;
             RHI::DrawItemSortKey GetSortKey(const MeshHandle& meshHandle) override;
 

@@ -29,7 +29,20 @@ namespace ScriptCanvas
     {
         namespace Core
         {
-            //! Provides a node to set the value of a variable
+            struct PropertySetterMetadata
+            {
+                AZ_TYPE_INFO(PropertySetterMetadata, "{7C5DBCB2-6887-4810-98D6-4E4D9D33BC1A}");
+                AZ_CLASS_ALLOCATOR(PropertySetterMetadata, AZ::SystemAllocator, 0);
+                static void Reflect(AZ::ReflectContext* reflectContext);
+
+                SlotId m_propertySlotId;
+                SlotId m_signalSlotId;
+                Data::Type m_propertyType;
+                AZStd::string m_propertyName;
+                Data::SetterFunction m_setterFunction;
+            };
+
+			//! Provides a node to set the value of a variable
             class SetVariableNode
                 : public Node
                 , protected VariableNotificationBus::Handler
@@ -99,6 +112,7 @@ namespace ScriptCanvas
                 SlotId m_variableDataOutSlotId;
 
                 AZStd::vector<Data::PropertyMetadata> m_propertyAccounts;
+                AZStd::vector<PropertySetterMetadata> m_propertySetters;
 
                 AZStd::string_view  m_variableName;
                 ModifiableDatumView m_variableView;

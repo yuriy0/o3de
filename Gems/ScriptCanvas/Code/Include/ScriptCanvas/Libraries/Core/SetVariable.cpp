@@ -104,6 +104,76 @@ namespace ScriptCanvas
 
                     SignalOutput(GetSlotId(GetOutputSlotName()));
                 }
+                else
+                {
+                    auto setterIt = AZStd::find_if(
+                        m_propertySetters.begin(),
+                        m_propertySetters.end(),
+                        [&](const PropertySetterMetadata& setterData)
+                        {
+                            return setterData.m_signalSlotId == slotID;    
+                        }
+                    );
+                    if (setterIt != m_propertySetters.end())
+                    {
+                        const PropertySetterMetadata& setterData = *setterIt;
+                        
+                        SC_EXECUTION_TRACE_ANNOTATE_NODE((*this), CreateAnnotationData());
+
+                        // Get the source data
+                        const Datum* sourceDatum = FindDatum(m_variableDataInSlotId);
+                        const Datum* subFieldDatum = FindDatum(setterData.m_propertySlotId);
+
+                        // Assign the data
+                        if (sourceDatum && m_variableView.IsValid() && setterData.m_setterFunction)
+                        {
+                            Datum sourceDatumCopy = *sourceDatum;
+                            auto res = setterData.m_setterFunction(sourceDatumCopy, *subFieldDatum);
+
+                            if (!res.IsSuccess())
+                            {
+                                AZ_Error("Script Canvas", false,
+                                    "Failed to call property (%s : %s) setter method: %s",
+                                    setterData.m_propertyName.c_str(), Data::GetName(setterData.m_propertyType).data(),
+                                    res.GetError().c_str()
+                                );
+                            }
+
+                            m_variableView.AssignToDatum(AZStd::move(sourceDatumCopy));
+
+                            const Datum* variableDatum = m_variableView.GetDatum();
+
+                            SC_EXECUTION_TRACE_VARIABLE_CHANGE((m_variableId), (CreateVariableChange((*variableDatum), m_variableId)));
+                        }
+                    }
+
+                    Slot* resultSlot = GetSlot(m_variableDataOutSlotId);
+                    if (resultSlot && m_variableView.IsValid())
+                    {
+                        const Datum* variableDatum = m_variableView.GetDatum();
+
+                        PushOutput((*variableDatum), *resultSlot);
+
+                        // Push the data for each property slot out as well
+                        for (auto&& propertyAccount : m_propertyAccounts)
+                        {
+                            Slot* propertySlot = GetSlot(propertyAccount.m_propertySlotId);
+                            if (propertySlot && propertyAccount.m_getterFunction)
+                            {
+                                auto outputOutcome = propertyAccount.m_getterFunction((*variableDatum));
+
+                                if (!outputOutcome)
+                                {
+                                    SCRIPTCANVAS_REPORT_ERROR((*this), outputOutcome.TakeError().data());
+                                    return;
+                                }
+                                PushOutput(outputOutcome.TakeValue(), *propertySlot);
+                            }
+                        }
+                    }
+
+                    SignalOutput(GetSlotId(GetOutputSlotName()));
+                }
             }
             VariableId SetVariableNode::GetVariableIdRead(const Slot*) const
             {
@@ -355,15 +425,60 @@ namespace ScriptCanvas
                     propertyAccount.m_getterFunction = getterWrapper.m_getterFunction;
                     m_propertyAccounts.push_back(propertyAccount);
                 }
+
+                Data::SetterContainer setterFunctions = Data::ExplodeToSetters(type);
+                for (const auto& setterWrapperPair : setterFunctions)
+                {
+                    const AZStd::string& propertyName = setterWrapperPair.first;
+                    const Data::SetterWrapper& getterWrapper = setterWrapperPair.second;
+                    PropertySetterMetadata propertyAccount;
+                    propertyAccount.m_propertyType = getterWrapper.m_propertyType;
+                    propertyAccount.m_propertyName = propertyName;
+
+                    {
+                        DataSlotConfiguration slotConfiguration;
+
+                        slotConfiguration.m_name = AZStd::string::format("%s: %s", propertyName.data(), Data::GetName(getterWrapper.m_propertyType).data());
+                        slotConfiguration.SetType(getterWrapper.m_propertyType);
+                        slotConfiguration.SetConnectionType(ConnectionType::Input);
+
+                        propertyAccount.m_propertySlotId = AddSlot(slotConfiguration);
+
+                    }
+
+                    {
+                        ExecutionSlotConfiguration slotConfiguration;
+
+                        slotConfiguration.m_name = AZStd::string::format("Update %s: %s", propertyName.data(), Data::GetName(getterWrapper.m_propertyType).data());
+                        slotConfiguration.SetConnectionType(ConnectionType::Input);
+
+                        propertyAccount.m_signalSlotId = AddSlot(slotConfiguration);
+                    }
+
+                    propertyAccount.m_setterFunction = getterWrapper.m_setterFunction;
+                    m_propertySetters.push_back(propertyAccount);
+                }
             }
 
             void SetVariableNode::ClearPropertySlots()
             {
-                auto oldPropertyAccounts = AZStd::move(m_propertyAccounts);
-                m_propertyAccounts.clear();
-                for (auto&& propertyAccount : oldPropertyAccounts)
                 {
-                    RemoveSlot(propertyAccount.m_propertySlotId);
+                    auto oldPropertyAccounts = AZStd::move(m_propertyAccounts);
+                    m_propertyAccounts.clear();
+                    for (auto&& propertyAccount : oldPropertyAccounts)
+                    {
+                        RemoveSlot(propertyAccount.m_propertySlotId);
+                    }
+                }
+
+                {
+                    auto oldPropertyAccounts = AZStd::move(m_propertySetters);
+                    m_propertySetters.clear();
+                    for (auto&& propertyAccount : oldPropertyAccounts)
+                    {
+                        RemoveSlot(propertyAccount.m_propertySlotId);
+                        RemoveSlot(propertyAccount.m_signalSlotId);
+                    }
                 }
             }
 
@@ -385,7 +500,7 @@ namespace ScriptCanvas
 
                 auto getterWrapperMap = Data::ExplodeToGetters(sourceType);
 
-                for (auto&& propertyAccount : m_propertyAccounts)
+                for (auto& propertyAccount : m_propertyAccounts)
                 {
                     if (!propertyAccount.m_getterFunction)
                     {
@@ -402,6 +517,25 @@ namespace ScriptCanvas
                         }
                     }
                 }
+
+                auto setterWrapperMap = Data::ExplodeToSetters(sourceType);
+
+                for (auto& propertyAccount : m_propertySetters)
+                {
+                    if (!propertyAccount.m_setterFunction)
+                    {
+                        auto foundPropIt = setterWrapperMap.find(propertyAccount.m_propertyName);
+                        if (foundPropIt != setterWrapperMap.end() && propertyAccount.m_propertyType.IS_A(foundPropIt->second.m_propertyType))
+                        {
+                            propertyAccount.m_setterFunction = foundPropIt->second.m_setterFunction;
+                        }
+                        else
+                        {
+                            AZ_Error("Script Canvas", false, "Property (%s : %s) setter method could not be found in Data::PropertyTraits or the property type has changed.",
+                                propertyAccount.m_propertyName.c_str(), Data::GetName(propertyAccount.m_propertyType).data());
+                        }
+                    }
+                }
             }
 
             GraphScopedVariableId SetVariableNode::GetScopedVariableId() const
@@ -409,6 +543,19 @@ namespace ScriptCanvas
                 return GraphScopedVariableId(GetOwningScriptCanvasId(), m_variableId);
             }
 
+            void PropertySetterMetadata::Reflect(AZ::ReflectContext* context)
+            {
+                if (auto serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
+                {
+                    serializeContext->Class<PropertySetterMetadata>()
+                        ->Field("m_propertySlotId", &PropertySetterMetadata::m_propertySlotId)
+                        ->Field("m_signalSlotId", &PropertySetterMetadata::m_signalSlotId)
+                        ->Field("m_propertyType", &PropertySetterMetadata::m_propertyType)
+                        ->Field("m_propertyName", &PropertySetterMetadata::m_propertyName)
+                        ->Version(2)
+                        ;
+                }
+            }
         }
     }
 }

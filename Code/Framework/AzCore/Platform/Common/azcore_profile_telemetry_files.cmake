@@ -12,4 +12,6 @@
 set(FILES
     RadTelemetry/ProfileTelemetry.h
     RadTelemetry/ProfileTelemetryBus.h
+    RadTelemetry/ProfileTelemetryLocks.h
+    RadTelemetry/ProfileTelemetryAccumulationZones.h
 )
