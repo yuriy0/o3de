@@ -25,8 +25,10 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
 
     depth = IN.m_position.z;
 
+    bool displacementIsClipped = false;
+
     // Parallax mapping's non uniform uv transformations break screen space subsurface scattering, disable it when subsurface scatteirng is enabled
-    if(!o_enableSubsurfaceScattering && o_parallax_feature_enabled && o_useDepthMap)
+    if(ShouldHandleParallax())
     {
         // GetParallaxInput applies an tangent offset to the UV. We want to apply the same offset to the detailUv (note: this needs to be tested with content)
         // The math is:   offset = newUv - oldUv;   detailUv += offset;
@@ -35,9 +37,9 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
         float3x3 uvMatrix = MaterialSrg::m_parallaxUvIndex == 0 ? MaterialSrg::m_uvMatrix : CreateIdentity3x3();
         float3x3 uvMatrixInverse = MaterialSrg::m_parallaxUvIndex == 0 ? MaterialSrg::m_uvMatrixInverse : CreateIdentity3x3();
 
-        GetParallaxInput(IN.m_normal, tangents[MaterialSrg::m_parallaxUvIndex], bitangents[MaterialSrg::m_parallaxUvIndex], MaterialSrg::m_depthFactor, 
+        GetParallaxInput(IN.m_normal, tangents[MaterialSrg::m_parallaxUvIndex], bitangents[MaterialSrg::m_parallaxUvIndex], MaterialSrg::m_depthFactor, MaterialSrg::m_depthOffset,
                          ObjectSrg::GetWorldMatrix(), uvMatrix, uvMatrixInverse,
-                         IN.m_uv[MaterialSrg::m_parallaxUvIndex], IN.m_worldPosition, depth);
+                         IN.m_uv[MaterialSrg::m_parallaxUvIndex], IN.m_worldPosition, depth, displacementIsClipped);
 
         // Apply second part of the offset to the detail UV (see comment above)
         IN.m_detailUv[MaterialSrg::m_parallaxUvIndex] -= IN.m_uv[MaterialSrg::m_parallaxUvIndex];
@@ -105,6 +107,11 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     float3 baseColor = GetDetailedBaseColorInput(
         MaterialSrg::m_baseColorMap,             MaterialSrg::m_sampler, baseColorUv, o_baseColor_useTexture,        MaterialSrg::m_baseColor,  MaterialSrg::m_baseColorFactor, o_baseColorTextureBlendMode,
         MaterialSrg::m_detail_baseColor_texture, MaterialSrg::m_sampler, detailUv,    o_detail_baseColor_useTexture, detailLayerBaseColorFactor);
+
+    if(o_parallax_highlightClipping && displacementIsClipped)
+    {
+        ApplyParallaxClippingHighlight(baseColor);
+    }
 
     // ------- Metallic -------
 

@@ -33,7 +33,7 @@ struct ForwardPassOutputWithDepth
     float4 m_alpha  : SV_Target0;
     float4 m_beta : SV_Target1;
     float4 m_test : SV_Target2;
-    float m_depth : SV_DepthLessEqual;
+    float m_depth : SV_Depth;
 };
 
 
@@ -50,7 +50,6 @@ COMMON_OPTIONS_NORMAL()
 COMMON_OPTIONS_CLEAR_COAT()
 COMMON_OPTIONS_OCCLUSION()
 COMMON_OPTIONS_EMISSIVE()
-COMMON_OPTIONS_PARALLAX()
 COMMON_OPTIONS_DETAIL_MAPS()
 
 // Alpha
@@ -123,8 +122,11 @@ VSOutput StandardPbr_ForwardPassVS(VSInput IN)
     OUT.m_detailUv[0] = mul(MaterialSrg::m_detailUvMatrix, float3(IN.m_uv0, 1.0)).xy;
     OUT.m_detailUv[1] = IN.m_uv1;
 
-    VertexHelper(IN, OUT, worldPosition, o_parallax_feature_enabled && o_parallax_enablePixelDepthOffset);
+    // Shadow coords will be calculated in the pixel shader in this case
+    bool skipShadowCoords = ShouldHandleParallax() && o_parallax_enablePixelDepthOffset;
 
+    VertexHelper(IN, OUT, worldPosition, skipShadowCoords);
+    
 	OUT.m_ssUV = OUT.m_position.xyw;
 	
     return OUT;
