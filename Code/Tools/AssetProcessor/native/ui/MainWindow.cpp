@@ -1389,6 +1389,25 @@ void MainWindow::ShowJobViewContextMenu(const QPoint& pos)
         QGuiApplication::clipboard()->setText(FindAbsoluteFilePath(item));
     });
 
+    menu.addAction(tr("Copy all filenames"), this, [&]()
+    {
+        QString s;
+
+        auto m = ui->jobTreeView->model();
+        for (int i = 0; i < m->rowCount(); ++i)
+        {
+            auto proxyIndex = m->index(i, 0);
+            const QModelIndex sourceIndex = m_jobSortFilterProxy->mapToSource(proxyIndex);
+            if (auto item = m_jobsModel->getItem(sourceIndex.row()))
+            {
+                s += FindAbsoluteFilePath(item);
+                s += "\n";
+            }
+        }
+
+        QGuiApplication::clipboard()->setText(s);
+    });
+
     // Get the internal path to the log file
     const QModelIndex proxyIndex = ui->jobTreeView->indexAt(pos);
     const QModelIndex sourceIndex = m_jobSortFilterProxy->mapToSource(proxyIndex);
