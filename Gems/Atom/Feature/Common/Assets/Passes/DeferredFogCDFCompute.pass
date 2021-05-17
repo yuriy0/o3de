@@ -1,0 +1,34 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "DeferredFogCDFComputePassTemplate",
+            "PassClass": "DeferredFogComputePass",
+            "Slots": [
+                {
+                    "Name": "Input",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_input",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "Output",
+                    "SlotType": "InputOutput",
+                    "ShaderInputName": "m_output",
+                    "ScopeAttachmentUsage": "Shader"
+                }
+            ],
+            "PassData": {
+                "$type": "ComputePassData",
+                "ShaderAsset": {
+                    "FilePath": "Shaders/ScreenSpace/DeferredFogCDFCompute.shader"
+                },
+                "Make Fullscreen Pass": true,
+                "Target Thread Count Z" : 1,
+                "PipelineViewTag": "MainCamera"
+            }
+        }
+    }
+}

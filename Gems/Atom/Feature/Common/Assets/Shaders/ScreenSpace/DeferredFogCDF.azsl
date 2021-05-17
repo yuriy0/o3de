@@ -1,0 +1,90 @@
+#include <Atom/Features/SrgSemantics.azsli>
+#include <Atom/RPI/Math.azsli>
+
+#include <viewsrg.srgi>
+#include <scenesrg.srgi>
+
+ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
+{
+    // Input/Output
+    Texture3D<float4> m_input;
+    RWTexture3D<float4> m_output;
+}
+
+
+#include "DeferredFog_Common.azsli"
+
+
+/* float3 UnprojectWithZIndex(float2 uv, uint zIx, float zDim) */
+/* { */
+/*     float z = FogVolumeTexZToDepth((float(zIx - 1) / zDim)); */
+/*     return Unproject(uv, z).xyz; */
+/* } */
+
+
+
+[numthreads(8,8,1)]
+void MainCS(uint3 dispatch_id: SV_DispatchThreadID, uint3 groupthread_id : SV_GroupThreadID, uint3 group_id : SV_GroupID)
+{
+    if (false)// DEBUG
+    {
+        PassSrg::m_output[dispatch_id] = PassSrg::m_input[dispatch_id];
+        return;
+    }
+    // END DEBUG
+
+    //// Setup...
+    // Dimensions of volume tex to be processed
+    uint3 dim;
+    PassSrg::m_input.GetDimensions(dim.x, dim.y, dim.z);
+
+    // maps z tex coord [0,dim.z] -> [0,1]
+    const float invOneMinusDimZ = 1 / (dim.z-1.0);
+
+    // Screen space position of camera ray
+    float2 uv = float2(dispatch_id.x, dispatch_id.y) / dim.xy;
+
+    // Camera ray direction
+    const float3 rayDir = normalize(Unproject(uv.xy, 0) - ViewSrg::m_worldPosition);
+
+    // World space position of first slice
+    float3 sampleWsPos;
+
+    // World space position of previous slice
+    float3 prevSampleWsPos; // = UnprojectWithZIndex(uv, 0, dim.z);
+    prevSampleWsPos = ViewSrg::m_worldPosition + rayDir * FogVolumeTexZToLinearDepth(0);
+
+    /* const float3 rayDirWs = normalize(sampleWsPos - prevSampleWsPos); */
+
+    //// Raymarch
+    float3 colorAccum = 0;
+    float transmittanceAccum = 1;
+
+    for (uint i = 0; i < ceil(dim.z) ; i++)
+    {
+        // Get next sample position
+        const uint zIxNext = i+1;
+        /* sampleWsPos = UnprojectWithZIndex(uv, zIxNext, dim.z); */
+        sampleWsPos = ViewSrg::m_worldPosition + rayDir * FogVolumeTexZToLinearDepth(zIxNext * invOneMinusDimZ);
+        const uint3 samplePos = uint3(dispatch_id.xy, i);
+
+        // Step size
+        const float stepSize = max(0.000001f, length(sampleWsPos - prevSampleWsPos));
+
+        // Load data
+        const float4 lightingAndDensity = PassSrg::m_input[samplePos];
+
+        // Accumulate
+        transmittanceAccum *= GetBeersLawExtinction(lightingAndDensity.a * stepSize);
+        colorAccum += transmittanceAccum * lightingAndDensity.a * stepSize * lightingAndDensity.rgb;
+
+        // Write out data
+        PassSrg::m_output[samplePos] = float4(colorAccum, 1.0 - transmittanceAccum);
+
+        /* PassSrg::m_output[samplePos].rgb = sampleWsPos; */
+        /* PassSrg::m_output[samplePos].a = length(sampleWsPos - ViewSrg::m_worldPosition); */
+
+        // Next step
+        prevSampleWsPos = sampleWsPos;
+    }
+}

@@ -136,6 +136,21 @@ namespace AZ
                         ->Attribute(AZ::Edit::Attributes::SoftMin, 0.2f)
                         ->Attribute(AZ::Edit::Attributes::SoftMax, 0.8f)
                         ->Attribute(AZ::Edit::Attributes::ChangeNotify, Edit::PropertyRefreshLevels::ValuesOnly)
+
+                        ->DataElement(AZ::Edit::UIHandlers::Slider, &DeferredFogComponentConfig::m_fogAnisotropy,
+                            "Fog Anistropy", "")
+                        ->Attribute(AZ::Edit::Attributes::Min, -1.0f)
+                        ->Attribute(AZ::Edit::Attributes::Max, 1.0f)
+                        ->Attribute(AZ::Edit::Attributes::Step, 0.05f)
+                        ->Attribute(AZ::Edit::Attributes::ChangeNotify, Edit::PropertyRefreshLevels::ValuesOnly)
+
+                        ->DataElement(AZ::Edit::UIHandlers::Slider, &DeferredFogComponentConfig::m_fogDensityMultiplier,
+                            "Fog Density Multiplier", "")
+                        ->Attribute(AZ::Edit::Attributes::Min, 0.0f)
+                        ->Attribute(AZ::Edit::Attributes::Max, 1000.f)
+                        ->Attribute(AZ::Edit::Attributes::SoftMax, 5.0f)
+                        ->Attribute(AZ::Edit::Attributes::Step, 0.05f)
+                        ->Attribute(AZ::Edit::Attributes::ChangeNotify, Edit::PropertyRefreshLevels::ValuesOnly)
                             ;
                 }
             }

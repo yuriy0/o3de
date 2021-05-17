@@ -19,15 +19,27 @@ namespace AZ
 {
     namespace Render
     {
+        class DeferredFogGlobalNotifications
+            : public AZ::EBusTraits
+        {
+        public:
+            using MutexType = AZStd::recursive_mutex;
+
+            virtual ~DeferredFogGlobalNotifications() = default;
+
+            virtual void OnDeferredFogGlobalSettingsChanged() {};
+        };
+        using DeferredFogGlobalNotificationBus = AZ::EBus<DeferredFogGlobalNotifications>;
+
         class DeferredFogSettingsInterface
         {
         public:
             AZ_RTTI(AZ::Render::DeferredFogSettingsInterface, "{4C760B7D-DCBB-4244-94E4-E17180CA722A}");
 
-            virtual void OnSettingsChanged() = 0;
-
-            virtual void SetInitialized(bool isInitialized) = 0;
-            virtual bool IsInitialized() = 0;
+            inline void OnSettingsChanged()
+            {
+                DeferredFogGlobalNotificationBus::Broadcast(&DeferredFogGlobalNotifications::OnDeferredFogGlobalSettingsChanged);
+            };
 
             virtual void SetEnabled(bool value) = 0;
             virtual bool GetEnabled() const = 0;

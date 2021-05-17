@@ -1,0 +1,55 @@
+#pragma once
+
+
+static const float FogVolumeTexZToDepth_Exponent = 2.f;
+static const float FogVolumeTexZToDepth_ExponentInv = 1.f / FogVolumeTexZToDepth_Exponent;
+
+
+static const float FogMaxDepthLinear = 64; // TODO: srg?
+
+// float FogVolumeTexZToDepth(float z)
+// {
+//     return pow(1.0 - z, FogVolumeTexZToDepth_Exponent);
+// }
+
+// float DepthToFogVolumeTexZ(float z)
+// {
+//     return 1.0 - pow(z, FogVolumeTexZToDepth_ExponentInv);
+// }
+
+float FogVolumeTexZToLinearDepth(float z)
+{
+    return pow(z, FogVolumeTexZToDepth_Exponent) * (FogMaxDepthLinear - ViewSrg::GetFarZ()) + ViewSrg::GetFarZ();
+}
+
+float LinearDepthToFogVolumeTexZ(float d)
+{
+    // d = pow(z, FogVolumeTexZToDepth_Exponent) * (FogMaxDepthLinear - ViewSrg::GetFarZ()) + ViewSrg::GetFarZ();
+    // (d - ViewSrg::GetFarZ()) / (FogMaxDepthLinear - ViewSrg::GetFarZ()) = pow(z, FogVolumeTexZToDepth_Exponent);
+    // pow((d - ViewSrg::GetFarZ()) / (FogMaxDepthLinear - ViewSrg::GetFarZ()), FogVolumeTexZToDepth_ExponentInv) = z;
+    return pow((d - ViewSrg::GetFarZ()) / (FogMaxDepthLinear - ViewSrg::GetFarZ()), FogVolumeTexZToDepth_ExponentInv);
+}
+
+float4 Unproject(float2 UV, float zDepth)
+{
+    float x = UV.x * 2.0f - 1.0f;
+    float y = (1.0f - UV.y) * 2.0f - 1.0f;
+    float4 projectedPos = float4(x, y, zDepth, 1.0f);    // warped projected space [0..1]
+    float4 positionVS = mul(ViewSrg::m_projectionMatrixInverse, projectedPos);
+
+    positionVS /= positionVS.w;
+    float4 positionWS = mul(ViewSrg::m_viewMatrixInverse, positionVS);
+    return positionWS;
+}
+
+float3 ProjectWorld(float3 wsPos)
+{
+    float4 ppos = mul(ViewSrg::m_viewProjectionMatrix, float4(wsPos, 1.0));
+    ppos.xyz /= ppos.w;
+    return ppos.xyz;
+}
+
+float GetBeersLawExtinction(float d)
+{
+    return saturate(exp(-d));
+}

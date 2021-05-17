@@ -25,6 +25,7 @@
 #include <PostProcess/PostProcessFeatureProcessor.h>
 #include <Atom/RPI.Public/Scene.h>
 #include <Atom/RPI.Public/View.h>
+#include <Atom/RPI.Public/Pass/ComputePass.h>
 #include <Atom/RPI.Reflect/Pass/PassTemplate.h>
 #include <Atom/RPI.Reflect/Shader/ShaderAsset.h>
 
@@ -32,24 +33,26 @@ namespace AZ
 {
     namespace Render
     {
-        DeferredFogPass::DeferredFogPass(const RPI::PassDescriptor& descriptor)
-            : RPI::FullscreenTrianglePass(descriptor)
+        template<class Derived, class BasePass>
+        DeferredFogPass_tpl<Derived, BasePass>::DeferredFogPass_tpl(const RPI::PassDescriptor& descriptor)
+            : BasePass(descriptor)
         {
+            DeferredFogGlobalNotificationBus::Handler::BusConnect();
         }
 
-        RPI::Ptr<DeferredFogPass> DeferredFogPass::Create(const RPI::PassDescriptor& descriptor)
+        template<class Derived, class BasePass>
+        RPI::Ptr<Derived> DeferredFogPass_tpl<Derived, BasePass>::Create(const RPI::PassDescriptor& descriptor)
         {
-            RPI::Ptr<DeferredFogPass> pass = aznew DeferredFogPass(descriptor);
+            RPI::Ptr<Derived> pass = aznew Derived(descriptor);
             pass->SetSrgBindIndices();
 
             return AZStd::move(pass);
         }
 
 
-        void DeferredFogPass::Init()
+        template<class Derived, class BasePass>
+        void DeferredFogPass_tpl<Derived, BasePass>::InitDeferredFogPass()
         {
-            FullscreenTrianglePass::Init();
-
             // The following will ensure that in the case of data driven pass, the settings will get
             // updated by the pass enable state.
             // When code is involved or editor component comes to action, this value will be overriden
@@ -62,7 +65,8 @@ namespace AZ
         //---------------------------------------------------------------------
         //! Setting and Binding Shader SRG Constants using settings macro reflection
 
-        DeferredFogSettings* DeferredFogPass::GetPassFogSettings()
+        template<class Derived, class BasePass>
+        DeferredFogSettings* DeferredFogPass_tpl<Derived, BasePass>::GetPassFogSettings()
         {
             RPI::Scene* scene = GetScene();
             if (!scene)
@@ -91,40 +95,41 @@ namespace AZ
 
 
         //! Set the binding indices of all members of the SRG
-        void DeferredFogPass::SetSrgBindIndices()
+        template<class Derived, class BasePass>
+        void DeferredFogPass_tpl<Derived, BasePass>::SetSrgBindIndices()
         {
-            DeferredFogSettings* fogSettings = GetPassFogSettings();
             Data::Instance<RPI::ShaderResourceGroup> srg = m_shaderResourceGroup.get();
             
             // match and set all SRG constants' indices
 #define AZ_GFX_COMMON_PARAM(ValueType, FunctionName, MemberName, DefaultValue)                          \
-            fogSettings->MemberName##SrgIndex = srg->FindShaderInputConstantIndex(Name(#MemberName));   \
+            m_instanceData.MemberName##SrgIndex = srg->FindShaderInputConstantIndex(Name(#MemberName));   \
 
 #include <Atom/Feature/ParamMacros/MapParamCommon.inl>
             // For texture use a different function call
 #undef  AZ_GFX_TEXTURE2D_PARAM
 #define AZ_GFX_TEXTURE2D_PARAM(FunctionName, MemberName, DefaultValue)                                  \
-            fogSettings->MemberName##SrgIndex = srg->FindShaderInputImageIndex(Name(#MemberName));      \
+            m_instanceData.MemberName##SrgIndex = srg->FindShaderInputImageIndex(Name(#MemberName));      \
 
 #include <Atom/Feature/ScreenSpace/DeferredFogParams.inl>
 #include <Atom/Feature/ParamMacros/EndParams.inl>
 
-            fogSettings->SetInitialized(true);
+            m_srgBindIndicesInitialized = true;
         }
 
 
         //! Bind SRG constants - done via macro reflection
-        void DeferredFogPass::SetSrgConstants()
+        template<class Derived, class BasePass>
+        void DeferredFogPass_tpl<Derived, BasePass>::SetSrgConstants()
         {
             DeferredFogSettings* fogSettings = GetPassFogSettings();
             Data::Instance<RPI::ShaderResourceGroup> srg = m_shaderResourceGroup.get();
 
-            if (!fogSettings->IsInitialized())
+            if (!m_srgBindIndicesInitialized)
             {   // Should be initialize before, but if not - this is a fail safe that will apply it once
                 SetSrgBindIndices();
             }
 
-            if (fogSettings->GetSettingsNeedUpdate())
+            if (m_settingsDirty)
             {   // SRG constants are up to date and will be bound as they are.
                 // First time around they will be dirty to ensure properly set. 
 
@@ -134,27 +139,31 @@ namespace AZ
 
 #undef  AZ_GFX_TEXTURE2D_PARAM
 #define AZ_GFX_TEXTURE2D_PARAM(Name, MemberName, DefaultValue)                  \
-                fogSettings->MemberName##Image =                                \
-                    fogSettings->LoadStreamingImage( fogSettings->MemberName.c_str(), "DeferredFogSettings" );  \
+                {\
+                    m_instanceData.MemberName##Image =                                \
+                        fogSettings->LoadStreamingImage( fogSettings->MemberName.c_str(), "DeferredFogSettings" );  \
+                }\
 
 #include <Atom/Feature/ScreenSpace/DeferredFogParams.inl>
 #include <Atom/Feature/ParamMacros/EndParams.inl>
 
-                fogSettings->SetSettingsNeedUpdate(false);   // Avoid doing this unless data change is required
+                m_settingsDirty = false;
             }
 
             // The Srg constants value settings
 #define AZ_GFX_COMMON_PARAM(ValueType, Name, MemberName, DefaultValue)                          \
-            srg->SetConstant( fogSettings->MemberName##SrgIndex, fogSettings->MemberName );     \
+            if (m_instanceData.MemberName##SrgIndex.IsValid()) { \
+                srg->SetConstant( m_instanceData.MemberName##SrgIndex, fogSettings->MemberName );     \
+            } \
 
 #include <Atom/Feature/ParamMacros/MapParamCommon.inl>
 
             // The following macro overrides the regular macro defined above, loads an image and bind it
 #undef AZ_GFX_TEXTURE2D_PARAM
 #define AZ_GFX_TEXTURE2D_PARAM(Name, MemberName, DefaultValue)                      \
-            if (!srg->SetImage(fogSettings->MemberName##SrgIndex, fogSettings->MemberName##Image ))           \
+            if (m_instanceData.MemberName##SrgIndex.IsValid() && !srg->SetImage(m_instanceData.MemberName##SrgIndex, m_instanceData.MemberName##Image ))           \
             {                                                                       \
-                AZ_Error( "DeferredFogPass::SetSrgConstants", false, "Failed to bind SRG image for %s = %s",  \
+                AZ_Error( "DeferredFogPass_tpl<Derived, BasePass>::SetSrgConstants", false, "Failed to bind SRG image for %s = %s",  \
                     #MemberName, fogSettings->MemberName.c_str() );                                      \
             }                                                                       \
 
@@ -164,7 +173,8 @@ namespace AZ
         //---------------------------------------------------------------------
 
 
-        void DeferredFogPass::UpdateEnable(DeferredFogSettings* fogSettings)
+        template<class Derived, class BasePass>
+        void DeferredFogPass_tpl<Derived, BasePass>::UpdateEnable(DeferredFogSettings* fogSettings)
         {
             if (!m_pipeline || !fogSettings)
             {
@@ -182,23 +192,37 @@ namespace AZ
             SetEnabled( fogSettings->GetEnabled() );
         }
 
-        bool DeferredFogPass::IsEnabled() const 
+        template<class Derived, class BasePass>
+        bool DeferredFogPass_tpl<Derived, BasePass>::IsEnabled() const 
         {
-            const DeferredFogSettings* constFogSettings = const_cast<DeferredFogPass*>(this)->GetPassFogSettings();
+            DeferredFogSettings* constFogSettings = const_cast<DeferredFogPass_tpl*>(this)->GetPassFogSettings();
             return constFogSettings->GetEnabled();
         }
 
-        void DeferredFogPass::UpdateShaderOptions()
+        template<class Derived, class BasePass>
+        void DeferredFogPass_tpl<Derived, BasePass>::UpdateShaderOptions()
         {
+            static const auto BoolToShaderOption = [](bool x)
+            {
+                return x ? AZ::Name("true") : AZ::Name("false");
+            };
+
             RPI::ShaderOptionGroup shaderOption = m_shader->CreateShaderOptionGroup();
             DeferredFogSettings* fogSettings = GetPassFogSettings();
 
+            static const AZ::Name o_enableFogLayer("o_enableFogLayer");
+            static const AZ::Name o_useNoiseTexture("o_useNoiseTexture");
+
             // [TODO][ATOM-13659] - AZ::Name all over our code base should use init with string and
             // hash key for the iterations themselves.
-            shaderOption.SetValue(AZ::Name("o_enableFogLayer"),
-                fogSettings->GetEnableFogLayerShaderOption() ? AZ::Name("true") : AZ::Name("false"));
-            shaderOption.SetValue(AZ::Name("o_useNoiseTexture"),
-                fogSettings->GetUseNoiseTextureShaderOption() ? AZ::Name("true") : AZ::Name("false"));
+            if (shaderOption.FindShaderOptionIndex(o_enableFogLayer).IsValid())
+            {
+                shaderOption.SetValue(o_enableFogLayer, BoolToShaderOption(fogSettings->GetEnableFogLayerShaderOption()));
+            }
+            if (shaderOption.FindShaderOptionIndex(o_useNoiseTexture).IsValid())
+            {
+                shaderOption.SetValue(o_useNoiseTexture, BoolToShaderOption(fogSettings->GetUseNoiseTextureShaderOption()));
+            }
 
             // The following method returns the specified options, as well as fall back values for all 
             // non-specified options.  If all were set you can use the method GetShaderVariantKey that is 
@@ -206,10 +230,16 @@ namespace AZ
             m_ShaderOptions = shaderOption.GetShaderVariantKeyFallbackValue();
         }
 
-        void DeferredFogPass::SetupFrameGraphDependencies(RHI::FrameGraphInterface frameGraph)
+        template<class Derived, class BasePass>
+        void DeferredFogPass_tpl<Derived, BasePass>::SetupFrameGraphDependencies(RHI::FrameGraphInterface frameGraph)
         {
-            FullscreenTrianglePass::SetupFrameGraphDependencies(frameGraph);
+            BasePass::SetupFrameGraphDependencies(frameGraph);
+            UpdateDeferredFogPassSrg();
+        }
 
+        template<class Derived, class BasePass>
+        void DeferredFogPass_tpl<Derived, BasePass>::UpdateDeferredFogPassSrg()
+        {
             // If any change was made, make sure to bind it.
             DeferredFogSettings* fogSettings = GetPassFogSettings();
 
@@ -224,16 +254,78 @@ namespace AZ
 
             SetSrgConstants();
         }
-  
-        void DeferredFogPass::CompileResources(const RHI::FrameGraphCompileContext& context)
+
+        template<class Derived, class BasePass>
+        void DeferredFogPass_tpl<Derived, BasePass>::CompileResources(const RHI::FrameGraphCompileContext& context)
         {
             if (m_shaderResourceGroup->HasShaderVariantKeyFallbackEntry())
             {
                 m_shaderResourceGroup->SetShaderVariantKeyFallbackValue(m_ShaderOptions);
             }
 
-            FullscreenTrianglePass::CompileResources(context);
+            BasePass::CompileResources(context);
         }
+
+
+        // Concrete pass types
+        class DeferredFogFullScreenTrianglePass
+            : public DeferredFogPass_tpl<DeferredFogFullScreenTrianglePass, AZ::RPI::FullscreenTrianglePass>
+        {
+            AZ_RPI_PASS(DeferredFogFullScreenTrianglePass);
+
+        public:
+            AZ_RTTI(DeferredFogFullScreenTrianglePass, "{0406C8AB-E95D-43A7-AF53-BDEE22D36746}", RPI::FullscreenTrianglePass);
+            AZ_CLASS_ALLOCATOR(DeferredFogFullScreenTrianglePass, SystemAllocator, 0);
+
+            using DeferredFogPass_tpl::DeferredFogPass_tpl;
+
+            void Init() override
+            {
+                FullscreenTrianglePass::Init();
+                InitDeferredFogPass();
+            }
+        };
+
+
+        class DeferredFogComputePass
+            : public DeferredFogPass_tpl<DeferredFogComputePass, AZ::RPI::ComputePass>
+        {
+            AZ_RPI_PASS(DeferredFogComputePass);
+
+        public:
+            AZ_RTTI(DeferredFogComputePass, "{2125C260-D2CE-4EB7-AFE4-5164933B1E7C}", RPI::ComputePass);
+            AZ_CLASS_ALLOCATOR(DeferredFogComputePass, SystemAllocator, 0);
+
+            using DeferredFogPass_tpl::DeferredFogPass_tpl;
+
+            void FrameBeginInternal(FramePrepareParams params) override
+            {
+                if (!m_flags.m_initialized)
+                {
+                    InitDeferredFogPass();
+                    m_flags.m_initialized = true;
+                }
+
+                RPI::ComputePass::FrameBeginInternal(AZStd::move(params));
+            }
+
+            void CompileResources(const RHI::FrameGraphCompileContext& context) override
+            {
+                UpdateDeferredFogPassSrg();
+                ComputePass::CompileResources(context);
+            }
+        };
+
+        const AZStd::array<AZStd::pair<AZ::Name, AZ::RPI::PassCreator>, 2>& GetDeferredFogPasses()
+        {
+            static const AZStd::array<AZStd::pair<AZ::Name, AZ::RPI::PassCreator>, 2> result =
+            {{
+                { Name("DeferredFogFullScreenTrianglePass"), &DeferredFogFullScreenTrianglePass::Create },
+                { Name("DeferredFogComputePass"), &DeferredFogComputePass::Create }
+            }};
+            return result;
+        }
+
     }   // namespace Render
 }   // namespace AZ
 

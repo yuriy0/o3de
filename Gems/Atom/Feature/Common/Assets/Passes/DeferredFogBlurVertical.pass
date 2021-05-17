@@ -1,0 +1,33 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "DeferredFogBlurVerticalPassTemplate",
+            "PassClass": "DeferredFogComputePass",
+            "Slots": [
+                {
+                    "Name": "Input",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_input",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "Output",
+                    "SlotType": "InputOutput",
+                    "ShaderInputName": "m_output",
+                    "ScopeAttachmentUsage": "Shader"
+                }
+            ],
+            "PassData": {
+                "$type": "ComputePassData",
+                "ShaderAsset": {
+                    "FilePath": "Shaders/ScreenSpace/DeferredFogVerticalBlurVolume.shader"
+                },
+                "Make Fullscreen Pass": true,
+                "PipelineViewTag": "MainCamera"
+            }
+        }
+    }
+}

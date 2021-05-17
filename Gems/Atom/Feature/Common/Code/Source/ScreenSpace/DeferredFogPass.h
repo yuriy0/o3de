@@ -38,20 +38,16 @@ namespace AZ
         // control the visual properties of the fog.
         // Enhancements of this fog can contain more advanced noise handling (real volumetric), areal
         // mask, blending between areal fog nodes and other enhancements required for production.
-        class DeferredFogPass final
-            : public RPI::FullscreenTrianglePass
+
+        template<class Derived, class BasePass>
+        class DeferredFogPass_tpl
+            : public BasePass
+            , private DeferredFogGlobalNotificationBus::Handler
         {
-            AZ_RPI_PASS(DeferredFogPass);
-
-
         public:
-            AZ_RTTI(DeferredFogPass, "{0406C8AB-E95D-43A7-AF53-BDEE22D36746}", RPI::FullscreenTrianglePass);
-            AZ_CLASS_ALLOCATOR(DeferredFogPass, SystemAllocator, 0);
-            ~DeferredFogPass() = default;
+            ~DeferredFogPass_tpl() = default;
 
-            void Init() override;
-
-            static RPI::Ptr<DeferredFogPass> Create(const RPI::PassDescriptor& descriptor);
+            static RPI::Ptr<Derived> Create(const RPI::PassDescriptor& descriptor);
 
             DeferredFogSettings* GetPassFogSettings();
 
@@ -61,7 +57,11 @@ namespace AZ
             void CompileResources(const RHI::FrameGraphCompileContext& context) override;
 
         protected:
-            DeferredFogPass(const RPI::PassDescriptor& descriptor);
+            DeferredFogPass_tpl(const RPI::PassDescriptor& descriptor);
+
+            void InitDeferredFogPass();
+
+            void UpdateDeferredFogPassSrg();
 
             //! Set the binding indices of all members of the SRG
             void SetSrgBindIndices();
@@ -75,12 +75,27 @@ namespace AZ
             void UpdateShaderOptions();
 
         private:
+            // DeferredFogGlobalNotificationBus
+            void OnDeferredFogGlobalSettingsChanged() override
+            {
+                m_settingsDirty = true;
+            }
+
             // When a component is not present we want to fall back to the default settings and
             // actively pass them to the shader.
             DeferredFogSettings m_fallbackSettings;
 
+            // Per-Instance data
+            DeferredFogSettings::SrgInstanceData m_instanceData;
+
             // Shader options for variant generation (texture and layer activation in this case)
             AZ::RPI::ShaderVariantKey m_ShaderOptions;
-        };       
+
+            bool m_srgBindIndicesInitialized = false;
+            AZStd::atomic_bool m_settingsDirty = false;
+        };
+
+        const AZStd::array<AZStd::pair<AZ::Name, AZ::RPI::PassCreator>, 2>& GetDeferredFogPasses();
+
     }   // namespace Render
 }   // namespace AZ

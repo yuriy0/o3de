@@ -20,6 +20,9 @@ AZ_GFX_FLOAT_PARAM(FogEndDistance, m_fogEndDistance, 5.0f )
 AZ_GFX_FLOAT_PARAM(FogMinHeight, m_fogMinHeight, 0.01f)
 AZ_GFX_FLOAT_PARAM(FogMaxHeight, m_fogMaxHeight, 1.0f)
 
+AZ_GFX_FLOAT_PARAM(FogAnisotropy, m_fogAnisotropy, 1.0f)
+AZ_GFX_FLOAT_PARAM(DensityMultiplier, m_fogDensityMultiplier, 1.0f)
+
 AZ_GFX_TEXTURE2D_PARAM(NoiseTexture, m_noiseTexture, "textures/cloudnoise_01.jpg.streamingimage")
 
 // First noise octave

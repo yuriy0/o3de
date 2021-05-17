@@ -1,0 +1,76 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "DeferredFogCombinePassTemplate",
+            "PassClass": "DeferredFogFullScreenTrianglePass",
+            "Slots": [
+                {
+                    "Name": "RenderTarget",
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "RenderTarget"
+                },/*
+                {
+                    "Name": "DebugRT",
+                    "SlotType": "Output",
+                    "ScopeAttachmentUsage": "RenderTarget"
+                },*/
+                {
+                    "Name": "FogCDF",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_fogCDF",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "InputDepthStencil",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_depthStencilTexture",
+                    "ScopeAttachmentUsage": "Shader"/*,
+                    "ImageViewDesc": {
+                        "AspectFlags": [
+                            "Depth"
+                        ]
+                    }*/
+                }
+            ],
+            "ImageAttachments": [
+                /*
+                {
+                    "Name": "DebugRTImage",
+                    "ImageDescriptor": {
+                        "Format": "R16G16B16A16_FLOAT",
+                        "Dimension": "2",
+                        "SharedQueueMask": "Graphics"
+                    },
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "InputDepthStencil"
+                        }
+                    }
+                }
+                */
+            ],
+            "Connections": [
+                /*
+                {
+                    "LocalSlot": "DebugRT",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "DebugRTImage"
+                    }
+                }
+                */
+            ],
+            "PassData": {
+                "$type": "FullscreenTrianglePassData",
+                "ShaderAsset": {
+                    "FilePath": "Shaders/ScreenSpace/DeferredFogCombine.shader"
+                },
+                "PipelineViewTag": "MainCamera"
+            }
+        }
+    }
+}

@@ -356,8 +356,8 @@
                 },
                 {
                     "Name": "DeferredFogPass",
-                    "TemplateName": "DeferredFogPassTemplate",
-                    "Enabled": false,
+                    "TemplateName": "DeferredFogParentPassTemplate",
+                    "Enabled": true,
                     "Connections": [
                         {
                             "LocalSlot": "InputLinearDepth",
@@ -379,15 +379,51 @@
                                 "Pass": "TransparentPass",
                                 "Attachment": "InputOutput"
                             }
-                        }
-                    ],
-                    "PassData": {
-                        "$type": "FullscreenTrianglePassData",
-                        "ShaderAsset": {
-                            "FilePath": "Shaders/ScreenSpace/DeferredFog.shader"
                         },
-                        "PipelineViewTag": "MainCamera"
-                    }
+                        // Lighting and shadowing inputs for regular shading
+                        {
+                            "LocalSlot": "DirectionalLightShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "ShadowPass",
+                                "Attachment": "DirectionalShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ExponentialShadowmapDirectional",
+                            "AttachmentRef": {
+                                "Pass": "ShadowPass",
+                                "Attachment": "DirectionalESM"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ProjectedShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "ShadowPass",
+                                "Attachment": "ProjectedShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ExponentialShadowmapProjected",
+                            "AttachmentRef": {
+                                "Pass": "ShadowPass",
+                                "Attachment": "ProjectedESM"
+                            }
+                        },
+                        {
+                            "LocalSlot": "TileLightData",
+                            "AttachmentRef": {
+                                "Pass": "LightCullingPass",
+                                "Attachment": "TileLightData"
+                            }
+                        },
+                        {
+                            "LocalSlot": "LightListRemapped",
+                            "AttachmentRef": {
+                                "Pass": "LightCullingPass",
+                                "Attachment": "LightListRemapped"
+                            }
+                        }
+                    ]
                 },
                 {
                     "Name": "ReflectionCopyFrameBufferPass",

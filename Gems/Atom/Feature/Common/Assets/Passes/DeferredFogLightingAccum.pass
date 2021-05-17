@@ -1,0 +1,196 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "DeferredFogLightingAccumPassTemplate",
+            "PassClass": "DeferredFogComputePass",
+            "Slots": [
+                {
+                    "Name": "Output",
+                    "SlotType": "Output",
+                    "ShaderInputName": "m_lightingAccum",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "InputLinearDepth",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_linearDepthTexture",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "InputDepthStencil",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_depthStencilTexture",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "AspectFlags": [
+                            "Depth"
+                        ]
+                    }
+                },
+
+                // Input data for lighting/shadowing
+                {
+                    "Name": "DirectionalLightShadowmap",
+                    "ShaderInputName": "m_directionalLightShadowmap",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "IsArray": 1
+                    }
+                },
+                {
+                    "Name": "ExponentialShadowmapDirectional",
+                    "ShaderInputName": "m_directionalLightExponentialShadowmap",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "IsArray": 1
+                    }
+                },
+                {
+                    "Name": "ProjectedShadowmap",
+                    "ShaderInputName": "m_projectedShadowmaps",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "IsArray": 1
+                    }
+                },
+                {
+                    "Name": "ExponentialShadowmapProjected",
+                    "ShaderInputName": "m_projectedExponentialShadowmap",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "IsArray": 1
+                    }
+                },
+                {
+                    "Name": "TileLightData",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_tileLightData",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "LightListRemapped",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_lightListRemapped",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+
+                // Imported images
+                {
+                    "Name": "FogNoiseTexture",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_noiseTexture",
+                    "ScopeAttachmentUsage": "Shader"
+                }
+            ],
+            "ImageAttachments": [
+                {
+                    "Name": "OutputImage",
+                    "ImageDescriptor": {
+                        "Format": "R16G16B16A16_FLOAT",
+                        "Dimension": "3",
+                        "SharedQueueMask": "Graphics"
+                    },
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "InputLinearDepth"
+                        },
+                        "Multipliers": {
+                            "WidthMultiplier": 0.125,
+                            "HeightMultiplier": 0.125,
+                            // Note that the depth of a 2d texture is 1, so this sets output depth.
+                            // We need this because size source overwrites any size specified in ImageDescriptor
+                            "DepthMultiplier": 32
+                        }
+                    }
+                },
+                {
+                    "Name": "FogNoiseTextureImported",
+                    "Lifetime": "Imported",
+                    "AssetRef": {
+                        "FilePath": "Textures/BRDFTexture.attimage"
+                    }
+                }
+            ],
+            "Connections": [
+                {
+                    "LocalSlot": "Output",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "OutputImage"
+                    }
+                },
+                {
+                    "LocalSlot": "FogNoiseTexture",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "FogNoiseTextureImported"
+                    }
+                }
+            ],
+            "PassData": {
+                "$type": "ComputePassData",
+                "ShaderAsset": {
+                    "FilePath": "Shaders/ScreenSpace/DeferredFogLightingAccum.shader"
+                },
+                "Make Fullscreen Pass": true,
+                "PipelineViewTag": "MainCamera"
+                
+                /*,
+
+                "ShaderDataMappings": {
+                    "Float3Mappings": [
+                        {
+                            "Name": "m_fogColor",
+                            "Value": [ 0.45, 0.45, 0.6 ]
+                        }
+                    ],
+                    "Float2Mappings": [
+                        {
+                            "Name": "m_noiseScaleUV",
+                            "Value": [ 0.1, 0.1 ]
+                        },
+                        {
+                            "Name": "m_noiseVelocityUV",
+                            "Value": [ 0.02, 0.01 ]
+                        }
+                    ],
+                    "FloatMappings": [
+                        {
+                            "Name": "m_fogStartDistance",
+                            "Value": 1.0
+                        },
+                        {
+                            "Name": "m_fogEndDistance",
+                            "Value": 5.0
+                        },
+                        {
+                            "Name": "m_fogMinHeight",
+                            "Value": 0.01
+                        },
+                        {
+                            "Name": "m_fogMaxHeight",
+                            "Value": 1.0
+                        },
+                        {
+                            "Name": "m_fogAnisotropy",
+                            "Value": 0.44
+                        },
+                        {
+                            "Name": "m_fogDensityMultiplier",
+                            "Value": 0.2
+                        }
+                    ]
+                }*/
+
+            }
+        }
+    }
+}

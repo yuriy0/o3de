@@ -268,7 +268,10 @@ namespace AZ
             passSystem->AddPassCreator(Name("LuminanceHistogramGeneratorPass"), &LuminanceHistogramGeneratorPass::Create);
 
             // Deferred Fog
-            passSystem->AddPassCreator(Name("DeferredFogPass"), &DeferredFogPass::Create);
+            for (const auto& namePass : GetDeferredFogPasses())
+            {
+                passSystem->AddPassCreator(namePass.first, namePass.second);
+            }
 
             // Add Reflection passes
             passSystem->AddPassCreator(Name("ReflectionScreenSpaceBlurPass"), &Render::ReflectionScreenSpaceBlurPass::Create);

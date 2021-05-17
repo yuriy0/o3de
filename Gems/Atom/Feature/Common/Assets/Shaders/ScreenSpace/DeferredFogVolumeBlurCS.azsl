@@ -1,0 +1,193 @@
+#include <Atom/Features/SrgSemantics.azsli>
+#include <Atom/RPI/Math.azsli>
+
+#include <viewsrg.srgi>
+#include <scenesrg.srgi>
+
+ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
+{
+    // Input/Output
+    Texture3D<float4> m_input;
+    RWTexture3D<float4> m_output;
+}
+
+#include "DeferredFog_Common.azsli"
+
+#define NUM_THREAD 8
+
+static const uint NumThreadsPerGroupAxis = NUM_THREAD;
+static const uint NumThreadsPerGroup = NumThreadsPerGroupAxis*NumThreadsPerGroupAxis;
+static const uint KernelRadius = 4;
+static const uint KernelSize = 2*KernelRadius+1;
+
+// Each row in each group reads NumThreadsPerGroupAxis values,
+// plus another KernelSize-1 values for the pixels near the edge
+// Each group has `NumThreadsPerGroupAxis' rows
+static const uint NumInputsPerRow = NumThreadsPerGroupAxis+KernelSize-1;
+static const uint NumInputsPerGroup = NumThreadsPerGroupAxis*NumInputsPerRow;
+
+// Number of pixels inputs which each thread must read into group shared memory
+// Quite simply, the total number of pixels to be read per group, divided by the number of threads per group
+// Must be a integer, or things go crazy (nb: static assert?)
+static const uint NumInputPixelsToReadPerThread =
+    //   NumInputsPerGroup / NumThreadsPerGroup // By definition
+    // = (NumThreadsPerGroupAxis*NumInputsPerRow) / (NumThreadsPerGroupAxis*NumThreadsPerGroupAxis)
+    // = NumInputsPerRow / NumThreadsPerGroupAxis
+    // = NumThreadsPerGroupAxis + KernelSize - 1 / NumThreadsPerGroupAxis
+    // = (NumThreadsPerGroupAxis / NumThreadsPerGroupAxis) + (KernelSize - 1 / NumThreadsPerGroupAxis)
+    // = 1 + ((KernelSize - 1) / NumThreadsPerGroupAxis)
+    // = 1 + (((2*KernelRadius+1) - 1) / NumThreadsPerGroupAxis)
+    // = 1 + (2*KernelRadius / NumThreadsPerGroupAxis)
+    NumInputsPerGroup / NumThreadsPerGroup
+;
+
+// Sigma=2
+static const float GaussianBlurKernel[KernelSize] = {
+     0.02853226260337099
+    ,0.06723453549491201
+    ,0.1240093299792275
+    ,0.1790438646174162
+    ,0.2023600146101466
+    ,0.1790438646174162
+    ,0.1240093299792275
+    ,0.06723453549491201
+    ,0.02853226260337099
+};
+
+// Shared inputs
+groupshared float4 Input[NumInputsPerRow][NumThreadsPerGroupAxis];
+
+int3 ClampDimXY(int3 p, int2 dim)
+{
+    return int3(clamp(p.xy, int2(0,0), dim - 1), p.z);
+}
+
+class BlurParams
+{
+    bool isHorizontal;
+
+    int2 Swizzle(int2 p);
+};
+
+int2 BlurParams::Swizzle(int2 p)
+{
+    return isHorizontal ? p : p.yx;
+};
+
+// Generic, i.e. horizontal or vertical
+void GenericBlur(const uint3 dispatch_id, const uint3 groupthread_id, const uint3 group_id, const BlurParams params)
+{
+    //// Setup...
+    // Dimensions of volume tex to be processed
+    uint3 dim;
+    PassSrg::m_input.GetDimensions(dim.x, dim.y, dim.z);
+
+    // The index of the slice to process (one warp per z slice)
+    const int zSliceIndex = dispatch_id.z;
+
+    // Upper left corner of the pixels to be processed (i.e. written to) by this group
+    const int3 groupOrigin = int3(group_id.xy * NumThreadsPerGroupAxis, zSliceIndex);
+
+    // Index of the thread in the group
+    const int2 threadIxGroup = params.Swizzle(groupthread_id.xy);
+
+    //// read input values into shared memory
+    for (uint i = 0; i < NumInputPixelsToReadPerThread; ++i)
+    {
+        // The position relative to groups origin of the pixel to read
+        const int2 offsetFromGroupOrigin =
+            threadIxGroup * int2(NumInputPixelsToReadPerThread, 1) + int2((int)i, 0);
+        const int3 inputPos = ClampDimXY(
+            groupOrigin + int3(params.Swizzle(offsetFromGroupOrigin + int2(-KernelRadius,0)), 0),
+            dim.xy
+        );
+
+        Input[offsetFromGroupOrigin.x][offsetFromGroupOrigin.y] = PassSrg::m_input.Load(int4(inputPos,0));
+    }
+
+    // Wait for all inputs to be read
+    GroupMemoryBarrierWithGroupSync();
+
+    //// Do gaussian blur
+    float4 accum = 0;
+
+    [unroll]
+    for (int i = 0; i < KernelSize; ++i)
+    {
+        const float weight = GaussianBlurKernel[i];
+        const int2 offsetFromGroupOrigin = threadIxGroup + int2(i, 0);
+
+        accum += weight * Input[offsetFromGroupOrigin.x][offsetFromGroupOrigin.y];
+    }
+
+    // DEBUG: visualize what a single thread does
+    // for a single pixel, write the output of that pixel to (0,0)
+    // and write the shared memory for the group starting at (2,2)
+    if (false)
+    {
+        static const uint2 sel = uint2(50,40);
+
+        if (all(dispatch_id.xy == sel))
+        {
+            // Zero out
+            for (int i = 0; i < dim.x; ++i)
+            {
+                for (int j = 0; j < dim.y; ++j)
+                {
+                    float4 empty = -1.234;
+                    PassSrg::m_output[uint3(i,j,dispatch_id.z)] = empty;
+                }
+            }
+
+            // Write output
+            PassSrg::m_output[uint3(0,0,dispatch_id.z)] = accum;
+
+            // Write inputs
+            for (int i = 0; i < NumInputsPerRow; ++i)
+            {
+                for (int j = 0; j < NumThreadsPerGroupAxis; ++j)
+                {
+                    PassSrg::m_output[uint3(i+2,j+2,dispatch_id.z)] = Input[i][j];
+                }
+            }
+        }
+
+        return;
+    }
+    // END DEBUG
+
+    /* const int3 outIndex = int3(params.Swizzle(dispatch_id.xy), dispatch_id.z); */
+    const int3 outIndex = dispatch_id;
+    PassSrg::m_output[outIndex] = accum;
+
+}
+
+[numthreads(NUM_THREAD,NUM_THREAD,1)]
+void HorizontalBlurCS(uint3 dispatch_id: SV_DispatchThreadID, uint3 groupthread_id : SV_GroupThreadID, uint3 group_id : SV_GroupID)
+{
+    if (false)// DEBUG: no blur
+    {
+        PassSrg::m_output[dispatch_id] = PassSrg::m_input[dispatch_id];
+        return;
+    }
+    // END DEBUG
+
+    BlurParams mode;
+    mode.isHorizontal = true;
+    GenericBlur(dispatch_id, groupthread_id, group_id, mode);
+}
+
+[numthreads(NUM_THREAD,NUM_THREAD,1)]
+void VerticalBlurCS(uint3 dispatch_id: SV_DispatchThreadID, uint3 groupthread_id : SV_GroupThreadID, uint3 group_id : SV_GroupID)
+{
+    if (false)// DEBUG: no blur
+    {
+        PassSrg::m_output[dispatch_id] = PassSrg::m_input[dispatch_id];
+        return;
+    }
+    // END DEBUG
+
+    BlurParams mode;
+    mode.isHorizontal = false;
+    GenericBlur(dispatch_id, groupthread_id, group_id, mode);
+}

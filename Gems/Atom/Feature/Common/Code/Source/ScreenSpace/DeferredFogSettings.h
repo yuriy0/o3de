@@ -46,7 +46,8 @@ namespace AZ
             public DeferredFogSettingsInterface,
             public PostProcessBase
         {
-            friend class DeferredFogPass;
+            template<class, class>
+            friend class DeferredFogPass_tpl;
             friend class PostProcessSettings;
             friend class PostProcessFeatureProcessor;
 
@@ -59,30 +60,11 @@ namespace AZ
             DeferredFogSettings();
             ~DeferredFogSettings() = default;
 
-            // DeferredFogSettingsInterface overrides...
-            void OnSettingsChanged();
-            bool GetSettingsNeedUpdate()
-            {
-                return m_needUpdate;
-            }
-            void SetSettingsNeedUpdate(bool needUpdate)
-            {
-                m_needUpdate = needUpdate;
-            }
 
             void SetEnabled(bool value);
             virtual bool GetEnabled() const override
             {
                 return m_enabled;
-            }
-
-            virtual void SetInitialized(bool isInitialized) override
-            {
-                m_isInitialized = isInitialized;
-            }
-            virtual bool IsInitialized() override
-            {
-                return m_isInitialized;
             }
 
             virtual void SetUseNoiseTextureShaderOption(bool value) override
@@ -132,8 +114,13 @@ namespace AZ
 #include <Atom/Feature/ScreenSpace/DeferredFogParams.inl>
 #include <Atom/Feature/ParamMacros/EndParams.inl>
 
-            //---------------------------------------------------------
-            // SRG constants binding indices
+        public:
+
+            struct SrgInstanceData
+            {
+
+                //---------------------------------------------------------
+                // SRG constants binding indices
 #define AZ_GFX_COMMON_PARAM(ValueType, Name, MemberName, DefaultValue)      \
             RHI::ShaderInputConstantIndex MemberName##SrgIndex;             \
 
@@ -160,6 +147,8 @@ namespace AZ
 #include <Atom/Feature/ScreenSpace/DeferredFogParams.inl>
 #include <Atom/Feature/ParamMacros/EndParams.inl>
 
+            };
+
             PostProcessSettings* m_parentSettings = nullptr;
 
             // 'm_enabled' indicates if the pass should be enabled. By default this is set to true since if the
@@ -176,7 +165,6 @@ namespace AZ
 
             bool m_useNoiseTextureShaderOption = true;
             bool m_enableFogLayerShaderOption = true;
-
         };
 
     }

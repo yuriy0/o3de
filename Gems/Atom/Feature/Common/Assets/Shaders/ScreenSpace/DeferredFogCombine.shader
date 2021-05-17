@@ -1,11 +1,11 @@
-{ 
-    "Source" : "DeferredFog.azsl",
+{
+    "Source" : "DeferredFogCombine.azsl",
 
-    "DepthStencilState" : 
+    "DepthStencilState" :
     {
-        "Depth" : 
-        { 
-            "Enable" : false 
+        "Depth" :
+        {
+            "Enable" : false
         },
         "Stencil" :
         {
@@ -22,7 +22,7 @@
 
     "DrawList" : "forward",
 
-    "CompilerHints" : { 
+    "CompilerHints" : {
         "DxcDisableOptimizations" : false,
         "DxcGenerateDebugInfo" : false
     },
@@ -40,5 +40,5 @@
           "type": "Fragment"
         }
       ]
-    }   
+    }
 }

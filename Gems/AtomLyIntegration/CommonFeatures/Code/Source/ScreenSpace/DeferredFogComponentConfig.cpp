@@ -23,7 +23,7 @@ namespace AZ
             if (auto serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
             {
                 serializeContext->Class<DeferredFogComponentConfig, ComponentConfig>()
-                    ->Version(1)
+                    ->Version(2)
 
                     // Auto-gen serialize context code...
 #define SERIALIZE_CLASS DeferredFogComponentConfig

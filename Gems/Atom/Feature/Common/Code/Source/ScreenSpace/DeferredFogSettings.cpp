@@ -67,11 +67,6 @@ namespace AZ
             return image;
         }
 
-        void DeferredFogSettings::OnSettingsChanged()
-        {
-            m_needUpdate = true;   // even if disabled, mark it for when it'll become enabled
-        }
-
         void DeferredFogSettings::SetEnabled(bool value) 
         {
             m_enabled = value;

@@ -1,0 +1,276 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "DeferredFogParentPassTemplate",
+            "PassClass": "ParentPass",
+            "Slots": [
+                {
+                    "Name": "RenderTargetInputOutput",
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "RenderTarget",
+                    "LoadStoreAction": {
+                        "LoadAction": "DontCare",
+                        "StoreAction": "Store"
+                    }
+                },
+                {
+                    "Name": "InputLinearDepth",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_linearDepthTexture",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "InputDepthStencil",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_depthStencilTexture",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "AspectFlags": [
+                            "Depth"
+                        ]
+                    }
+                },
+
+                // Input data for lighting/shadowing
+                {
+                    "Name": "DirectionalLightShadowmap",
+                    "ShaderInputName": "m_directionalLightShadowmap",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "IsArray": 1
+                    }
+                },
+                {
+                    "Name": "ExponentialShadowmapDirectional",
+                    "ShaderInputName": "m_directionalLightExponentialShadowmap",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "IsArray": 1
+                    }
+                },
+                {
+                    "Name": "ProjectedShadowmap",
+                    "ShaderInputName": "m_projectedShadowmaps",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "IsArray": 1
+                    }
+                },
+                {
+                    "Name": "ExponentialShadowmapProjected",
+                    "ShaderInputName": "m_projectedExponentialShadowmap",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "IsArray": 1
+                    }
+                },
+                {
+                    "Name": "TileLightData",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_tileLightData",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "LightListRemapped",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_lightListRemapped",
+                    "ScopeAttachmentUsage": "Shader"
+                }
+            ],
+            "PassRequests": [
+                {
+                    "Name": "DeferredFogLightingAccum",
+                    "TemplateName": "DeferredFogLightingAccumPassTemplate",
+                    "Enabled" : true,
+                    "Connections": [
+                        {
+                            "LocalSlot": "InputLinearDepth",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "InputLinearDepth"
+                            }
+                        },
+                        {
+                            "LocalSlot": "InputDepthStencil",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "InputDepthStencil"
+                            }
+                        },
+                        // Lighting and shadowing inputs for regular shading
+                        {
+                            "LocalSlot": "DirectionalLightShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DirectionalLightShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ExponentialShadowmapDirectional",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "ExponentialShadowmapDirectional"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ProjectedShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "ProjectedShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ExponentialShadowmapProjected",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "ExponentialShadowmapProjected"
+                            }
+                        },
+                        {
+                            "LocalSlot": "TileLightData",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "TileLightData"
+                            }
+                        },
+                        {
+                            "LocalSlot": "LightListRemapped",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "LightListRemapped"
+                            }
+                        }
+                    ]
+                },
+                /*
+                {
+                    "Name": "DeferredFogBlurBilinear",
+                    "TemplateName": "DeferredFogVolumeBilinearBlurPassTemplate",
+                    "Enabled" : true,
+                    "Connections": [
+                        {
+                           "LocalSlot": "Input",
+                            "AttachmentRef": {
+                                "Pass": "DeferredFogLightingAccum",
+                                "Attachment": "Output"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "Name": "DeferredFogCDF",
+                    "TemplateName": "DeferredFogCDFComputePassTemplate",
+                    "Enabled" : true,
+                    "Connections": [
+                        {
+                           "LocalSlot": "Input",
+                            "AttachmentRef": {
+                                "Pass": "DeferredFogBlurVertical",
+                                "Attachment": "Output"
+                            }
+                        },
+                        {
+                           "LocalSlot": "Output",
+                            "AttachmentRef": {
+                                "Pass": "DeferredFogBlurHorizontal",
+                                "Attachment": "Output"
+                            }
+                        }
+                    ]
+                },
+                */
+                {
+                    "Name": "DeferredFogBlurHorizontal",
+                    "TemplateName": "DeferredFogBlurHorizontalPassTemplate",
+                    "Enabled" : true,
+                    "Connections": [
+                        {
+                           "LocalSlot": "Input",
+                            "AttachmentRef": {
+                                "Pass": "DeferredFogLightingAccum",
+                                "Attachment": "Output"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "Name": "DeferredFogBlurVertical",
+                    "TemplateName": "DeferredFogBlurVerticalPassTemplate",
+                    "Enabled" : true,
+                    "Connections": [
+                        {
+                           "LocalSlot": "Input",
+                            "AttachmentRef": {
+                                "Pass": "DeferredFogBlurHorizontal",
+                                "Attachment": "Output"
+                            }
+                        },
+                        {
+                           "LocalSlot": "Output",
+                            "AttachmentRef": {
+                                "Pass": "DeferredFogLightingAccum",
+                                "Attachment": "Output"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "Name": "DeferredFogCDF",
+                    "TemplateName": "DeferredFogCDFComputePassTemplate",
+                    "Enabled" : true,
+                    "Connections": [
+                        {
+                           "LocalSlot": "Input",
+                            "AttachmentRef": {
+                                "Pass": "DeferredFogBlurVertical",
+                                "Attachment": "Output"
+                            }
+                        },
+                        {
+                           "LocalSlot": "Output",
+                            "AttachmentRef": {
+                                "Pass": "DeferredFogBlurHorizontal",
+                                "Attachment": "Output"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "Name": "DeferredFogCombine",
+                    "TemplateName": "DeferredFogCombinePassTemplate",
+                    "Enabled": true,
+                    "Connections": [
+                        {
+                            "LocalSlot": "RenderTarget",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "RenderTargetInputOutput"
+                            }
+                        },
+                        {
+                            "LocalSlot": "FogCDF",
+                            "AttachmentRef": {
+                                "Pass": "DeferredFogCDF",
+                                "Attachment": "Output"
+                            }
+                        },
+                        {
+                            "LocalSlot": "InputDepthStencil",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "InputLinearDepth"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

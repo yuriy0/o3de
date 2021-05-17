@@ -1,0 +1,205 @@
+/*
+* All or portions of this file Copyright (c) Amazon.com, Inc. or its affiliates or
+* its licensors.
+*
+* For complete copyright and license terms please see the LICENSE at the root of this
+* distribution (the "License"). All use of this software is governed by the License,
+* or, if provided, by the license below or the license accompanying this file. Do not
+* remove or modify any license notices. This file is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*
+*/
+
+#include <Atom/Features/SrgSemantics.azsli>
+#include <Atom/RPI/Math.azsli>
+
+#include <viewsrg.srgi>
+#include <scenesrg.srgi>
+
+ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
+{
+    // Output
+    RWTexture3D<float4> m_lightingAccum;
+
+    // Depth input
+    Texture2D<float2>   m_depthStencilTexture;
+    Texture2D<float>    m_linearDepthTexture;
+
+    Sampler DepthSampler
+    {
+        MinFilter = Linear;
+        MagFilter = Linear;
+        MipFilter = Linear;
+        AddressU = Clamp;
+        AddressV = Clamp;
+        AddressW = Clamp;
+    };
+
+    // Fog parameters
+    float m_fogAnisotropy;
+    float m_fogStartDistance;
+    float m_fogEndDistance;
+    float3 m_fogColor;
+    float m_fogMinHeight;
+    float m_fogMaxHeight;
+
+    // Fog texture scale and animation parameters
+    Texture2D           m_noiseTexture;
+    float2              m_noiseScaleUV;
+    float2              m_noiseVelocityUV;
+
+    float2              m_noiseScaleUV2;
+    float2              m_noiseVelocityUV2;
+
+    float               m_octavesBlendFactor;
+    float               m_fogDensityMultiplier;
+
+
+    Sampler LinearMirrorSampler
+    {
+        MinFilter = Linear;
+        MagFilter = Linear;
+        MipFilter = Linear;
+        AddressU = Mirror;
+        AddressV = Mirror;
+        AddressW = Mirror;
+    };
+
+    //------------------------------
+    //        Lighting Data
+    //------------------------------
+    Texture2DArray<float> m_directionalLightShadowmap;
+    Texture2DArray<float> m_directionalLightExponentialShadowmap;
+    Texture2DArray<float> m_projectedShadowmaps;
+    Texture2DArray<float> m_projectedExponentialShadowmap;
+
+    Sampler LinearSampler
+    {
+        MinFilter = Linear;
+        MagFilter = Linear;
+        MipFilter = Linear;
+        AddressU = Clamp;
+        AddressV = Clamp;
+        AddressW = Clamp;
+    };
+
+
+    Texture2D<uint4> m_tileLightData;
+    StructuredBuffer<uint> m_lightListRemapped;
+}
+
+
+#include <Atom/Features/PBR/LightingOptions.azsli>
+#include "DeferredFog_LightingModel.azsli"
+#include "DeferredFog_Common.azsli"
+
+
+
+float GetDither(uint2 p)
+{
+    static const float BayerDitherMatrix[16] = {
+        0.0f,    0.5f,    0.125f,  0.625f,
+        0.75f,   0.22f,   0.875f,  0.375f,
+        0.1875f, 0.6875f, 0.0625f, 0.5625,
+        0.9375f, 0.4375f, 0.8125f, 0.3125
+    };
+    return BayerDitherMatrix[(int(p.x) % 4)*4 + (int(p.y) % 4)];
+};
+
+
+float CalculateFogDensity(float3 surfacePosWS)
+{
+    // Noise pattern across the XY plane - first octave
+    float2 noiseUV = surfacePosWS.xy * PassSrg::m_noiseScaleUV + PassSrg::m_noiseVelocityUV * SceneSrg::m_time;
+    float  fogDensity = PassSrg::m_noiseTexture.SampleLevel(PassSrg::LinearMirrorSampler, noiseUV, 0).r;
+
+    // second noise octave
+    float2 noiseUV2 = surfacePosWS.xy * PassSrg::m_noiseScaleUV2 + PassSrg::m_noiseVelocityUV2 * SceneSrg::m_time;
+    float fogDensity2 = PassSrg::m_noiseTexture.SampleLevel(PassSrg::LinearMirrorSampler, noiseUV2, 0).r;
+
+    // Overall fog density in this xy position
+    fogDensity = lerp(fogDensity, fogDensity2, PassSrg::m_octavesBlendFactor);
+
+    // Apply height attenuation at location xy based on the density amount.  This is a heuristic
+    // in order to avoid using 3D texture yet have height deviation near the layer's edge.
+    // const float fadeStartHeight = 0.8;  // relative fog layer height at which point we start to fade
+    // // The fade will be gradual from the end of the noise location
+    // float fogRelativeHeight = 1.0 - smoothstep( fadeStartHeight, 1.0, depthInLayer );
+
+    // return fogDensity * fogRelativeHeight;
+
+    return PassSrg::m_fogDensityMultiplier * fogDensity;
+}
+
+[numthreads(8,8,1)]
+void MainCS(uint3 dispatch_id: SV_DispatchThreadID)
+{
+    float3 dim;
+    PassSrg::m_lightingAccum.GetDimensions(dim.x, dim.y, dim.z);
+
+    // Fog texture space UV(W) coordinates for sampling lighting
+    float3 uv = (float3(dispatch_id) /* + 0.5*/ ) / float3(dim.xy, dim.z-1.0);
+
+    // Ray direction
+    const float3 rayDir = normalize(Unproject(uv.xy, 0) - ViewSrg::m_worldPosition);
+
+    // World space position of this slice
+    const float sampleDepth = FogVolumeTexZToLinearDepth(uv.z);
+    const float3 sampleWsPos = ViewSrg::m_worldPosition + rayDir * sampleDepth;
+
+    // World space position of previous slice
+    const float prevSampleDepth = FogVolumeTexZToLinearDepth(uv.z - (1 / (dim.z-1.0)));
+    const float3 prevSampleWsPos = ViewSrg::m_worldPosition + rayDir * prevSampleDepth;
+
+    // Compute lighting at a random z within the slice
+    const float jitter = GetDither(dispatch_id.xy);
+    const float3 centralSampleWsPos = lerp(prevSampleWsPos, sampleWsPos, jitter);
+
+    if (false) // DEBUG
+    {
+        PassSrg::m_lightingAccum[dispatch_id].rgb = sampleWsPos;
+        PassSrg::m_lightingAccum[dispatch_id].a = uv.z;
+        return;
+    }
+
+    const float fogDensity = CalculateFogDensity(centralSampleWsPos);
+
+    float3 lighting = 0;
+
+    // IBL
+    {
+        Surface pseudoSurface = CreatePseudoSurfaceForFogVoxel(centralSampleWsPos, rayDir);
+        LightingData lightingData = CreateTiledLightingIteratorForFogVoxel(centralSampleWsPos);
+        ApplyIblFog(pseudoSurface, lightingData);
+        lighting += lightingData.diffuseLighting;
+    }
+
+    // Direct lighting
+    static const uint NumInterVoxelSamples = 4;
+    static const float InterVoxelSampleScale = 1.0 / (float)NumInterVoxelSamples;
+    for (uint interSampleIx = 0; interSampleIx < NumInterVoxelSamples; ++interSampleIx)
+    {
+        const float interSampleFrac = ((float)interSampleIx + jitter) * InterVoxelSampleScale;
+        const float3 interSampleWsPos = lerp(prevSampleWsPos, sampleWsPos, interSampleFrac);
+
+        Surface pseudoSurface = CreatePseudoSurfaceForFogVoxel(interSampleWsPos, rayDir);
+        LightingData lightingData = CreateTiledLightingIteratorForFogVoxel(interSampleWsPos);
+
+        ApplyDirectLighting(pseudoSurface, lightingData);
+        lighting += lightingData.diffuseLighting * InterVoxelSampleScale;
+    }
+
+    // HACK! gets rid of nans which sometimes appear for unknown reasons....
+    lighting = clamp(lighting, 0.f, 100000.f);
+
+    PassSrg::m_lightingAccum[dispatch_id].rgba = float4(lighting, fogDensity);
+
+    if (false) // DEBUG
+    {
+        PassSrg::m_lightingAccum[dispatch_id].a = uv.z;
+    }
+
+    // DEBUG
+    /* PassSrg::m_lightingAccum[dispatch_id].rgb = uv; */
+    /* PassSrg::m_lightingAccum[dispatch_id].a = length(sampleWsPos - ViewSrg::m_worldPosition); */
+}

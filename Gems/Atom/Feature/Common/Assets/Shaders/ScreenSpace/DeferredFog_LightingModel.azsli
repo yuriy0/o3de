@@ -1,0 +1,295 @@
+#pragma once
+
+
+
+#include <Atom/Features/PBR/Surfaces/AnisotropicSurfaceData.azsli>
+#include <Atom/Features/PBR/Surfaces/BasePbrSurfaceData.azsli>
+#include <Atom/Features/PBR/Surfaces/ClearCoatSurfaceData.azsli>
+#include <Atom/Features/PBR/Surfaces/TransmissionSurfaceData.azsli>
+
+class FogSurfaceData
+{
+    float3 surfaceViewDir;
+};
+
+class Surface
+{
+    AnisotropicSurfaceData anisotropy;
+    ClearCoatSurfaceData clearCoat;
+    TransmissionSurfaceData transmission;
+    FogSurfaceData fog;
+
+    // ------- BasePbrSurfaceData -------
+
+    float3 position;            //!< Position in world-space
+    float3 normal;              //!< Normal in world-space
+    float3 albedo;              //!< Albedo color of the non-metallic material, will be multiplied against the diffuse lighting value
+    float3 specularF0;          //!< Fresnel f0 spectral value of the surface
+    float roughnessLinear;      //!< Perceptually linear roughness value authored by artists. Must be remapped to roughnessA before use
+    float roughnessA;           //!< Actual roughness value ( a.k.a. "alpha roughness") to be used in microfacet calculations
+    float roughnessA2;          //!< Alpha roughness ^ 2 (i.e. roughnessA * roughnessA), used in GGX, cached here for perfromance
+
+};
+
+
+#include <viewsrg.srgi>
+#include <Atom/Features/LightCulling/LightCullingTileIterator.azsli>
+#include <Atom/Features/PBR/LightingUtils.azsli>
+
+class LightingData
+{
+    LightCullingTileIterator tileIterator;
+    
+    // Lighting outputs
+    float3 diffuseLighting;
+    float3 specularLighting;
+    float3 translucentBackLighting;
+
+    // Factors for the amount of diffuse and specular lighting applied
+    float3 diffuseResponse;
+    float3 specularResponse;
+
+    // Direction light shadow coordinates
+    float3 shadowCoords[ViewSrg::MaxCascadeCount];
+
+    // Normalized direction from surface to camera
+    float3 dirToCamera;
+    
+    // Scaling term to approximate multiscattering contribution in specular BRDF
+    float3 multiScatterCompensation;
+
+    // Lighting emitted from the surface
+    float3 emissiveLighting;
+
+    // BRDF texture values
+    float2 brdf;
+
+    // Normal . View
+    float NdotV;
+
+    // Occlusion factors
+    // 0 = dark, 1 = light
+    float diffuseAmbientOcclusion;
+    float specularOcclusion;
+
+    void Init(float3 positionWS, float3 normal, float roughnessLinear);
+};
+
+void LightingData::Init(float3 positionWS, float3 normal, float roughnessLinear)
+{
+    diffuseLighting = 0;
+    specularLighting = 0;
+    translucentBackLighting = 0;
+    multiScatterCompensation = 1.0f;
+    emissiveLighting = float3(0.0f, 0.0f, 0.0f);
+    diffuseAmbientOcclusion = 1.0f;
+    specularOcclusion = 1.0f;
+    diffuseResponse = 1.0f;
+    specularResponse = 0.f;
+
+    dirToCamera = normalize(ViewSrg::m_worldPosition.xyz - positionWS);
+
+    // sample BRDF map (indexed by smoothness values rather than roughness)
+    NdotV = saturate(dot(normal, dirToCamera));
+    // float2 brdfUV = float2(NdotV, (1.0f - roughnessLinear));
+    brdf = 0.0f; // PassSrg::m_brdfMap.Sample(PassSrg::LinearSampler, brdfUV).rg;
+
+    // TEMP
+    shadowCoords[0] = 0;
+    shadowCoords[1] = 0;
+    shadowCoords[2] = 0;
+    shadowCoords[3] = 0;
+
+    multiScatterCompensation = 0;
+    diffuseAmbientOcclusion = 0;
+    specularOcclusion = 0;
+}
+
+
+
+float GetHenyeyGreensteinScattering(float cosTheta)
+{
+    const float g = PassSrg::m_fogAnisotropy;
+    const float g2 = g * g;
+
+    float h = 1.0f + g2 - (2 * g * cosTheta);
+    return (1.0 - g2) / (4.0f * PI * pow(h, 1.5f));
+}
+
+
+
+float3 GetSpecularLighting(Surface surface, LightingData lightingData, const float3 lightIntensity, const float3 dirToLight)
+{
+    return 0;
+}
+
+float3 GetDiffuseLighting(Surface surface, LightingData lightingData, float3 lightIntensity, float3 dirToLight)
+{
+    float cosTheta = dot(surface.fog.surfaceViewDir, dirToLight);
+    float inscattering = GetHenyeyGreensteinScattering(cosTheta);
+
+    return lightIntensity * inscattering;
+}
+
+
+Surface CreatePseudoSurfaceForFogVoxel(float3 fogHitPnt, float3 surfaceViewDir)
+{
+    Surface s;
+
+    // TEMP
+    // s.position = 0;
+    s.normal = float3(0,1,0);
+    s.albedo = 0; // float3(0.1, 0.1, 0.1);
+    s.specularF0 = 0; // 0.4;
+    s.roughnessLinear = 0.4;
+    s.roughnessA = 0.4;
+    s.roughnessA2 = 0.4;
+    s.anisotropy.tangent = 0;
+    s.anisotropy.bitangent = 0;
+    s.anisotropy.anisotropyFactors = 0;
+    s.clearCoat.factor = 0;
+    s.clearCoat.roughness = 0;
+    s.clearCoat.normal = 0;
+    s.transmission.tint = 0;
+    s.transmission.thickness = 0;
+    s.transmission.transmissionParams = 0;
+
+    s.position = fogHitPnt;
+    s.fog.surfaceViewDir = surfaceViewDir;
+
+    return s;
+}
+
+LightingData CreateTiledLightingIteratorForFogVoxel(float3 fogHitPnt)
+{
+    LightingData lightingData;
+
+    // Position for tiled light iterator
+    float4 svPosition = mul(ViewSrg::m_viewProjectionMatrix, float4(fogHitPnt, 1.0));
+
+    // Light iterator
+    lightingData.tileIterator.Init(svPosition, PassSrg::m_lightListRemapped, PassSrg::m_tileLightData);
+
+    // TODO
+    float3 normal = float3(0,1,0); // Unused, dummy value
+    float roughness = 0; // Unused, dummy value
+    lightingData.Init(fogHitPnt, normal, roughness);
+
+    // Directional light shadow coordinates
+    // lightingData.shadowCoords = IN.m_shadowCoords;
+
+    return lightingData;
+}
+
+
+
+
+
+// Then include custom surface and lighting data types
+// #include <Atom/Features/PBR/Lighting/LightingData.azsli>
+// #include <Atom/Features/PBR/Surfaces/StandardSurface.azsli>
+#include <Atom/Features/PBR/LightingUtils.azsli>
+#include <Atom/Features/PBR/Microfacet/Brdf.azsli>
+
+// #include <Atom/Features/PBR/Lights/Ibl.azsli>
+
+// Must be defined before this point: Surface, LightingData, GetSpecularLighting, GetDiffuseLighting
+// #include <Atom/Features/PBR/Lights/Lights.azsli>
+
+// TODO: all lights, IBL, etc...
+
+// #include <Atom/Features/PBR/Lights/CapsuleLight.azsli>
+// #include <Atom/Features/PBR/Lights/DirectionalLight.azsli>
+// #include <Atom/Features/PBR/Lights/DiskLight.azsli>
+// #include <Atom/Features/PBR/Lights/PointLight.azsli>
+// #include <Atom/Features/PBR/Lights/PolygonLight.azsli>
+// #include <Atom/Features/PBR/Lights/QuadLight.azsli>
+#include <Atom/Features/PBR/Lights/SimplePointLight.azsli>
+// #include <Atom/Features/PBR/Lights/SimpleSpotLight.azsli>
+
+
+#include "DeferredFog_DiskLight.azsli"
+
+
+
+void ApplyAllDiskLights(Surface surface, inout LightingData lightingData)
+{
+    for (uint currLightIndex = 0; currLightIndex < ViewSrg::m_diskLightCount; ++currLightIndex)
+    {
+        ViewSrg::DiskLight light = ViewSrg::m_diskLights[currLightIndex];
+        ApplyDiskLight(light, surface, lightingData);
+    }
+}
+
+void ApplyAllSimplePointLights(Surface surface, inout LightingData lightingData)
+{
+    for (uint currLightIndex = 0; currLightIndex < ViewSrg::m_simplePointLightCount; ++currLightIndex)
+    {
+        ViewSrg::SimplePointLight light = ViewSrg::m_simplePointLights[currLightIndex];
+        ApplySimplePointLight(light, surface, lightingData);
+    }
+}
+
+
+void ApplyDirectLighting(Surface surface, inout LightingData lightingData)
+{
+    // if (o_enableDirectionalLights)
+    // {
+    //     ApplyDirectionalLights(surface, lightingData);
+    // }
+    // if (o_enablePunctualLights)
+    // {
+
+        ApplyAllSimplePointLights(surface, lightingData);
+
+    //     ApplySimpleSpotLights(surface, lightingData);
+    // }
+    // if (o_enableAreaLights)
+    // {
+    //     ApplyPointLights(surface, lightingData);
+
+        ApplyAllDiskLights(surface, lightingData);
+
+    //     ApplyCapsuleLights(surface, lightingData);
+    //     ApplyQuadLights(surface, lightingData);
+    //     ApplyPolygonLights(surface, lightingData);
+    // }
+
+        // ApplyIblDiffuse(
+}
+
+
+float3 ApplyIblDiffuse(float3 normal)
+{
+    float3 irradianceDir = MultiplyVectorQuaternion(normal, SceneSrg::m_iblOrientation);
+    float3 diffuseSample = SceneSrg::m_diffuseEnvMap.SampleLevel(SceneSrg::m_samplerEnv, GetCubemapCoords(irradianceDir), /*LOD=*/0).rgb;
+
+    return diffuseSample;
+}
+
+void ApplyIblFog(Surface surface, inout LightingData lightingData)
+{
+    // transparencies currently require IBL in the forward pass
+    // if (o_enableIBL)
+    {
+        // Random samples pointing in the upper hemisphere, assume there's a ground
+        static const uint NumHemisphereSamples = 5;
+        static const float3 HemisphereSamples[] = {
+            float3(0.27102545686822127,-0.962250062002618,2.490019890141008e-2),
+            float3(-0.7266994538292084,-0.20419723380499677,0.6559050186655975),
+            float3(0.14239196600567428,0.7826786626563,0.605919663849577),
+            float3(-0.8353603594533867,0.4298908291798895,0.3425885941489234),
+            float3(-7.962691238513113e-2,0.9964657303552391,2.6750757963285136e-2)
+        };
+
+        float3 iblDiffuse = 0;
+        for (uint i = 0; i < NumHemisphereSamples; ++i)
+        {
+            iblDiffuse += ApplyIblDiffuse(surface.normal);
+        }
+
+        // Adjust IBL lighting by exposure.
+        float iblExposureFactor = pow(2.0, SceneSrg::m_iblExposure);
+        lightingData.diffuseLighting += iblDiffuse * iblExposureFactor;
+    }
+}
