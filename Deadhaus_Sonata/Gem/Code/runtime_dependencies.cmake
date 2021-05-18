@@ -20,11 +20,7 @@ set(GEM_DEPENDENCIES
     Gem::GradientSignal
     Gem::AtomFont
     Gem::Deadhaus_Sonata
-	Gem::Kythera
-	Gem::Genvid
-	Gem::ApcUtilities
 	Gem::StartingPointInput
-	Gem::ProceduralGeneration
 	Gem::ApcAtomExt
 	Gem::PhysX
 	Gem::ScriptCanvas
@@ -33,5 +29,4 @@ set(GEM_DEPENDENCIES
 	Gem::ScriptEvents
 	Gem::ExpressionEvaluation
 	
-	Gem::PopcornFX
 )

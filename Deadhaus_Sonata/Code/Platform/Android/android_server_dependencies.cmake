@@ -1,3 +1,0 @@
-
-set(GEM_DEPENDENCIES
-)

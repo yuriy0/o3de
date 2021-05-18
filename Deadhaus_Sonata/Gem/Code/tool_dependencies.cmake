@@ -29,11 +29,7 @@ set(GEM_DEPENDENCIES
     Gem::Deadhaus_Sonata.Editor
 	
 	# TODO: Use editor gem
-	Gem::Kythera.Editor
-	Gem::Genvid.Editor
-	Gem::ApcUtilities.Editor
 	Gem::StartingPointInput.Editor
-	Gem::ProceduralGeneration.Editor
 	Gem::ApcAtomExt
 	Gem::PhysX.Editor
 	Gem::ScriptCanvas.Editor
@@ -41,6 +37,4 @@ set(GEM_DEPENDENCIES
 	Gem::GraphCanvas.Editor
 	Gem::ScriptEvents.Editor
 	Gem::ExpressionEvaluation
-	
-	Gem::PopcornFX.Editor
 )

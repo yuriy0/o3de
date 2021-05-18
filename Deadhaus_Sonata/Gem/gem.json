@@ -1,0 +1,100 @@
+{
+    "GemFormatVersion": 4,
+    "Uuid": "0ccc66f597594b50814669ffdaf584b3",
+    "Name": "Deadhaus_Sonata",
+    "DisplayName": "Deadhaus_Sonata",
+    "Version": "0.1.0",
+    "Summary": "A short description of my Gem.",
+    "Tags": ["Game"],
+    "IconPath": "preview.png",
+    "IsGameGem": true,
+    "EditorModule": true,
+    "Modules": [
+        {
+            "Type": "GameModule"
+        },
+        {
+            "Type": "EditorModule",
+            "Name": "Editor",
+            "Extends": "GameModule"
+        }
+    ],
+    "Dependencies": [
+        {
+            "Uuid" : "c91cd8c209124bb092d22c1a65d0ed67",
+            "VersionConstraints": [ "~>0.1.0" ],
+            "_comment": "ApcUtilities"
+        },
+        {
+            "Uuid": "611df764791f4461afa7cb1cb6c0d441",
+            "VersionConstraints": [ "~>0.1" ],
+            "_comment": "Kythera"
+        },
+        {
+            "Uuid": "ff06785f7145416b9d46fde39098cb0c",
+            "VersionConstraints": [ "~>0.1" ],
+            "_comment": "LmbrCentral"
+        },
+        {
+            "Uuid" : "869a0d0ec11a45c299917d45c81555e6",
+            "VersionConstraints" : [">=0.1.0"],
+            "_comment" : "ScriptCanvas"
+        },
+		{
+            "Uuid": "e011969cf32442fdaac2443a960ab5ff",
+            "VersionConstraints": [
+                "~>0.1.0"
+            ],
+            "_comment": "Atom RHI DX12"
+        },
+        {
+            "Uuid": "150d40d376124d98a388dfe890551c03",
+            "VersionConstraints": [
+                "~>0.1.0"
+            ],
+            "_comment": "Atom RHI Vulkan"
+        },
+        {
+            "Uuid": "a218db9eb2114477b46600fea4441a6c",
+            "VersionConstraints": [
+                "~>0.1.0"
+            ],
+            "_comment": "Atom RPI"
+        },
+        {
+            "Uuid": "013d1b42ad314c929b292c143bcbf045",
+            "VersionConstraints": [
+                "~>0.1"
+            ],
+            "_comment": "Atom.Component.DebugCamera"
+        },
+        {
+            "Uuid": "d32452026dae4b7dba2ad89dbde9c48f",
+            "VersionConstraints": [
+                "~>0.1"
+            ],
+            "_comment": "Atom.Asset.Shader"
+        },
+        {
+            "Uuid": "b58e5eed0901428ca78544b04dbd61bd",
+            "VersionConstraints": [
+                "~>0.1"
+            ],
+            "_comment": "Atom.Feature.Common"
+        },
+        {
+            "Uuid": "c7ff89ad6e8b4b45b2fadef2bcf12d6e",
+            "VersionConstraints": [
+                "~>0.1"
+            ],
+            "_comment": "Atom_Bootstrap"
+        },
+        {
+            "Uuid": "b55b2738aa4a46c8b034fe98e6e5158b",
+            "VersionConstraints": [
+                "~>0.1"
+            ],
+            "_comment": "Atom_AtomBridge"
+        }
+    ]
+}
