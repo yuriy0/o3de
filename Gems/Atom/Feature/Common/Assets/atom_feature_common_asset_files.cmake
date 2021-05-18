@@ -87,7 +87,6 @@ set(FILES
     Passes/CheckerboardResolveDepth.pass
     Passes/ConvertToAcescg.pass
     Passes/DebugOverlayParent.pass
-    Passes/DeferredFog.pass
     Passes/Depth.pass
     Passes/DepthCheckerboard.pass
     Passes/DepthDownsample.pass
@@ -453,8 +452,6 @@ set(FILES
     Shaders/Reflections/ReflectionScreenSpaceTrace.azsl
     Shaders/Reflections/ReflectionScreenSpaceTrace.azsli
     Shaders/Reflections/ReflectionScreenSpaceTrace.shader
-    Shaders/ScreenSpace/DeferredFog.azsl
-    Shaders/ScreenSpace/DeferredFog.shader
     Shaders/Shadow/DepthExponentiation.azsl
     Shaders/Shadow/DepthExponentiation.shader
     Shaders/Shadow/Shadowmap.azsl

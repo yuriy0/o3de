@@ -41,6 +41,14 @@ struct PSOutput
 };
 
 
+// From CryRender
+float GetJitter(float2 n)
+{
+    float3 magic = {0.06711056f, 0.00583715f, 52.9829189f};
+    float jitter = frac(magic.z * frac(dot(n.xy, magic.xy)));
+    return jitter;
+}
+
 #include "DeferredFog_Common.azsli"
 
 PSOutput MainPS(VSOutput IN)
@@ -49,11 +57,25 @@ PSOutput MainPS(VSOutput IN)
     const float depth = PassSrg::m_depthStencilTexture.Sample(PassSrg::DepthSampler, IN.m_texCoord).r;
     const float fogTexZCoord = LinearDepthToFogVolumeTexZ(depth);
 
+    // Apply jitter to sample location
+    float2 dim;
+    PassSrg::m_depthStencilTexture.GetDimensions(dim.x, dim.y);
+
+    float3 dimFogCDF;
+    PassSrg::m_fogCDF.GetDimensions(dimFogCDF.x, dimFogCDF.y, dimFogCDF.z);
+
+    // GetJitter gives a "random" value [0,1]
+    // Remap [0,1] -> [-JitterScale,0] -> [-JitterScale+JitterOffset,JitterOffset]
+    // -> [-JitterScale+JitterOffset*v,JitterOffset*v] where `v' is the size of a fog voxel in Z dimension
+    static const float JitterScale = -0.33f;
+    static const float JitterOffset = 0.05f;
+    const float jitter = (GetJitter(IN.m_texCoord * dim) * JitterScale + JitterOffset) * (1.0 / (dimFogCDF.z - 1.0));
+    float3 sampleUvw = float3(IN.m_texCoord, fogTexZCoord + jitter);
+
     // Sample fog CDF
-    const float4 col = PassSrg::m_fogCDF.Sample(PassSrg::LinearSampler, float3(IN.m_texCoord, fogTexZCoord));
+    const float4 col = PassSrg::m_fogCDF.Sample(PassSrg::LinearSampler, sampleUvw);
 
     PSOutput OUT;
-    // OUT.m_color = float4(PassSrg::m_fogColor, 1.0);
     OUT.m_color = col;
 
     return OUT;

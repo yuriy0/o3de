@@ -71,7 +71,7 @@ namespace AZ
             {
                 m_useNoiseTextureShaderOption = value;
             }
-            virtual bool GetUseNoiseTextureShaderOption() override
+            virtual bool GetUseNoiseTextureShaderOption() const override
             {
                 return m_useNoiseTextureShaderOption;
             }
@@ -80,7 +80,7 @@ namespace AZ
             {
                 m_enableFogLayerShaderOption = value;
             }
-            virtual bool GetEnableFogLayerShaderOption() override
+            virtual bool GetEnableFogLayerShaderOption() const override
             {
                 return m_enableFogLayerShaderOption;
             }
@@ -91,7 +91,7 @@ namespace AZ
             // Applies settings from this onto target using override settings and passed alpha value for blending
             void ApplySettingsTo(DeferredFogSettings* target, float alpha) const;
 
-            Data::Instance<RPI::StreamingImage> LoadStreamingImage(const char* textureFilePath, const char* sampleName);
+            static Data::Instance<RPI::StreamingImage> LoadStreamingImage(const char* textureFilePath, const char* sampleName);
 
             //---------------------------------------------------------
             // Generate Get / Set override methods

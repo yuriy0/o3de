@@ -53,25 +53,18 @@ namespace AZ
         template<class Derived, class BasePass>
         void DeferredFogPass_tpl<Derived, BasePass>::InitDeferredFogPass()
         {
-            // The following will ensure that in the case of data driven pass, the settings will get
-            // updated by the pass enable state.
-            // When code is involved or editor component comes to action, this value will be overriden
-            // in the following frames.
-            DeferredFogSettings* fogSettings = GetPassFogSettings();
-            bool isEnabled = Pass::IsEnabled();     // retrieves the state from the data driven pass
-            fogSettings->SetEnabled(isEnabled);     // Set it and mark for update
         }
 
         //---------------------------------------------------------------------
         //! Setting and Binding Shader SRG Constants using settings macro reflection
 
         template<class Derived, class BasePass>
-        DeferredFogSettings* DeferredFogPass_tpl<Derived, BasePass>::GetPassFogSettings()
+        const DeferredFogSettings* DeferredFogPass_tpl<Derived, BasePass>::GetPassFogSettings() const
         {
             RPI::Scene* scene = GetScene();
             if (!scene)
             {
-                return &m_fallbackSettings;
+                return nullptr;
             }
 
             PostProcessFeatureProcessor* fp = scene->GetFeatureProcessor<PostProcessFeatureProcessor>();
@@ -81,16 +74,10 @@ namespace AZ
                 PostProcessSettings* postProcessSettings = fp->GetLevelSettingsFromView(view);
                 if (postProcessSettings)
                 {
-                    DeferredFogSettings* fogSettings = postProcessSettings->GetDeferredFogSettings();
-                    if (fogSettings)
-                    {   // The following is required as it indicates that the code created a control
-                        // component and if/when it is removed, the default settings' fog should not be active.
-                        m_fallbackSettings.SetEnabled(false);
-                    }
-                    return fogSettings ? fogSettings : &m_fallbackSettings;
+                    return postProcessSettings->GetDeferredFogSettings();
                 }
             }
-            return &m_fallbackSettings;
+            return nullptr;
         }
 
 
@@ -119,9 +106,8 @@ namespace AZ
 
         //! Bind SRG constants - done via macro reflection
         template<class Derived, class BasePass>
-        void DeferredFogPass_tpl<Derived, BasePass>::SetSrgConstants()
+        void DeferredFogPass_tpl<Derived, BasePass>::SetSrgConstants(const DeferredFogSettings& fogSettings)
         {
-            DeferredFogSettings* fogSettings = GetPassFogSettings();
             Data::Instance<RPI::ShaderResourceGroup> srg = m_shaderResourceGroup.get();
 
             if (!m_srgBindIndicesInitialized)
@@ -141,7 +127,7 @@ namespace AZ
 #define AZ_GFX_TEXTURE2D_PARAM(Name, MemberName, DefaultValue)                  \
                 {\
                     m_instanceData.MemberName##Image =                                \
-                        fogSettings->LoadStreamingImage( fogSettings->MemberName.c_str(), "DeferredFogSettings" );  \
+                        fogSettings.LoadStreamingImage( fogSettings.MemberName.c_str(), "DeferredFogSettings" );  \
                 }\
 
 #include <Atom/Feature/ScreenSpace/DeferredFogParams.inl>
@@ -153,7 +139,7 @@ namespace AZ
             // The Srg constants value settings
 #define AZ_GFX_COMMON_PARAM(ValueType, Name, MemberName, DefaultValue)                          \
             if (m_instanceData.MemberName##SrgIndex.IsValid()) { \
-                srg->SetConstant( m_instanceData.MemberName##SrgIndex, fogSettings->MemberName );     \
+                srg->SetConstant( m_instanceData.MemberName##SrgIndex, fogSettings.MemberName );     \
             } \
 
 #include <Atom/Feature/ParamMacros/MapParamCommon.inl>
@@ -164,7 +150,7 @@ namespace AZ
             if (m_instanceData.MemberName##SrgIndex.IsValid() && !srg->SetImage(m_instanceData.MemberName##SrgIndex, m_instanceData.MemberName##Image ))           \
             {                                                                       \
                 AZ_Error( "DeferredFogPass_tpl<Derived, BasePass>::SetSrgConstants", false, "Failed to bind SRG image for %s = %s",  \
-                    #MemberName, fogSettings->MemberName.c_str() );                                      \
+                    #MemberName, fogSettings.MemberName.c_str() );                                      \
             }                                                                       \
 
 #include <Atom/Feature/ScreenSpace/DeferredFogParams.inl>
@@ -172,35 +158,15 @@ namespace AZ
         }
         //---------------------------------------------------------------------
 
-
-        template<class Derived, class BasePass>
-        void DeferredFogPass_tpl<Derived, BasePass>::UpdateEnable(DeferredFogSettings* fogSettings)
-        {
-            if (!m_pipeline || !fogSettings)
-            {
-                SetEnabled(false);
-                return;
-            }
-
-            AZ_Assert(m_pipeline->GetScene(), "Scene shouldn't nullptr");
-
-            if (IsEnabled() == fogSettings->GetEnabled())
-            {
-                return;
-            }
-
-            SetEnabled( fogSettings->GetEnabled() );
-        }
-
         template<class Derived, class BasePass>
         bool DeferredFogPass_tpl<Derived, BasePass>::IsEnabled() const 
         {
-            DeferredFogSettings* constFogSettings = const_cast<DeferredFogPass_tpl*>(this)->GetPassFogSettings();
-            return constFogSettings->GetEnabled();
+            const DeferredFogSettings* fogSettings = GetPassFogSettings();
+            return Pass::IsEnabled() && (fogSettings ? fogSettings->GetEnabled() : false);
         }
 
         template<class Derived, class BasePass>
-        void DeferredFogPass_tpl<Derived, BasePass>::UpdateShaderOptions()
+        void DeferredFogPass_tpl<Derived, BasePass>::UpdateShaderOptions(const DeferredFogSettings& fogSettings)
         {
             static const auto BoolToShaderOption = [](bool x)
             {
@@ -208,7 +174,6 @@ namespace AZ
             };
 
             RPI::ShaderOptionGroup shaderOption = m_shader->CreateShaderOptionGroup();
-            DeferredFogSettings* fogSettings = GetPassFogSettings();
 
             static const AZ::Name o_enableFogLayer("o_enableFogLayer");
             static const AZ::Name o_useNoiseTexture("o_useNoiseTexture");
@@ -217,17 +182,23 @@ namespace AZ
             // hash key for the iterations themselves.
             if (shaderOption.FindShaderOptionIndex(o_enableFogLayer).IsValid())
             {
-                shaderOption.SetValue(o_enableFogLayer, BoolToShaderOption(fogSettings->GetEnableFogLayerShaderOption()));
+                shaderOption.SetValue(o_enableFogLayer, BoolToShaderOption(fogSettings.GetEnableFogLayerShaderOption()));
             }
             if (shaderOption.FindShaderOptionIndex(o_useNoiseTexture).IsValid())
             {
-                shaderOption.SetValue(o_useNoiseTexture, BoolToShaderOption(fogSettings->GetUseNoiseTextureShaderOption()));
+                shaderOption.SetValue(o_useNoiseTexture, BoolToShaderOption(fogSettings.GetUseNoiseTextureShaderOption()));
             }
 
             // The following method returns the specified options, as well as fall back values for all 
             // non-specified options.  If all were set you can use the method GetShaderVariantKey that is 
             // cheaper but will not make sure the populated values has the default fall back for any unset bit.
             m_ShaderOptions = shaderOption.GetShaderVariantKeyFallbackValue();
+        }
+
+        template<class Derived, class BasePass>
+        void DeferredFogPass_tpl<Derived, BasePass>::OnDeferredFogGlobalSettingsChanged()
+        {
+            m_settingsDirty = true;
         }
 
         template<class Derived, class BasePass>
@@ -240,19 +211,30 @@ namespace AZ
         template<class Derived, class BasePass>
         void DeferredFogPass_tpl<Derived, BasePass>::UpdateDeferredFogPassSrg()
         {
+            if (!m_pipeline || !m_pipeline->GetScene()) return;
+
             // If any change was made, make sure to bind it.
-            DeferredFogSettings* fogSettings = GetPassFogSettings();
-
-            UpdateEnable(fogSettings);
-
-            // Update and set the per pass shader options - this will update the current required
-            // shader variant and if doesn't exist, it will be created via the compile stage
-            if (m_shaderResourceGroup->HasShaderVariantKeyFallbackEntry())
+            if (const DeferredFogSettings* fogSettings = GetPassFogSettings())
             {
-                UpdateShaderOptions();
-            }
+                const bool fogIsEnabled = fogSettings->GetEnabled();
+                SetEnabled(fogIsEnabled);
 
-            SetSrgConstants();
+                if (fogIsEnabled)
+                {
+                    // Update and set the per pass shader options - this will update the current required
+                    // shader variant and if doesn't exist, it will be created via the compile stage
+                    if (m_shaderResourceGroup->HasShaderVariantKeyFallbackEntry())
+                    {
+                        UpdateShaderOptions(*fogSettings);
+                    }
+
+                    SetSrgConstants(*fogSettings);
+                }
+            }
+            else
+            {
+                SetEnabled(false);
+            }
         }
 
         template<class Derived, class BasePass>

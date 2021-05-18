@@ -110,14 +110,14 @@
                             "DepthMultiplier": 32
                         }
                     }
-                },
+                }/*,
                 {
                     "Name": "FogNoiseTextureImported",
                     "Lifetime": "Imported",
                     "AssetRef": {
                         "FilePath": "Textures/BRDFTexture.attimage"
                     }
-                }
+                }*/
             ],
             "Connections": [
                 {
@@ -126,14 +126,14 @@
                         "Pass": "This",
                         "Attachment": "OutputImage"
                     }
-                },
+                }/*,
                 {
                     "LocalSlot": "FogNoiseTexture",
                     "AttachmentRef": {
                         "Pass": "This",
                         "Attachment": "FogNoiseTextureImported"
                     }
-                }
+                }*/
             ],
             "PassData": {
                 "$type": "ComputePassData",

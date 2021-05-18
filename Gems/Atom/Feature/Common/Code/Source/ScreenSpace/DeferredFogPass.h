@@ -49,7 +49,7 @@ namespace AZ
 
             static RPI::Ptr<Derived> Create(const RPI::PassDescriptor& descriptor);
 
-            DeferredFogSettings* GetPassFogSettings();
+            const DeferredFogSettings* GetPassFogSettings() const;
 
             virtual bool IsEnabled() const override;
 
@@ -67,23 +67,13 @@ namespace AZ
             void SetSrgBindIndices();
 
             //! Bind SRG constants - done via macro reflection
-            void SetSrgConstants();
+            void SetSrgConstants(const DeferredFogSettings& fogSettings);
 
-            //! Check if the pass should be enabled or disabled 
-            void UpdateEnable(DeferredFogSettings* fogSettings);
-
-            void UpdateShaderOptions();
+            void UpdateShaderOptions(const DeferredFogSettings& fogSettings);
 
         private:
             // DeferredFogGlobalNotificationBus
-            void OnDeferredFogGlobalSettingsChanged() override
-            {
-                m_settingsDirty = true;
-            }
-
-            // When a component is not present we want to fall back to the default settings and
-            // actively pass them to the shader.
-            DeferredFogSettings m_fallbackSettings;
+            void OnDeferredFogGlobalSettingsChanged() override;
 
             // Per-Instance data
             DeferredFogSettings::SrgInstanceData m_instanceData;
