@@ -34,14 +34,17 @@ ly_associate_package(PACKAGE_NAME poly2tri-0.3.3-rev2-multiplatform         TARG
 ly_associate_package(PACKAGE_NAME v-hacd-2.0-rev1-multiplatform             TARGETS v-hacd      PACKAGE_HASH 5c71aef19cc9787d018d64eec076e9f51ea5a3e0dc6b6e22e57c898f6cc4afe3)
 
 # platform-specific:
+ly_associate_package(PACKAGE_NAME AWSGameLiftServerSDK-3.4.1-rev1-linux   TARGETS AWSGameLiftServerSDK   PACKAGE_HASH a8149a95bd100384af6ade97e2b21a56173740d921e6c3da8188cd51554d39af)
 ly_associate_package(PACKAGE_NAME freetype-2.10.4.14-linux          TARGETS freetype        PACKAGE_HASH 9ad246873067717962c6b780d28a5ce3cef3321b73c9aea746a039c798f52e93)
 ly_associate_package(PACKAGE_NAME tiff-4.2.0.15-linux               TARGETS tiff            PACKAGE_HASH ae92b4d3b189c42ef644abc5cac865d1fb2eb7cb5622ec17e35642b00d1a0a76)
 ly_associate_package(PACKAGE_NAME AWSNativeSDK-1.7.167-rev4-linux   TARGETS AWSNativeSDK    PACKAGE_HASH b4db38de49d35a5f7500aed7f4aee5ec511dd3b584ee06fe9097885690191a5d)
 ly_associate_package(PACKAGE_NAME Lua-5.3.5-rev5-linux              TARGETS Lua             PACKAGE_HASH 1adc812abe3dd0dbb2ca9756f81d8f0e0ba45779ac85bf1d8455b25c531a38b0)
 ly_associate_package(PACKAGE_NAME PhysX-4.1.0.25992954-rev1-linux   TARGETS PhysX           PACKAGE_HASH e3ca36106a8dbf1524709f8bb82d520920ebd3ff3a92672d382efff406c75ee3)
+ly_associate_package(PACKAGE_NAME etc2comp-9cd0f9cae0-rev1-linux    TARGETS etc2comp        PACKAGE_HASH 9283aa5db5bb7fb90a0ddb7a9f3895317c8ebe8044943124bbb3673a41407430)
 ly_associate_package(PACKAGE_NAME mikkelsen-1.0.0.4-linux           TARGETS mikkelsen       PACKAGE_HASH 5973b1e71a64633588eecdb5b5c06ca0081f7be97230f6ef64365cbda315b9c8)
 ly_associate_package(PACKAGE_NAME googletest-1.8.1-rev4-linux       TARGETS googletest      PACKAGE_HASH 7b7ad330f369450c316a4c4592d17fbb4c14c731c95bd8f37757203e8c2bbc1b)
 ly_associate_package(PACKAGE_NAME googlebenchmark-1.5.0-rev2-linux  TARGETS GoogleBenchmark PACKAGE_HASH 4038878f337fc7e0274f0230f71851b385b2e0327c495fc3dd3d1c18a807928d)
 ly_associate_package(PACKAGE_NAME unwind-1.2.1-linux                TARGETS unwind          PACKAGE_HASH 3453265fb056e25432f611a61546a25f60388e315515ad39007b5925dd054a77)
 ly_associate_package(PACKAGE_NAME qt-5.15.2-linux                   TARGETS Qt              PACKAGE_HASH 3857fbb2fc5581cdb71d80a7f9298c83ef06073d4e1ccd86a32b4f88782b6f14)
 ly_associate_package(PACKAGE_NAME libsamplerate-0.2.1-rev2-linux    TARGETS libsamplerate   PACKAGE_HASH 41643c31bc6b7d037f895f89d8d8d6369e906b92eff42b0fe05ee6a100f06261)
+ly_associate_package(PACKAGE_NAME OpenSSL-1.1.1b-rev2-linux         TARGETS OpenSSL         PACKAGE_HASH b779426d1e9c5ddf71160d5ae2e639c3b956e0fb5e9fcaf9ce97c4526024e3bc)
