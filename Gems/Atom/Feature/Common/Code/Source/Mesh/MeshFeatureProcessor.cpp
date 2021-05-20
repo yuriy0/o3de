@@ -220,19 +220,6 @@ namespace AZ
         {
             return meshHandle.IsValid() ? meshHandle->m_model : nullptr;
         }
-
-        Data::Instance<RPI::ShaderResourceGroup> MeshFeatureProcessor::GetObjectSrg(const MeshHandle& meshHandle) const
-        {
-            return meshHandle.IsValid() ? meshHandle->m_shaderResourceGroup : nullptr;
-        }
-
-        void MeshFeatureProcessor::QueueObjectSrgForCompile(const MeshHandle& meshHandle) const
-        {
-            if (meshHandle.IsValid())
-            {
-                meshHandle->m_objectSrgNeedsUpdate = true;
-            }
-        }
             
         Data::Asset<RPI::ModelAsset> MeshFeatureProcessor::GetModelAsset(const MeshHandle& meshHandle) const
         {

@@ -146,8 +146,6 @@ namespace AZ
             MeshHandle CloneMesh(const MeshHandle& meshHandle) override;
 
             Data::Instance<RPI::Model> GetModel(const MeshHandle& meshHandle) const override;
-            Data::Instance<RPI::ShaderResourceGroup> GetObjectSrg(const MeshHandle& meshHandle) const override;
-            void QueueObjectSrgForCompile(const MeshHandle& meshHandle) const override;
             Data::Asset<RPI::ModelAsset> GetModelAsset(const MeshHandle& meshHandle) const override;
             Data::Instance<RPI::ShaderResourceGroup> GetObjectSrg(const MeshHandle& meshHandle) const override;
             void QueueObjectSrgForCompile(const MeshHandle& meshHandle) const override;

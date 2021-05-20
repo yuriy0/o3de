@@ -59,14 +59,6 @@ namespace AZ
 
             //! Gets the underlying RPI::Model instance for a meshHandle. May be null if the model has not loaded.
             virtual Data::Instance<RPI::Model> GetModel(const MeshHandle& meshHandle) const = 0;
-            //! Gets the ObjectSrg for a meshHandle.
-            //! Updating the ObjectSrg should be followed by a call to QueueObjectSrgForCompile,
-            //! instead of compiling the srg directly. This way, if the srg has already been queued for compile,
-            //! it will not be queued twice in the same frame. The ObjectSrg should not be updated during
-            //! Simulate, or it will create a race between updating the data and the call to Compile
-            virtual Data::Instance<RPI::ShaderResourceGroup> GetObjectSrg(const MeshHandle& meshHandle) const = 0;
-            //! Queues the object srg for compile.
-            virtual void QueueObjectSrgForCompile(const MeshHandle& meshHandle) const = 0;
             //! Gets the underlying RPI::ModelAsset for a meshHandle.
             virtual Data::Asset<RPI::ModelAsset> GetModelAsset(const MeshHandle& meshHandle) const = 0;
             //! Gets the ObjectSrg for a meshHandle.
