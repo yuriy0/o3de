@@ -220,6 +220,16 @@ namespace AZ
         {
             return meshHandle.IsValid() ? meshHandle->m_model : nullptr;
         }
+            
+        Data::Asset<RPI::ModelAsset> MeshFeatureProcessor::GetModelAsset(const MeshHandle& meshHandle) const
+        {
+            if (meshHandle.IsValid())
+            {
+                return meshHandle->m_originalModelAsset;
+            }
+
+            return {};
+        }
 
         Data::Instance<RPI::ShaderResourceGroup> MeshFeatureProcessor::GetObjectSrg(const MeshHandle& meshHandle) const
         {
@@ -232,16 +242,6 @@ namespace AZ
             {
                 meshHandle->m_objectSrgNeedsUpdate = true;
             }
-        }
-            
-        Data::Asset<RPI::ModelAsset> MeshFeatureProcessor::GetModelAsset(const MeshHandle& meshHandle) const
-        {
-            if (meshHandle.IsValid())
-            {
-                return meshHandle->m_originalModelAsset;
-            }
-
-            return {};
         }
 
         void MeshFeatureProcessor::SetMaterialAssignmentMap(const MeshHandle& meshHandle, const Data::Instance<RPI::Material>& material)
