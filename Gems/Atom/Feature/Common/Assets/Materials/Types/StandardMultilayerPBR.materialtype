@@ -305,7 +305,7 @@
                     "displayName": "Blend Source",
                     "description": "The source to use for defining the blend mask. Note VertexColors mode will still use the texture as a fallback if the mesh does not have a COLOR0 stream.",
                     "type": "Enum",
-                    "enumValues":  ["TextureMap", "VertexColors", "TextureMapAndVertexColors"],
+                    "enumValues":  ["TextureMap", "VertexColors"],
                     "defaultValue":  "TextureMap",
                     "connection": {
                         "type": "ShaderOption",
@@ -333,29 +333,6 @@
                     "connection": {
                         "type": "ShaderInput",
                         "id": "m_blendMaskUvIndex"
-                    }
-                },
-                {
-                    "id": "blendSourcesCombined",
-                    "displayName": "Blend Source Combine",
-                    "description": "When using multiple blend sources, determines how to combine them. Sum=add them per-component; Product=multiply them per-component; Min=take the smaller per-component; Max=take the large per-component",
-                    "type": "Enum",
-                    "enumValues":  ["Sum", "Product", "Min", "Max"],
-                    "defaultValue":  "Sum",
-                    "connection": {
-                        "type": "ShaderOption",
-                        "id": "o_blendSourceCombine"
-                    }
-                },
-                {
-                    "id": "blendWeightsNormalize",
-                    "displayName": "Normalize Blend Weight",
-                    "description": "If true, scale each component of the blend weight so that the total blend weight is 1; otherwise use blend weight exactly as specified.",
-                    "type": "Bool",
-                    "defaultValue": true,
-                    "connection": {
-                        "type": "ShaderOption",
-                        "id": "o_blendWeightsNormalize"
                     }
                 }
             ],
