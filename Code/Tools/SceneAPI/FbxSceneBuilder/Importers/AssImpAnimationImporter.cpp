@@ -156,7 +156,7 @@ namespace AZ
                 SerializeContext* serializeContext = azrtti_cast<SerializeContext*>(context);
                 if (serializeContext)
                 {
-                    serializeContext->Class<AssImpAnimationImporter, SceneCore::LoadingComponent>()->Version(2); // [LYN-2281] Skinned mesh loading fixes
+                    serializeContext->Class<AssImpAnimationImporter, SceneCore::LoadingComponent>()->Version(4); // [LYN-3971] Bone pruning crash fix in AssImp SDK
                 }
             }
 
