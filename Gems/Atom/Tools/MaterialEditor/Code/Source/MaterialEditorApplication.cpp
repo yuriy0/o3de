@@ -275,7 +275,7 @@ namespace MaterialEditor
             AZ_Assert(context, "No serialize context");
 
             char resolvedPath[AZ_MAX_PATH_LEN] = "";
-            AZ::IO::FileIOBase::GetInstance()->ResolvePath("@user@/EditorUserSettings.xml", resolvedPath, AZ_ARRAY_SIZE(resolvedPath));
+            AZ::IO::FileIOBase::GetInstance()->ResolvePath("@user@/MaterialEditorUserSettings.xml", resolvedPath, AZ_ARRAY_SIZE(resolvedPath));
             m_localUserSettings.Save(resolvedPath, context);
         }
     }
@@ -481,6 +481,9 @@ namespace MaterialEditor
 
     void MaterialEditorApplication::Stop()
     {
+        MaterialEditor::MaterialEditorWindowFactoryRequestBus::Broadcast(
+            &MaterialEditor::MaterialEditorWindowFactoryRequestBus::Handler::DestroyMaterialEditorWindow);
+
         UnloadSettings();
         AzFramework::Application::Stop();
     }
