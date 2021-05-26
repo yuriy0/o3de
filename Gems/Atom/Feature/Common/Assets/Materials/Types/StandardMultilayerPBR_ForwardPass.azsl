@@ -344,8 +344,8 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
         float parallaxOverallFactor = MaterialSrg::m_displacementMax - MaterialSrg::m_displacementMin;
         GetParallaxInput(IN.m_normal, tangents[MaterialSrg::m_parallaxUvIndex], bitangents[MaterialSrg::m_parallaxUvIndex], parallaxOverallFactor, parallaxOverallOffset, 
                          ObjectSrg::GetWorldMatrix(), uvMatrix, uvMatrixInverse,
-                         IN.m_uv[MaterialSrg::m_parallaxUvIndex], IN.m_worldPosition, depth, displacementIsClipped);
-
+                         IN.m_uv[MaterialSrg::m_parallaxUvIndex], IN.m_worldPosition, depthNDC, displacementIsClipped);
+    
         // Adjust directional light shadow coorinates for parallax correction
         if(o_parallax_enablePixelDepthOffset)
         {
@@ -405,6 +405,13 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     surface.position = IN.m_worldPosition;
     surface.transmission.InitializeToZero();
 
+    // Note this part is only needed due to a merge conflict where some refactoring is not available yet on this fork.
+    // On the main engine repo, there is no anisotropy in Surface.
+    // We just need to set these to zero to avoid DXC validation failures regarding uninitialized variables.
+    surface.anisotropy.tangent = float3(0,0,0);
+    surface.anisotropy.bitangent = float3(0,0,0);
+    surface.anisotropy.anisotropyFactors = float2(0,0);
+    
     // ------- Combine Normals ---------
 
     float3 normalTS = lightingInputLayer1.m_normalTS;
