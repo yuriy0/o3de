@@ -1,0 +1,6 @@
+#pragma once
+
+
+#define DEFERRED_FOG_PASS_SRG_COMMON\
+    float m_fogStartDistance;\
+    float m_fogEndDistance;\

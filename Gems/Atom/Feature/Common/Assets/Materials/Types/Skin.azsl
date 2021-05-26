@@ -57,6 +57,10 @@ option bool o_wrinkleLayers_showBlendMaskValues;
 // [GFX TODO][ATOM-14475]: Come up with a more elegant way to associate the isBound flag with the input stream.
 option bool o_blendMask_isBound;
 
+
+[[range(0,3)]]
+option uint o_wrinkleLayers_showNormals = 0;
+
 #include "MaterialInputs/SubsurfaceInput.azsli"
 #include "MaterialInputs/TransmissionInput.azsli"
 
@@ -302,6 +306,7 @@ PbrLightingOutput SkinPS_Common(VSOutput IN)
         if(o_wrinkleLayers_count > 3) { baseColor = lerp(baseColor, float3(1,1,1), IN.m_wrinkleBlendFactors.a); }
     }
 
+
     // ------- Specular -------
 
     float2 specularUv = IN.m_uv[MaterialSrg::m_specularF0MapUvIndex];
@@ -384,6 +389,19 @@ PbrLightingOutput SkinPS_Common(VSOutput IN)
     lightingOutput.m_scatterDistance = MaterialSrg::m_multiplyScatterDistanceByAlbedo
                                        ? MaterialSrg::m_scatterDistance * surface.albedo
                                        : MaterialSrg::m_scatterDistance;
+
+
+
+    if(o_wrinkleLayers_enabled && o_wrinkleLayers_showNormals != 0)
+    {
+        float3 c = 0;
+        if (o_wrinkleLayers_showNormals == 1)
+        {
+            c = surface.normal * 0.5 + 0.5;
+        }
+
+        lightingOutput.m_diffuseColor.rgb = c;
+    }
 
     return lightingOutput;
 }

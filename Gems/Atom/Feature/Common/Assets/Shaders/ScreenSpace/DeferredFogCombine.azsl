@@ -6,12 +6,15 @@
 
 #include <scenesrg.srgi>
 
+#include "DeferredFog_Srg.azsli"
+
 ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
     Texture3D<float4> m_fogCDF;
     Texture2D<float2> m_depthStencilTexture;
 
     float3 m_fogColor;
+    DEFERRED_FOG_PASS_SRG_COMMON
 
     Sampler LinearSampler
     {
@@ -47,7 +50,12 @@ float GetJitter(float2 n)
     float3 magic = {0.06711056f, 0.00583715f, 52.9829189f};
     float jitter = frac(magic.z * frac(dot(n.xy, magic.xy)));
     return jitter;
-}
+};
+
+// From McGuire, "The Graphics Codex"
+float hash2d(float2 p) {
+    return frac(1.0e4 * sin(17.0*p.x + 0.1*p.y) * (0.1 + abs(sin(13.0*p.y + p.x))));
+};
 
 #include "DeferredFog_Common.azsli"
 
@@ -58,8 +66,8 @@ PSOutput MainPS(VSOutput IN)
     const float fogTexZCoord = LinearDepthToFogVolumeTexZ(depth);
 
     // Apply jitter to sample location
-    float2 dim;
-    PassSrg::m_depthStencilTexture.GetDimensions(dim.x, dim.y);
+    /* float2 dim; */
+    /* PassSrg::m_depthStencilTexture.GetDimensions(dim.x, dim.y); */
 
     float3 dimFogCDF;
     PassSrg::m_fogCDF.GetDimensions(dimFogCDF.x, dimFogCDF.y, dimFogCDF.z);
@@ -67,9 +75,12 @@ PSOutput MainPS(VSOutput IN)
     // GetJitter gives a "random" value [0,1]
     // Remap [0,1] -> [-JitterScale,0] -> [-JitterScale+JitterOffset,JitterOffset]
     // -> [-JitterScale+JitterOffset*v,JitterOffset*v] where `v' is the size of a fog voxel in Z dimension
-    static const float JitterScale = -0.33f;
-    static const float JitterOffset = 0.05f;
-    const float jitter = (GetJitter(IN.m_texCoord * dim) * JitterScale + JitterOffset) * (1.0 / (dimFogCDF.z - 1.0));
+    static const float JitterScale = -0.15f;
+    static const float JitterOffset = 0.025f;
+    float jitter = 0;
+    jitter = hash2d(IN.m_texCoord.xy);
+    /* jitter = GetJitter(IN.m_texCoord.xy / dim); */
+    jitter = (jitter * JitterScale + JitterOffset) * (1.0 / (dimFogCDF.z - 1.0));
     float3 sampleUvw = float3(IN.m_texCoord, fogTexZCoord + jitter);
 
     // Sample fog CDF

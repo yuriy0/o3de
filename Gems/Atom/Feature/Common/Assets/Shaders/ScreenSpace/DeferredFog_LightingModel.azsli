@@ -204,11 +204,12 @@ LightingData CreateTiledLightingIteratorForFogVoxel(float3 fogHitPnt)
 // #include <Atom/Features/PBR/Lights/PointLight.azsli>
 // #include <Atom/Features/PBR/Lights/PolygonLight.azsli>
 // #include <Atom/Features/PBR/Lights/QuadLight.azsli>
-#include <Atom/Features/PBR/Lights/SimplePointLight.azsli>
+// #include <Atom/Features/PBR/Lights/SimplePointLight.azsli>
 // #include <Atom/Features/PBR/Lights/SimpleSpotLight.azsli>
 
 
 #include "DeferredFog_DiskLight.azsli"
+#include "DeferredFog_SimplePointLight.azsli"
 
 
 

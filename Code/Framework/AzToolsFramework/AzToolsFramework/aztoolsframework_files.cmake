@@ -77,6 +77,8 @@ set(FILES
     MaterialBrowser/MaterialThumbnail.h
     Thumbnails/ThumbnailerComponent.cpp
     Thumbnails/ThumbnailerComponent.h
+    Thumbnails/ThumbnailerNullComponent.cpp
+    Thumbnails/ThumbnailerNullComponent.h
     Thumbnails/LoadingThumbnail.cpp
     Thumbnails/LoadingThumbnail.h
     Thumbnails/MissingThumbnail.cpp

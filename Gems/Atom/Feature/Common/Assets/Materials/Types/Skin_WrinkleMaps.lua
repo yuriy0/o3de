@@ -19,6 +19,7 @@ function GetMaterialPropertyDependencies()
         "wrinkleLayers.enableBaseColor", 
         "wrinkleLayers.enableNormal",
         "wrinkleLayers.showBlendValues",
+        "wrinkleLayers.showNormals",
         "wrinkleLayers.baseColorMap1",
         "wrinkleLayers.baseColorMap2",
         "wrinkleLayers.baseColorMap3",
@@ -44,7 +45,8 @@ function GetShaderOptionDependencies()
         "o_wrinkleLayers_normal_useTexture2",
         "o_wrinkleLayers_normal_useTexture3",
         "o_wrinkleLayers_normal_useTexture4",
-        "o_wrinkleLayers_showBlendMaskValues"
+        "o_wrinkleLayers_showBlendMaskValues",
+        "o_wrinkleLayers_showNormals"
         }
 end
 
@@ -59,6 +61,9 @@ function Process(context)
     context:SetShaderOptionValue_bool("o_wrinkleLayers_baseColor_enabled", isBaseColorEnabled)
     context:SetShaderOptionValue_bool("o_wrinkleLayers_normal_enabled", isNormalEnabled)
     context:SetShaderOptionValue_bool("o_wrinkleLayers_showBlendMaskValues", showBlendValues)
+
+    local showNormals = context:GetMaterialPropertyValue_uint("wrinkleLayers.showNormals")
+    context:SetShaderOptionValue_uint("o_wrinkleLayers_showNormals", showNormals)
 
     local count = context:GetMaterialPropertyValue_uint("wrinkleLayers.count")
     context:SetShaderOptionValue_uint("o_wrinkleLayers_count", count)

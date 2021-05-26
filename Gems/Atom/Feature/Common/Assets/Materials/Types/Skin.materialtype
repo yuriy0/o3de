@@ -765,6 +765,15 @@
                     "defaultValue": false
                 },
                 {
+                    "id": "showNormals",
+                    "displayName": "Show Normals",
+                    "description": "If non zero, show final normals (1,2,3=normal,tangent,bitangent)",
+                    "type": "UInt",
+                    "defaultValue": 0,
+                    "min":  0,
+                    "max":  3
+                },
+                {
                     "id": "enableBaseColor",
                     "displayName": "Enable Base Color Maps",
                     "description": "Enable support for blending the base color according to morph animations.",

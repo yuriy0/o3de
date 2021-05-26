@@ -344,12 +344,47 @@
                                 "Pass": "DepthPrePass",
                                 "Attachment": "Depth"
                             }
+                        }, 
+                        {
+                            "LocalSlot": "InputLinearDepth",
+                            "AttachmentRef": {
+                                "Pass": "DepthPrePass",
+                                "Attachment": "DepthLinear"
+                            }
                         },
                         {
                             "LocalSlot": "InputOutput",
                             "AttachmentRef": {
                                 "Pass": "OpaquePass",
                                 "Attachment": "Output"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "Name": "DistortionPass",
+                    "TemplateName": "DistortionParentTemplate",
+                    "Enabled": false,
+                    "Connections": [
+                        {
+                            "LocalSlot": "InputLinearDepth",
+                            "AttachmentRef": {
+                                "Pass": "DepthPrePass",
+                                "Attachment": "DepthLinear"
+                            }
+                        },
+                        {
+                            "LocalSlot": "InputDepthStencil",
+                            "AttachmentRef": {
+                                "Pass": "DepthPrePass",
+                                "Attachment": "Depth"
+                            }
+                        },
+                        {
+                            "LocalSlot": "InputColor",
+                            "AttachmentRef": {
+                                "Pass": "TransparentPass",
+                                "Attachment": "InputOutput"
                             }
                         }
                     ]
@@ -376,8 +411,8 @@
                         {
                             "LocalSlot": "RenderTargetInputOutput",
                             "AttachmentRef": {
-                                "Pass": "TransparentPass",
-                                "Attachment": "InputOutput"
+                                "Pass": "DistortionPass",
+                                "Attachment": "OutputColor"
                             }
                         },
                         // Lighting and shadowing inputs for regular shading

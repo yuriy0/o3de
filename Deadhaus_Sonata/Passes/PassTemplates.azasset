@@ -538,6 +538,18 @@
             {
                 "Name": "OITMomentGenerationPassTemplate",
                 "Path": "Passes/OITMomentGeneration.pass"
+            },
+            {
+                "Name": "DistortionParentTemplate",
+                "Path": "Passes/DistortionParent.pass"
+            },
+            {
+                "Name": "DistortionPostProcessPassTemplate",
+                "Path": "Passes/DistortionPostProcess.pass"
+            },
+            {
+                "Name": "DistortionAccumulationPassTemplate",
+                "Path": "Passes/DistortionAccumulation.pass"
             }
         ]
     }

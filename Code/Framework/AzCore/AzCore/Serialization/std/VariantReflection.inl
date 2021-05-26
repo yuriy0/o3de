@@ -117,6 +117,10 @@ namespace AZ
             void EnumElements(void* instance, const ElementCB& cb) override
             {
                 auto variantInst = reinterpret_cast<VariantType*>(instance);
+
+                // If the variant is valueless, we may not call `visit'
+                if (variantInst->valueless_by_exception()) return;
+
                 auto enumElementsVisitor = [&cb, altClassElement = &m_alternativeClassElements[variantInst->index()]](auto&& elementAlt)
                 {
                     cb(&const_cast<AZStd::remove_cvref_t<decltype(elementAlt)>&>(elementAlt), altClassElement->m_typeId, altClassElement->m_genericClassInfo ? altClassElement->m_genericClassInfo->GetClassData() : nullptr, altClassElement);

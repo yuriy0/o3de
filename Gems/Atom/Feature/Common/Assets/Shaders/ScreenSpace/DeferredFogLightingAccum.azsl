@@ -16,6 +16,8 @@
 #include <viewsrg.srgi>
 #include <scenesrg.srgi>
 
+#include "DeferredFog_Srg.azsli"
+
 ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
     // Output
@@ -36,9 +38,9 @@ ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
     };
 
     // Fog parameters
+    DEFERRED_FOG_PASS_SRG_COMMON
+
     float m_fogAnisotropy;
-    float m_fogStartDistance;
-    float m_fogEndDistance;
     float3 m_fogColor;
     float m_fogMinHeight;
     float m_fogMaxHeight;
@@ -120,15 +122,29 @@ float CalculateFogDensity(float3 surfacePosWS)
     // Overall fog density in this xy position
     fogDensity = lerp(fogDensity, fogDensity2, PassSrg::m_octavesBlendFactor);
 
-    // Apply height attenuation at location xy based on the density amount.  This is a heuristic
-    // in order to avoid using 3D texture yet have height deviation near the layer's edge.
-    // const float fadeStartHeight = 0.8;  // relative fog layer height at which point we start to fade
-    // // The fade will be gradual from the end of the noise location
-    // float fogRelativeHeight = 1.0 - smoothstep( fadeStartHeight, 1.0, depthInLayer );
+    // Fog z extent
+    const float fogVolumeZExtent = PassSrg::m_fogMaxHeight - PassSrg::m_fogMinHeight;
+    const float depthInLayer = saturate((surfacePosWS.z - PassSrg::m_fogMinHeight) / fogVolumeZExtent);
 
-    // return fogDensity * fogRelativeHeight;
+    /* Apply height attenuation at location xy based on the density amount.  This is a heuristic */
+    /* in order to avoid using 3D texture yet have height deviation near the layer's edge. */
+    const float fadeStartHeight = 0.8;  // relative fog layer height at which point we start to fade
+    // The fade will be gradual from the end of the noise location
+    const float fogRelativeHeight = 1.0 - smoothstep( fadeStartHeight, 1.0, depthInLayer );
 
-    return PassSrg::m_fogDensityMultiplier * fogDensity;
+    return PassSrg::m_fogDensityMultiplier * fogDensity * fogRelativeHeight;
+}
+
+float MirrorAddress(float x)
+{
+    float f = frac(x);
+    int h = trunc(x);
+    return h % 2 == 0 ? f : 1.0 - f;
+}
+
+float2 MirrorAddress2(float2 xy)
+{
+    return float2(MirrorAddress(xy.x), MirrorAddress(xy.y));
 }
 
 [numthreads(8,8,1)]
@@ -163,6 +179,20 @@ void MainCS(uint3 dispatch_id: SV_DispatchThreadID)
     }
 
     const float fogDensity = CalculateFogDensity(centralSampleWsPos);
+
+    if (false) // DEBUG
+    {
+        float3 surfacePosWS = centralSampleWsPos;
+        float2 noiseUV = surfacePosWS.xy * PassSrg::m_noiseScaleUV + PassSrg::m_noiseVelocityUV * SceneSrg::m_time;
+        noiseUV = MirrorAddress2(noiseUV);
+
+        // second noise octave
+        float2 noiseUV2 = surfacePosWS.xy * PassSrg::m_noiseScaleUV2 + PassSrg::m_noiseVelocityUV2 * SceneSrg::m_time;
+        noiseUV2 = MirrorAddress2(noiseUV2);
+
+        PassSrg::m_lightingAccum[dispatch_id].rgba = float4(noiseUV, noiseUV2);
+        return;
+    }
 
     float3 lighting = 0;
 

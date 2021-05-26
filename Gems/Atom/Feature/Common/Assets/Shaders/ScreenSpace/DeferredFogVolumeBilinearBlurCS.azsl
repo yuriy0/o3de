@@ -4,8 +4,12 @@
 #include <viewsrg.srgi>
 #include <scenesrg.srgi>
 
+#include "DeferredFog_Srg.azsli"
+
 ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
+    DEFERRED_FOG_PASS_SRG_COMMON
+
     // Input/Output
     Texture3D<float4> m_input;
     RWTexture3D<float4> m_output;

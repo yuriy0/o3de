@@ -5,7 +5,10 @@ static const float FogVolumeTexZToDepth_Exponent = 2.f;
 static const float FogVolumeTexZToDepth_ExponentInv = 1.f / FogVolumeTexZToDepth_Exponent;
 
 
-static const float FogMaxDepthLinear = 64; // TODO: srg?
+float FogMaxDepthLinear()
+{
+    return PassSrg::m_fogEndDistance;
+}
 
 // float FogVolumeTexZToDepth(float z)
 // {
@@ -19,7 +22,7 @@ static const float FogMaxDepthLinear = 64; // TODO: srg?
 
 float FogVolumeTexZToLinearDepth(float z)
 {
-    return pow(z, FogVolumeTexZToDepth_Exponent) * (FogMaxDepthLinear - ViewSrg::GetFarZ()) + ViewSrg::GetFarZ();
+    return pow(z, FogVolumeTexZToDepth_Exponent) * (FogMaxDepthLinear() - ViewSrg::GetFarZ()) + ViewSrg::GetFarZ();
 }
 
 float LinearDepthToFogVolumeTexZ(float d)
@@ -27,7 +30,7 @@ float LinearDepthToFogVolumeTexZ(float d)
     // d = pow(z, FogVolumeTexZToDepth_Exponent) * (FogMaxDepthLinear - ViewSrg::GetFarZ()) + ViewSrg::GetFarZ();
     // (d - ViewSrg::GetFarZ()) / (FogMaxDepthLinear - ViewSrg::GetFarZ()) = pow(z, FogVolumeTexZToDepth_Exponent);
     // pow((d - ViewSrg::GetFarZ()) / (FogMaxDepthLinear - ViewSrg::GetFarZ()), FogVolumeTexZToDepth_ExponentInv) = z;
-    return pow((d - ViewSrg::GetFarZ()) / (FogMaxDepthLinear - ViewSrg::GetFarZ()), FogVolumeTexZToDepth_ExponentInv);
+    return pow((d - ViewSrg::GetFarZ()) / (FogMaxDepthLinear() - ViewSrg::GetFarZ()), FogVolumeTexZToDepth_ExponentInv);
 }
 
 float4 Unproject(float2 UV, float zDepth)
