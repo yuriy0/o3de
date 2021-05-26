@@ -128,9 +128,9 @@ namespace AZ
     JsonSerializationResult::Result JsonCharSerializer::Load(void* outputValue, const Uuid& outputValueTypeId, const rapidjson::Value& inputValue,
         JsonDeserializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<char>() == outputValueTypeId,
-            "Unable to deserialize char to json because the provided type is %s",
-            outputValueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<char>() == outputValueTypeId,
+        //    "Unable to deserialize char to json because the provided type is %s",
+        //    outputValueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(outputValueTypeId);
         return SerializerInternal::LoadInt(reinterpret_cast<char*>(outputValue), inputValue, context);
     }
@@ -138,8 +138,8 @@ namespace AZ
     JsonSerializationResult::Result JsonCharSerializer::Store(rapidjson::Value& outputValue, const void* inputValue, const void* defaultValue,
         const Uuid& valueTypeId, JsonSerializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<char>() == valueTypeId, "Unable to serialize char to json because the provided type is %s",
-            valueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<char>() == valueTypeId, "Unable to serialize char to json because the provided type is %s",
+        //    valueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(valueTypeId);
         return SerializerInternal::Store<char>(outputValue, inputValue, defaultValue, context);
     }
@@ -147,9 +147,9 @@ namespace AZ
     JsonSerializationResult::Result JsonShortSerializer::Load(void* outputValue, const Uuid& outputValueTypeId, const rapidjson::Value& inputValue,
         JsonDeserializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<short>() == outputValueTypeId,
-            "Unable to deserialize short to json because the provided type is %s",
-            outputValueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<short>() == outputValueTypeId,
+        //    "Unable to deserialize short to json because the provided type is %s",
+        //    outputValueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(outputValueTypeId);
         return SerializerInternal::LoadInt(reinterpret_cast<short*>(outputValue), inputValue, context);
     }
@@ -157,8 +157,8 @@ namespace AZ
     JsonSerializationResult::Result JsonShortSerializer::Store(rapidjson::Value& outputValue, const void* inputValue, const void* defaultValue,
         const Uuid& valueTypeId, JsonSerializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<short>() == valueTypeId, "Unable to serialize short to json because the provided type is %s",
-            valueTypeId.ToString<AZStd::string>().c_str()); 
+        //AZ_Assert(azrtti_typeid<short>() == valueTypeId, "Unable to serialize short to json because the provided type is %s",
+        //    valueTypeId.ToString<AZStd::string>().c_str()); 
         AZ_UNUSED(valueTypeId);
         return SerializerInternal::Store<short>(outputValue, inputValue, defaultValue, context);
     }
@@ -166,9 +166,9 @@ namespace AZ
     JsonSerializationResult::Result JsonIntSerializer::Load(void* outputValue, const Uuid& outputValueTypeId, const rapidjson::Value& inputValue,
         JsonDeserializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<int>() == outputValueTypeId,
-            "Unable to deserialize int to json because the provided type is %s",
-            outputValueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<int>() == outputValueTypeId,
+        //    "Unable to deserialize int to json because the provided type is %s",
+        //    outputValueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(outputValueTypeId);
         return SerializerInternal::LoadInt(reinterpret_cast<int*>(outputValue), inputValue, context);
     }
@@ -176,8 +176,8 @@ namespace AZ
     JsonSerializationResult::Result JsonIntSerializer::Store(rapidjson::Value& outputValue, const void* inputValue, const void* defaultValue,
         const Uuid& valueTypeId, JsonSerializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<int>() == valueTypeId, "Unable to serialize int to json because the provided type is %s",
-            valueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<int>() == valueTypeId, "Unable to serialize int to json because the provided type is %s",
+        //    valueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(valueTypeId);
         return SerializerInternal::Store<int>(outputValue, inputValue, defaultValue, context);
     }
@@ -185,9 +185,9 @@ namespace AZ
     JsonSerializationResult::Result JsonLongSerializer::Load(void* outputValue, const Uuid& outputValueTypeId, const rapidjson::Value& inputValue,
         JsonDeserializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<long>() == outputValueTypeId,
-            "Unable to deserialize long to json because the provided type is %s",
-            outputValueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<long>() == outputValueTypeId,
+        //    "Unable to deserialize long to json because the provided type is %s",
+        //    outputValueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(outputValueTypeId);
         return SerializerInternal::LoadInt(reinterpret_cast<long*>(outputValue), inputValue, context);
     }
@@ -195,8 +195,8 @@ namespace AZ
     JsonSerializationResult::Result JsonLongSerializer::Store(rapidjson::Value& outputValue, const void* inputValue, const void* defaultValue,
         const Uuid& valueTypeId, JsonSerializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<long>() == valueTypeId, "Unable to serialize long to json because the provided type is %s",
-            valueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<long>() == valueTypeId, "Unable to serialize long to json because the provided type is %s",
+        //    valueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(valueTypeId);
         return SerializerInternal::Store<long>(outputValue, inputValue, defaultValue, context);
     }
@@ -204,9 +204,9 @@ namespace AZ
     JsonSerializationResult::Result JsonLongLongSerializer::Load(void* outputValue, const Uuid& outputValueTypeId, const rapidjson::Value& inputValue,
         JsonDeserializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<long long>() == outputValueTypeId,
-            "Unable to deserialize long long to json because the provided type is %s",
-            outputValueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<long long>() == outputValueTypeId,
+        //    "Unable to deserialize long long to json because the provided type is %s",
+        //    outputValueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(outputValueTypeId);
         return SerializerInternal::LoadInt(reinterpret_cast<long long*>(outputValue), inputValue, context);
     }
@@ -214,8 +214,8 @@ namespace AZ
     JsonSerializationResult::Result JsonLongLongSerializer::Store(rapidjson::Value& outputValue, const void* inputValue, const void* defaultValue,
         const Uuid& valueTypeId, JsonSerializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<long long>() == valueTypeId, "Unable to serialize long long to json because the provided type is %s",
-            valueTypeId.ToString<AZStd::string>().c_str()); 
+        //AZ_Assert(azrtti_typeid<long long>() == valueTypeId, "Unable to serialize long long to json because the provided type is %s",
+        //    valueTypeId.ToString<AZStd::string>().c_str()); 
         AZ_UNUSED(valueTypeId);
         return SerializerInternal::Store<long long>(outputValue, inputValue, defaultValue, context);
     }
@@ -223,9 +223,9 @@ namespace AZ
     JsonSerializationResult::Result JsonUnsignedCharSerializer::Load(void* outputValue, const Uuid& outputValueTypeId, const rapidjson::Value& inputValue,
         JsonDeserializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<unsigned char>() == outputValueTypeId,
-            "Unable to deserialize unsigned char to json because the provided type is %s",
-            outputValueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<unsigned char>() == outputValueTypeId,
+        //    "Unable to deserialize unsigned char to json because the provided type is %s",
+        //    outputValueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(outputValueTypeId);
         return SerializerInternal::LoadInt(reinterpret_cast<unsigned char*>(outputValue), inputValue, context);
     }
@@ -233,8 +233,8 @@ namespace AZ
     JsonSerializationResult::Result JsonUnsignedCharSerializer::Store(rapidjson::Value& outputValue, const void* inputValue,
         const void* defaultValue, const Uuid& valueTypeId, JsonSerializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<unsigned char>() == valueTypeId, "Unable to serialize unsigned char to json because the provided type is %s",
-            valueTypeId.ToString<AZStd::string>().c_str()); 
+/*        AZ_Assert(azrtti_typeid<unsigned char>() == valueTypeId, "Unable to serialize unsigned char to json because the provided type is %s",
+            valueTypeId.ToString<AZStd::string>().c_str());*/ 
         AZ_UNUSED(valueTypeId);
         return SerializerInternal::Store<unsigned char>(outputValue, inputValue, defaultValue, context);
     }
@@ -242,9 +242,9 @@ namespace AZ
     JsonSerializationResult::Result JsonUnsignedShortSerializer::Load(void* outputValue, const Uuid& outputValueTypeId, const rapidjson::Value& inputValue,
         JsonDeserializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<unsigned short>() == outputValueTypeId,
-            "Unable to deserialize unsigned short to json because the provided type is %s",
-            outputValueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<unsigned short>() == outputValueTypeId,
+        //    "Unable to deserialize unsigned short to json because the provided type is %s",
+        //    outputValueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(outputValueTypeId);
         return SerializerInternal::LoadInt(reinterpret_cast<unsigned short*>(outputValue), inputValue, context);
     }
@@ -252,8 +252,8 @@ namespace AZ
     JsonSerializationResult::Result JsonUnsignedShortSerializer::Store(rapidjson::Value& outputValue, const void* inputValue,
         const void* defaultValue, const Uuid& valueTypeId, JsonSerializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<unsigned short>() == valueTypeId, "Unable to serialize unsigned short to json because the provided type is %s",
-            valueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<unsigned short>() == valueTypeId, "Unable to serialize unsigned short to json because the provided type is %s",
+        //    valueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(valueTypeId);
         return SerializerInternal::Store<unsigned short>(outputValue, inputValue, defaultValue, context);
     }
@@ -261,9 +261,9 @@ namespace AZ
     JsonSerializationResult::Result JsonUnsignedIntSerializer::Load(void* outputValue, const Uuid& outputValueTypeId, const rapidjson::Value& inputValue,
         JsonDeserializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<unsigned int>() == outputValueTypeId,
-            "Unable to deserialize unsigned int to json because the provided type is %s",
-            outputValueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<unsigned int>() == outputValueTypeId,
+        //    "Unable to deserialize unsigned int to json because the provided type is %s",
+        //    outputValueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(outputValueTypeId);
         return SerializerInternal::LoadInt(reinterpret_cast<unsigned int*>(outputValue), inputValue, context);
     }
@@ -271,8 +271,8 @@ namespace AZ
     JsonSerializationResult::Result JsonUnsignedIntSerializer::Store(rapidjson::Value& outputValue, const void* inputValue,
         const void* defaultValue, const Uuid& valueTypeId, JsonSerializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<unsigned int>() == valueTypeId, "Unable to serialize unsigned int to json because the provided type is %s",
-            valueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<unsigned int>() == valueTypeId, "Unable to serialize unsigned int to json because the provided type is %s",
+        //    valueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(valueTypeId);
         return SerializerInternal::Store<unsigned int>(outputValue, inputValue, defaultValue, context);
     }
@@ -280,9 +280,9 @@ namespace AZ
     JsonSerializationResult::Result JsonUnsignedLongSerializer::Load(void* outputValue, const Uuid& outputValueTypeId, const rapidjson::Value& inputValue,
         JsonDeserializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<unsigned long>() == outputValueTypeId,
-            "Unable to deserialize unsigned long to json because the provided type is %s",
-            outputValueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<unsigned long>() == outputValueTypeId,
+        //    "Unable to deserialize unsigned long to json because the provided type is %s",
+        //    outputValueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(outputValueTypeId);
         return SerializerInternal::LoadInt(reinterpret_cast<unsigned long*>(outputValue), inputValue, context);
     }
@@ -290,8 +290,8 @@ namespace AZ
     JsonSerializationResult::Result JsonUnsignedLongSerializer::Store(rapidjson::Value& outputValue, const void* inputValue,
         const void* defaultValue, const Uuid& valueTypeId, JsonSerializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<unsigned long>() == valueTypeId, "Unable to serialize unsigned long to json because the provided type is %s",
-            valueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<unsigned long>() == valueTypeId, "Unable to serialize unsigned long to json because the provided type is %s",
+        //    valueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(valueTypeId);
         return SerializerInternal::Store<unsigned long>(outputValue, inputValue, defaultValue, context);
     }
@@ -299,9 +299,9 @@ namespace AZ
     JsonSerializationResult::Result JsonUnsignedLongLongSerializer::Load(void* outputValue, const Uuid& outputValueTypeId, const rapidjson::Value& inputValue,
         JsonDeserializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<unsigned long long>() == outputValueTypeId,
-            "Unable to deserialize unsigned long long to json because the provided type is %s",
-            outputValueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<unsigned long long>() == outputValueTypeId,
+        //    "Unable to deserialize unsigned long long to json because the provided type is %s",
+        //    outputValueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(outputValueTypeId);
         return SerializerInternal::LoadInt(reinterpret_cast<unsigned long long*>(outputValue), inputValue, context);
     }
@@ -309,8 +309,8 @@ namespace AZ
     JsonSerializationResult::Result JsonUnsignedLongLongSerializer::Store(rapidjson::Value& outputValue, const void* inputValue,
         const void* defaultValue, const Uuid& valueTypeId, JsonSerializerContext& context)
     {
-        AZ_Assert(azrtti_typeid<unsigned long long>() == valueTypeId, "Unable to serialize unsigned long long to json because the provided type is %s",
-            valueTypeId.ToString<AZStd::string>().c_str());
+        //AZ_Assert(azrtti_typeid<unsigned long long>() == valueTypeId, "Unable to serialize unsigned long long to json because the provided type is %s",
+        //    valueTypeId.ToString<AZStd::string>().c_str());
         AZ_UNUSED(valueTypeId);
         return SerializerInternal::Store<unsigned long long>(outputValue, inputValue, defaultValue, context);
     }

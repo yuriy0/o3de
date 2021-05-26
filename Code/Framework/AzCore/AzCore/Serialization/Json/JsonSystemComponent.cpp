@@ -34,7 +34,7 @@
 #include <AzCore/std/containers/unordered_set.h>
 #include <AzCore/std/containers/unordered_map.h>
 #include <AzCore/std/containers/vector.h>
-#include <AzCore/std/containers/variant.h>
+#include <AzCore/std/optional.h>
 #include <AzCore/std/smart_ptr/intrusive_ptr.h>
 #include <AzCore/std/smart_ptr/shared_ptr.h>
 #include <AzCore/std/smart_ptr/unique_ptr.h>
@@ -78,7 +78,8 @@ namespace AZ
                 ->HandlesType<AZStd::list>()
                 ->HandlesType<AZStd::set>()
                 ->HandlesType<AZStd::vector>()
-                ->HandlesType<AZStd::optional>();
+                ->HandlesType<AZStd::optional>()
+                ;
             jsonContext->Serializer<JsonMapSerializer>()
                 ->HandlesType<AZStd::map>();
             jsonContext->Serializer<JsonUnorderedMapSerializer>()

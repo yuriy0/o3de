@@ -264,6 +264,7 @@ set(FILES
     Physics/ShapeConfiguration.h
     Physics/ShapeConfiguration.cpp
     Physics/SystemBus.h
+    Physics/TriggerBus.h
     Physics/WorldBodyBus.h
     Physics/ColliderComponentBus.h
     Physics/RagdollPhysicsBus.h

@@ -75,9 +75,10 @@ namespace AZ
         auto elementCallback = [this, &array, &retVal, &index, &context]
             (void* elementPtr, const Uuid& elementId, const SerializeContext::ClassData*, const SerializeContext::ClassElement* classElement)
         {
-            Flags flags = classElement->m_flags & SerializeContext::ClassElement::Flags::FLG_POINTER ?
-                Flags::ResolvePointer : Flags::None;
-            flags |= Flags::ReplaceDefault;
+            ContinuationFlags flags = classElement->m_flags & SerializeContext::ClassElement::Flags::FLG_POINTER
+                ? ContinuationFlags::ResolvePointer
+                : ContinuationFlags::None;
+            flags |= ContinuationFlags::ReplaceDefault;
             
             ScopedContextPath subPath(context, index);
             index++;
@@ -99,6 +100,17 @@ namespace AZ
         if (retVal.GetProcessing() == JSR::Processing::Halted)
         {
             return context.Report(retVal, "Processing of basic container was halted.");
+        }
+
+        // If each container element was 'DefaultsUsed', then the result code will be 'DefaultsUsed'
+        // But this is wrong if the container has at least one element, because a container with
+        // at least one element is certainly not the default container value.
+        // Basically, the following are different objects:
+        //   [ {} ]       // The container which has only default elements, but is not the empty container
+        //   {}           // The default container, which is empty
+        if (index > 0)
+        {
+            retVal.Combine(JSR::ResultCode(JSR::Tasks::WriteValue, JSR::Outcomes::Success));
         }
 
         if (context.ShouldKeepDefaults())
@@ -161,8 +173,9 @@ namespace AZ
         container->EnumTypes(typeEnumCallback);
         AZ_Assert(classElement, "No class element found for the type in the basic container.");
 
-        Flags flags = classElement->m_flags & SerializeContext::ClassElement::Flags::FLG_POINTER ?
-            Flags::ResolvePointer : Flags::None;
+        ContinuationFlags flags = classElement->m_flags & SerializeContext::ClassElement::Flags::FLG_POINTER
+            ? ContinuationFlags::ResolvePointer
+            : ContinuationFlags::None;
 
         const size_t capacity = container->IsFixedCapacity() ? container->Capacity(outputValue) : std::numeric_limits<size_t>::max();
 
