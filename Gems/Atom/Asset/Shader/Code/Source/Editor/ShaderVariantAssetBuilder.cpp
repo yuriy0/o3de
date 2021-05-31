@@ -408,12 +408,6 @@ namespace AZ
 
             if (jobParameters.find(ShaderVariantLoadErrorParam) != jobParameters.end())
             {
-                if (jobParameters.find(ShouldExitEarlyFromProcessJobParam) != jobParameters.end())
-                {
-                    AZ_TracePrintf(ShaderVariantAssetBuilderName, "Doing nothing on behalf of [%s] because it's been overriden by game project.", jobParameters.at(ShaderVariantLoadErrorParam).c_str());
-                    response.m_resultCode = AssetBuilderSDK::ProcessJobResult_Success;
-                    return;
-                }
                 AZ_Error(ShaderVariantAssetBuilderName, false, "Error during CreateJobs: %s", jobParameters.at(ShaderVariantLoadErrorParam).c_str());
                 response.m_resultCode = AssetBuilderSDK::ProcessJobResult_Failed;
                 return;
@@ -422,6 +416,15 @@ namespace AZ
             if (jobParameters.find(ShouldExitEarlyFromProcessJobParam) != jobParameters.end())
             {
                 AZ_TracePrintf(ShaderVariantAssetBuilderName, "Doing nothing on behalf of [%s] because it's been overridden by game project.", jobParameters.at(ShaderVariantLoadErrorParam).c_str());
+                response.m_resultCode = AssetBuilderSDK::ProcessJobResult_Success;
+                return;
+            }
+
+            if (jobParameters.find(ShouldExitEarlyFromProcessJobParam) != jobParameters.end())
+            {
+                AZ_TracePrintf(
+                    ShaderVariantAssetBuilderName, "Doing nothing on behalf of [%s] because it's been overriden by game project.",
+                    jobParameters.at(ShaderVariantLoadErrorParam).c_str());
                 response.m_resultCode = AssetBuilderSDK::ProcessJobResult_Success;
                 return;
             }
