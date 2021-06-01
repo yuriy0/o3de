@@ -35,6 +35,7 @@ namespace AZ
             return m_assImpMaterial->GetName().C_Str();
         }
 
+        /*
         AZ::u64 AssImpMaterialWrapper::GetUniqueId() const
         {
             AZStd::string fingerprintString;
@@ -49,6 +50,7 @@ namespace AZ
             sha.GetDigest(digest);
             return (static_cast<AZ::u64>(digest[0]) << 32) | digest[1];
         }
+        */
 
         AZ::Vector3 AssImpMaterialWrapper::GetDiffuseColor() const
         {

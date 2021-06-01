@@ -241,7 +241,7 @@
                 {
                     "Name": "ReflectionCompositePass",
                     "TemplateName": "ReflectionCompositePassTemplate",
-                    "Enabled": false, // TEMP: disabled because buggy
+                    "Enabled": true,
                     "Connections": [
                         {
                             "LocalSlot": "ReflectionInput",

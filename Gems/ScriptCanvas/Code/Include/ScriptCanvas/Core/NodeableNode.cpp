@@ -245,6 +245,9 @@ namespace ScriptCanvas
                             ->Attribute(AZ::Edit::Attributes::ContainerCanBeModified, false)
                             ->Attribute(AZ::Edit::Attributes::Visibility, AZ::Edit::PropertyVisibility::ShowChildrenOnly)
                             ->DataElement(AZ::Edit::UIHandlers::Default, &NodeableNode::m_nodeable, "Nodeable", "")
+                            // Once set in code, the type of the nodeable should not change, even though its properties may change, nor should the user
+                            // be able to explicitly set it to null.
+                            ->Attribute("SmartPointerAsValueType", true)
                         ;
                 }
             }

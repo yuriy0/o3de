@@ -21,7 +21,7 @@ namespace AzPhysics
     namespace
     {
         const float TimestepMin = 0.001f; //1000fps
-        const float TimestepMax = 0.05f; //20fps
+        const float TimestepMax = 1.0f;
     }
 
     AZ_CLASS_ALLOCATOR_IMPL(SystemConfiguration, AZ::SystemAllocator, 0);
@@ -52,8 +52,13 @@ namespace AzPhysics
                         ->Attribute(AZ::Edit::Attributes::ChangeNotify, &SystemConfiguration::OnMaxTimeStepChanged)//need to clamp m_fixedTimeStep if this value changes
                         ->Attribute(AZ::Edit::Attributes::Decimals, 8)
                         ->Attribute(AZ::Edit::Attributes::DisplayDecimals, 8)
-                    ->DataElement(AZ::Edit::UIHandlers::Default, &SystemConfiguration::m_fixedTimestep, "Fixed Time Step (sec)", "Fixed time step in seconds. Limited by 'Max Time Step'")
-                        ->Attribute(AZ::Edit::Attributes::Min, TimestepMin)
+                    ->DataElement(AZ::Edit::UIHandlers::Default, &SystemConfiguration::m_fixedTimestep,
+                        "Fixed Time Step (sec)",
+                        "The physics simulation is advanced in fixed increments equal to this time (or increments as close as possible to this time). "
+                        "If equal to zero, the time step is variable - each time step is equal to the time step of the last game simulation tick. "
+                        "Smaller time steps are more expensive but result in more precise simulation. Using a variable time step may give non-deterministic results. "
+                        " Limited by 'Max Time Step'.")
+                        ->Attribute(AZ::Edit::Attributes::Min, 0.f)
                         ->Attribute(AZ::Edit::Attributes::Max, &SystemConfiguration::GetFixedTimeStepMax)
                         ->Attribute(AZ::Edit::Attributes::Decimals, 8)
                         ->Attribute(AZ::Edit::Attributes::DisplayDecimals, 8)

@@ -129,7 +129,7 @@ function ProcessEditor(context)
             context:SetMaterialPropertyVisibility("opacity.textureMap", MaterialPropertyVisibility_Hidden)
             context:SetMaterialPropertyVisibility("opacity.textureMapUv", MaterialPropertyVisibility_Hidden)
         else
-            local textureMap = context:GetMaterialPropertyValue_image("opacity.textureMap")
+            local textureMap = context:GetMaterialPropertyValue_Image("opacity.textureMap")
 
             if(nil == textureMap) then
                 context:SetMaterialPropertyVisibility("opacity.textureMapUv", MaterialPropertyVisibility_Disabled)

@@ -46,6 +46,46 @@ namespace AZ
                     serializeContext->Class<AssImpTransformImporter, SceneCore::LoadingComponent>()->Version(1);
                 }
             }
+
+            void EnumBonesInNode2(
+                const aiScene* scene, const aiNode* node, AZStd::unordered_map<AZStd::string, const aiNode*>&,
+                AZStd::unordered_map<AZStd::string, const aiBone*>& boneLookup)
+            {
+                /* From AssImp Documentation
+                    a) Create a map or a similar container to store which nodes are necessary for the skeleton. Pre-initialise it for all
+                   nodes with a "no". b) For each bone in the mesh: b1) Find the corresponding node in the scene's hierarchy by comparing
+                   their names. b2) Mark this node as "yes" in the necessityMap. b3) Mark all of its parents the same way until you 1) find
+                   the mesh's node or 2) the parent of the mesh's node. c) Recursively iterate over the node hierarchy c1) If the node is
+                   marked as necessary, copy it into the skeleton and check its children c2) If the node is marked as not necessary, skip it
+                   and do not iterate over its children.
+                 */
+
+                for (unsigned meshIndex = 0; meshIndex < node->mNumMeshes; ++meshIndex)
+                {
+                    const aiMesh* mesh = scene->mMeshes[node->mMeshes[meshIndex]];
+
+                    for (unsigned boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
+                    {
+                        const aiBone* bone = mesh->mBones[boneIndex];
+
+                        boneLookup[bone->mName.C_Str()] = bone;
+                    }
+                }
+            }
+
+            void EnumChildren2(
+                const aiScene* scene, const aiNode* node, AZStd::unordered_map<AZStd::string, const aiNode*>& mainBoneList,
+                AZStd::unordered_map<AZStd::string, const aiBone*>& boneLookup)
+            {
+                EnumBonesInNode2(scene, node, mainBoneList, boneLookup);
+
+                for (unsigned childIndex = 0; childIndex < node->mNumChildren; ++childIndex)
+                {
+                    const aiNode* child = node->mChildren[childIndex];
+
+                    EnumChildren2(scene, child, mainBoneList, boneLookup);
+                }
+            }
             
             Events::ProcessingResult AssImpTransformImporter::ImportTransform(AssImpSceneNodeAppendedContext& context)
             {
@@ -58,7 +98,39 @@ namespace AZ
                     return Events::ProcessingResult::Ignored;
                 }
 
+                bool isBone = false;
+                AZStd::unordered_map<AZStd::string, const aiNode*> mainBoneList;
+                AZStd::unordered_map<AZStd::string, const aiBone*> boneLookup;
+                EnumChildren2(scene, scene->mRootNode, mainBoneList, boneLookup);
+
+                if (boneLookup.find(currentNode->mName.C_Str()) != boneLookup.end())
+                {
+                    isBone = true;
+                }
+
                 aiMatrix4x4 combinedTransform = GetConcatenatedLocalTransform(currentNode);
+
+                if (isBone)
+                {
+                    auto parentNode = currentNode->mParent;
+
+                    aiMatrix4x4 offsetMatrix = boneLookup[currentNode->mName.C_Str()]->mOffsetMatrix;
+                    aiMatrix4x4 parentOffset{};
+
+                    if (parentNode && boneLookup.count(parentNode->mName.C_Str()))
+                    {
+                        auto parentBone = boneLookup[parentNode->mName.C_Str()];
+
+                        parentOffset = parentBone->mOffsetMatrix;
+                    }
+
+                    auto inverseOffset = offsetMatrix;
+                    inverseOffset.Inverse();
+
+                    auto optionB = parentOffset * inverseOffset;
+
+                    combinedTransform = optionB;
+                }
 
                 DataTypes::MatrixType localTransform = AssImpSDKWrapper::AssImpTypeConverter::ToTransform(combinedTransform);
                 

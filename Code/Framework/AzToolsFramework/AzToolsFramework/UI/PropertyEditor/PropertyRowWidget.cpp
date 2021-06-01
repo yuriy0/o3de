@@ -201,6 +201,84 @@ namespace AzToolsFramework
         }
     }
 
+    // TODO: make this re-usable?
+    template<class F>
+    void ResolveInstanceDataNodeAttribute(const InstanceDataNode& node, const AZ::Crc32& attr, F readAttributeCallback)
+    {
+        // First check the data element metadata in the reflecting class
+        if (const auto* editElement = node.GetElementEditMetadata())
+        {
+            for (size_t attrIndex = 0; attrIndex < editElement->m_attributes.size(); ++attrIndex)
+            {
+                const auto& attrPair = editElement->m_attributes[attrIndex];
+                // Ensure the visibility attribute isn't intended for child elements
+                if (attrPair.first == attr && !attrPair.second->m_describesChildren)
+                {
+                    if (auto* parentInstance = node.GetParent())
+                    {
+                        for (size_t instIndex = 0; instIndex < parentInstance->GetNumInstances(); ++instIndex)
+                        {
+                            if (readAttributeCallback(PropertyAttributeReader(parentInstance->GetInstance(instIndex), attrPair.second)))
+                            {
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check for any element attributes on the parent container (if there is one)
+        if (node.GetParent() && node.GetParent()->GetClassMetadata()->m_container)
+        {
+            if (const auto* editElement = node.GetParent()->GetElementEditMetadata())
+            {
+                for (size_t attrIndex = 0; attrIndex < editElement->m_attributes.size(); ++attrIndex)
+                {
+                    const auto& attrPair = editElement->m_attributes[attrIndex];
+                    // Parent attributes must describe children to apply here
+                    if (attrPair.first == attr && attrPair.second->m_describesChildren)
+                    {
+                        if (auto* parentInstance = node.GetParent())
+                        {
+                            for (size_t instIndex = 0; instIndex < parentInstance->GetNumInstances(); ++instIndex)
+                            {
+                                if (readAttributeCallback(PropertyAttributeReader(parentInstance->GetInstance(instIndex), attrPair.second)))
+                                {
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check class editor metadata
+        if (const auto* classElement = node.GetClassMetadata())
+        {
+            if (const auto* editElement = classElement->m_editData)
+            {
+                if (!editElement->m_elements.empty())
+                {
+                    const auto& element = *editElement->m_elements.begin();
+                    for (const auto& attrPair : element.m_attributes)
+                    {
+                        if (attrPair.first == AZ::Edit::Attributes::Visibility)
+                        {
+                            for (size_t instIndex = 0; instIndex < node.GetNumInstances(); ++instIndex)
+                            {
+                                if (readAttributeCallback(PropertyAttributeReader(node.GetInstance(instIndex), attrPair.second)))
+                                {
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
 
     void PropertyRowWidget::Initialize(PropertyRowWidget* pParent, InstanceDataNode* dataNode, int depth, int labelWidth)
     {
@@ -333,9 +411,24 @@ namespace AzToolsFramework
         if (m_containerEditable)
         {
             createContainerButtons();
+
+            // APC BEGIN: check for explicitly enabled legacy behavior
+            // We have changes which permit smart pointer container editing to change the type of the stored data,
+            // and also to store a null pointer. Sometimes you need to store an object as a smart pointer, but want
+            // to edit it as a value type (so disallow changing storing type, and storing nullptr)
+            const bool smartPointerEditableAsValue = container->IsSmartPointer() && [&]()
+            {
+                bool asValueType = false;
+                ResolveInstanceDataNodeAttribute(*dataNode, AZ::Crc32("SmartPointerAsValueType"), [&](PropertyAttributeReader attr)
+                {
+                    return attr.Read<bool>(asValueType);
+                });
+                return asValueType;
+            }();
+
             // add those extra controls on the right hand side
-            m_containerClearButton->setVisible(m_containerEditable && !m_isFixedSizeContainer);
-            m_containerAddButton->setVisible(m_containerEditable && !m_isMultiSizeContainer && !m_isFixedSizeContainer);
+            m_containerClearButton->setVisible(m_containerEditable && !m_isFixedSizeContainer && !smartPointerEditableAsValue);
+            m_containerAddButton->setVisible(m_containerEditable && !m_isMultiSizeContainer && !m_isFixedSizeContainer && !smartPointerEditableAsValue);
             m_containerAddButton->setEnabled(!containerAtCapacity);
 
             if (m_containerSize > 0)

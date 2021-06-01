@@ -22,7 +22,7 @@ end
  
 function Process(context)
     local enableAo = context:GetMaterialPropertyValue_bool("ambientOcclusion.enable")
-    local textureMap = context:GetMaterialPropertyValue_image("ambientOcclusion.textureMap")
+    local textureMap = context:GetMaterialPropertyValue_Image("ambientOcclusion.textureMap")
 
     context:SetShaderOptionValue_bool("o_ambientOcclusion_useTexture", enableAo and textureMap ~= nil)
 end
@@ -36,7 +36,7 @@ function ProcessEditor(context)
         context:SetMaterialPropertyVisibility("ambientOcclusion.textureMapUv", MaterialPropertyVisibility_Hidden)
     else
         context:SetMaterialPropertyVisibility("ambientOcclusion.textureMap", MaterialPropertyVisibility_Enabled)
-        local textureMap = context:GetMaterialPropertyValue_image("ambientOcclusion.textureMap")
+        local textureMap = context:GetMaterialPropertyValue_Image("ambientOcclusion.textureMap")
         if(textureMap == nil) then
             context:SetMaterialPropertyVisibility("ambientOcclusion.factor", MaterialPropertyVisibility_Hidden)
             context:SetMaterialPropertyVisibility("ambientOcclusion.textureMapUv", MaterialPropertyVisibility_Hidden)

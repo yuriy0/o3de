@@ -96,7 +96,7 @@ namespace AZ
                         material->SetTexture(DataTypes::IMaterialData::TextureMapType::Normal,
                             ResolveTexturePath(context.m_sourceScene.GetSceneFileName(),
                                 assImpMaterial->GetTextureFileName(SDKMaterial::MaterialWrapper::MaterialMapType::Normal)).c_str());
-                        material->SetUniqueId(assImpMaterial->GetUniqueId());
+                        material->SetUniqueId(uint32_t(AZ::Crc32(assImpMaterial->GetName())));
                         material->SetDiffuseColor(assImpMaterial->GetDiffuseColor());
                         material->SetSpecularColor(assImpMaterial->GetSpecularColor());
                         material->SetEmissiveColor(assImpMaterial->GetEmissiveColor());

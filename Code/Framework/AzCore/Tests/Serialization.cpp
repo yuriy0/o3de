@@ -2012,11 +2012,13 @@ TEST_F(SerializeBasicTest, BasicTypeTest_Succeed)
             Attribute* fnDownCast = &fn;
             auto fnUpCast = azrtti_cast<AttributeInvocable<AZStd::function<int(int)>>*>(fnDownCast);
             EXPECT_EQ(fnUpCast, nullptr);
-            if (fnUpCast)
-            {
-                int val = (*fnUpCast)(0);
-                AZ_TracePrintf("AttributeRTTITest", "Oops: %d", val);
-            }
+
+            // If test fails, this would crash:
+            //if (fnUpCast)
+            //{
+            //    int val = (*fnUpCast)(0);
+            //    AZ_TracePrintf("AttributeRTTITest", "Oops: %d", val);
+            //}
         }
 
         {
@@ -2024,11 +2026,13 @@ TEST_F(SerializeBasicTest, BasicTypeTest_Succeed)
             Attribute* fnDownCast = &fn;
             auto fnUpCast = azrtti_cast<AttributeFunction<int(int)>*>(fnDownCast);
             EXPECT_EQ(fnUpCast, nullptr);
-            if (fnUpCast)
-            {
-                int val = fnUpCast->Invoke(nullptr, 0);
-                AZ_TracePrintf("AttributeRTTITest", "Oops: %d", val);
-            }
+
+            // If test fails, this would crash:
+            //if (fnUpCast)
+            //{
+            //    int val = fnUpCast->Invoke(nullptr, 0);
+            //    AZ_TracePrintf("AttributeRTTITest", "Oops: %d", val);
+            //}
         }
     }
 

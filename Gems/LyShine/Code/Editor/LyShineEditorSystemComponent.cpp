@@ -107,6 +107,8 @@ namespace LyShineEditor
     void LyShineEditorSystemComponent::Activate()
     {
         AzToolsFramework::EditorEventsBus::Handler::BusConnect();
+
+        PropertyHandlers::Register();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////

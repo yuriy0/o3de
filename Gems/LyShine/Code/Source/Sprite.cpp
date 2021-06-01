@@ -761,6 +761,30 @@ bool CSprite::DoesSpriteTextureAssetExist(const AZStd::string& pathname)
 
     // Check if the texture asset exists
     bool textureExists = CheckIfFileExists(spritePath, texturePath);
+    if (textureExists)
+    {
+        return true;
+    }
+
+    textureExists = CheckIfFileExists(spritePath, AZStd::string::format("%s.%s", texturePath.c_str(), streamingImageExtension));
+    if (textureExists)
+    {
+        return true;
+    }
+
+    // LyShine allows passing in a .dds extension even when the actual source file
+    // is differnt like a .tif. For the product file, we need the correct source extension
+    // prepended to the .streamingimage extension. So if the file doesn't exist and the
+    // extension passed in is .dds then try replacing it with .tif
+    // LYSHINE_ATOM_TODO - to remove this conversion we will have to update the existing
+    // .dds references in Lua scripts, prefabs etc.
+    AZStd::string extension;
+    AzFramework::StringFunc::Path::GetExtension(texturePath.c_str(), extension, false);
+    if (extension == "dds")
+    {
+        textureExists = FixUpSourceImagePathFromUserDefinedPath(texturePath, texturePath);
+    }
+
     return textureExists;
 }
 

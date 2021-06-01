@@ -25,7 +25,7 @@ namespace AZ
             AssImpMaterialWrapper(aiMaterial* aiMaterial);
             ~AssImpMaterialWrapper() override = default;
             AZStd::string GetName() const override;
-            AZ::u64 GetUniqueId() const override;
+            //AZ::u64 GetUniqueId() const override;
             AZ::Vector3 GetDiffuseColor() const override;
             AZ::Vector3 GetSpecularColor() const override;
             AZ::Vector3 GetEmissiveColor() const override;
