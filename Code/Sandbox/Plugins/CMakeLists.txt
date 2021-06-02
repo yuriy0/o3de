@@ -11,6 +11,7 @@
 
 add_subdirectory(EditorCommon)
 add_subdirectory(ComponentEntityEditorPlugin)
+add_subdirectory(FBXPlugin)
 add_subdirectory(FFMPEGPlugin)
 add_subdirectory(ProjectSettingsTool)
 add_subdirectory(PerforcePlugin)
