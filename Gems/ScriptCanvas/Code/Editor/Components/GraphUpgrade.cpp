@@ -421,28 +421,28 @@ namespace ScriptCanvasEditor
 
     void ReplaceDeprecatedConnections::Run()
     {
-        EditorGraphUpgradeMachine* sm = GetStateMachine<EditorGraphUpgradeMachine>();
-        auto* graph = sm->m_graph;
+//         EditorGraphUpgradeMachine* sm = GetStateMachine<EditorGraphUpgradeMachine>();
+//         auto* graph = sm->m_graph;
 
         // Delete underlying data connections.
-        for (auto remapConnection : sm->m_replacementConnections)
-        {
-            graph->RemoveConnection(remapConnection.first);
-        }
+//         for (auto remapConnection : sm->m_replacementConnections)
+//         {
+//             graph->RemoveConnection(remapConnection.first);
+//         }
 
         // Recreate connections in a separate pass to avoid triggering display updates for invalid slot ids.
-        for (auto remapConnection : sm->m_replacementConnections)
-        {
-            for (auto newEndpointPair : remapConnection.second)
-            {
-                if (newEndpointPair.first.IsValid() && newEndpointPair.second.IsValid())
-                {
-                    graph->ConnectByEndpoint(newEndpointPair.first, newEndpointPair.second);
-
-                    Log("Replaced Connection: %s\n", Helpers::ConnectionToText(graph, newEndpointPair.first, newEndpointPair.second).c_str());
-                }
-            }
-        }
+//         for (auto remapConnection : sm->m_replacementConnections)
+//         {
+//             for (auto newEndpointPair : remapConnection.second)
+//             {
+//                 if (newEndpointPair.first.IsValid() && newEndpointPair.second.IsValid())
+//                 {
+//                     graph->ConnectByEndpoint(newEndpointPair.first, newEndpointPair.second);
+// 
+//                     Log("Replaced Connection: %s\n", Helpers::ConnectionToText(graph, newEndpointPair.first, newEndpointPair.second).c_str());
+//                 }
+//             }
+//         }
     }
 
     void ReplaceDeprecatedNodes::Run()

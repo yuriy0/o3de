@@ -347,6 +347,11 @@ namespace ScriptCanvas
         }
     }    
 
+    void Slot::ClearDynamicGroup()
+    {
+        m_dynamicGroup = AZ::Crc32{};
+    }
+
     void Slot::ConvertToLatentExecutionOut()
     {
         if (IsExecution() && IsOutput())
@@ -737,7 +742,7 @@ namespace ScriptCanvas
 
                 if (!matchForOutcome)
                 {
-                    // HACK! if the connection is from a data output of any type,
+                    // HACK! (apoc) if the connection is from a data output of any type,
                     // to a data output of type `AZStd::any', allow it
                     if (otherType.GetAZType() == azrtti_typeid<AZStd::any>())
                     {

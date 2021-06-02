@@ -471,6 +471,13 @@ namespace AZ
             Image& image = static_cast<Image&>(*imageFrameAttachment.GetImage());
             RHI::ImageScopeAttachment* scopeAttachment = imageFrameAttachment.GetFirstScopeAttachment();
 
+            // APC BEGIN: avoid crashing
+            if (!scopeAttachment)
+            {
+                return;
+            }
+            // APC END
+
             D3D12_RESOURCE_TRANSITION_BARRIER transition;
             transition.pResource = image.GetMemoryView().GetMemory();
 

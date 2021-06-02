@@ -387,6 +387,8 @@ namespace ScriptCanvas
 
             void ParseMultiExecutionPre(ExecutionTreePtr execution);
 
+            void ParseMultipleFunctionCallPost(ExecutionTreePtr execution);
+
             void ParseNodelingVariables(const Node& node, NodelingType nodelingType);
 
             void ParseOperatorArithmetic(ExecutionTreePtr execution);
@@ -560,6 +562,7 @@ namespace ScriptCanvas
             AZStd::unordered_map<const Nodes::Core::FunctionDefinitionNode*, ReturnValueDescription> m_returnValuesByUserFunctionDefinition;
 
             AZStd::unordered_map<const Datum*, const GraphVariable*> m_sourceVariableByDatum;
+            
             AZStd::unordered_set<const Node*> m_subgraphStartCalls;
             AZStd::unordered_set<const Node*> m_activeDefaultObject;
 
@@ -582,6 +585,8 @@ namespace ScriptCanvas
             AZStd::vector<VariablePtr> FindUserLatentOutput(ExecutionTreePtr call) const;
 
             AZStd::vector<VariablePtr> FindUserLatentReturnValues(ExecutionTreePtr call) const;
+
+            void GenerateArtificialVariableIDs();
 
             bool IsSourceInScope(VariableConstPtr variable, VariableFlags::Scope scope) const;
 
@@ -614,6 +619,17 @@ namespace ScriptCanvas
         private:
             VariableScopeMeaning_LegacyFunctions m_variableScopeMeaning = VariableScopeMeaning_LegacyFunctions::ValueInitialization;
 #endif 
+
+            // ApcExt begin
+            // Supports in-place, non-null, editable input for BCOs
+            AZStd::unordered_map<const Slot*, VariablePtr> ApcExt_m_promotedInputVariablesBySlot;
+            void ApcExtConvertInputReferenceTypesToVariables(const Node& node);
+
+            // Supports auto promoting pure data nodes during translation
+            AZStd::unordered_map<const Node*, VariablePtr> ApcExt_m_variableByPureDataNode;
+            VariableConstPtr ApcExtFindPureDataVariable(const EndpointsResolved& connectedNodes) const;
+            //ApcExt end
+
         }; // class AbstractCodeModel
 
         template<typename T>

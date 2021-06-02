@@ -124,7 +124,8 @@ namespace ScriptCanvas
 
                 if (iter != in.outs.end())
                 {
-                    AZ_Error("ScriptCanvas", !found, "This Out should only be possible in one In");
+                    // ApcExt: Apc nodes allow for multiple Ins to be mapped to the same Out.
+                    // ApcExt: AZ_Error("ScriptCanvas", !found, "This Out should only be possible in one In");
                     found = iter;
                 }
             }

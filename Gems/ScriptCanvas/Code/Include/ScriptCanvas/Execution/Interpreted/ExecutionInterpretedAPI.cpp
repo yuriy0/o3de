@@ -584,11 +584,16 @@ namespace ScriptCanvas
             // \note Return values could become necessary.
             // \see https://jira.agscollab.com/browse/LY-99750
 
-            AZ_Assert(lua_isuserdata(lua, -3), "Error in compiled lua file, 1st argument to SetExecutionOut is not userdata (Nodeable)");
+            AZ_Assert(lua_isuserdata(lua, -3), "Error in compiled lua file, 1st argument to SetExecutionOut is not userdata (Nodeable), actually %d", lua_type(lua, -3));
             AZ_Assert(lua_isnumber(lua, -2), "Error in compiled lua file, 2nd argument to SetExecutionOut is not a number");
             AZ_Assert(lua_isfunction(lua, -1), "Error in compiled lua file, 3rd argument to SetExecutionOut is not a function (lambda need to get around atypically routed arguments)"); 
             Nodeable* nodeable = AZ::ScriptValue<Nodeable*>::StackRead(lua, -3);
             AZ_Assert(nodeable, "Failed to read nodeable");
+            if (!nodeable)
+            {
+                return 0;
+            }
+
             size_t index = aznumeric_caster(lua_tointeger(lua, -2));
             // Lua: nodeable, index, lambda
 

@@ -40,6 +40,8 @@
 #include "ParsingUtilities.h"
 #include "Primitives.h"
 
+#include <ScriptCanvas/Grammar/ApcExtParsingUtilities.h>
+
 namespace AbstractCodeModelCpp
 {
     using namespace ScriptCanvas;
@@ -193,6 +195,10 @@ namespace ScriptCanvas
             m_variableWriteHandlingByVariable.clear();
 
             m_userNodeables.clear();
+
+            { // ApcExt begin - Supports in-place, non-null, editable input for BCOs
+                ApcExt_m_promotedInputVariablesBySlot.clear();
+            } // ApcExt end - Supports in-place, non-null, editable input for BCOs
         }
 
         void AbstractCodeModel::AccountForEBusConnectionControl(ExecutionTreePtr execution)
@@ -1048,12 +1054,12 @@ namespace ScriptCanvas
                     if (azrtti_istypeof<ScriptCanvas::Nodes::NodeableNodeOverloaded*>(&node))
                     {
                         // todo Add node to these errors
-                        AddError(nullptr, ValidationConstPtr(aznew NotYetImplemented(node.GetEntityId(), AZStd::string::format("NodeableNodeOverloaded doesn't have enough data connected to select a valid overload: %s", node.GetDebugName().data()))));
+                        AddError(nullptr, ValidationConstPtr(aznew Internal::ParseError(node.GetEntityId(), AZStd::string::format("NodeableNodeOverloaded doesn't have enough data connected to select a valid overload: %s", node.GetDebugName().data()))));
                     }
                     else
                     {
                         // todo Add node to these errors
-                        AddError(nullptr, ValidationConstPtr(aznew NotYetImplemented(node.GetEntityId(), AZStd::string::format("NodeableNode did not construct its internal node: %s", node.GetDebugName().data()))));
+                        AddError(nullptr, ValidationConstPtr(aznew Internal::ParseError(node.GetEntityId(), AZStd::string::format("NodeableNode did not construct its internal node: %s", node.GetDebugName().data()))));
                     }
                 }
             }
@@ -1346,8 +1352,23 @@ namespace ScriptCanvas
 
         void AbstractCodeModel::CullUnusedVariables()
         {
-            AZStd::erase_if(m_variables, [this](auto variable)
+            // ApcExt BEGIN: implicit variables are not unused
+            AZStd::unordered_set<Grammar::Variable*> implicitVariables;
+            for (const auto& v : m_implicitVariablesByNode)
             {
+                implicitVariables.insert(v.second.get());
+            }
+            // ApcExt END
+
+            AZStd::erase_if(m_variables, [&, this](auto variable)
+            {
+                // ApcExt BEGIN: implicit variables are not unused
+                if (implicitVariables.find(variable.get()) != implicitVariables.end())
+                {
+                    return false;
+                }
+                else
+                // ApcExt END
                 if (IsManuallyDeclaredUserVariable(variable))
                 {
                     if (variable->m_isMember)
@@ -1649,6 +1670,16 @@ namespace ScriptCanvas
                 }
             }
 
+            { // ApcExt begin - Supports in-place, non-null, editable input for BCOs
+                
+                auto iter = ApcExt_m_promotedInputVariablesBySlot.find(&slot);
+                if (iter != ApcExt_m_promotedInputVariablesBySlot.end())
+                {
+                    return iter->second;
+                }
+
+            } // ApcExt end - Supports in-place, non-null, editable input for BCOs
+
             return nullptr;
         }
 
@@ -1765,6 +1796,17 @@ namespace ScriptCanvas
             }
 
             return returnValues;
+        }
+
+        void AbstractCodeModel::GenerateArtificialVariableIDs()
+        {
+            for (auto variable : m_variables)
+            {
+                if (!variable->m_sourceVariableId.IsValid())
+                {
+                    AZStd::const_pointer_cast<Variable>(variable)->m_sourceVariableId = VariableId::MakeVariableId();
+                }
+            }
         }
 
         AZStd::vector<ExecutionTreeConstPtr> AbstractCodeModel::GetAllExecutionRoots() const
@@ -2060,7 +2102,6 @@ namespace ScriptCanvas
 
             return constSet;
         }
-
         const AZStd::vector<VariableConstPtr>& AbstractCodeModel::GetVariables() const
         {
             return m_variables;
@@ -2265,6 +2306,10 @@ namespace ScriptCanvas
             }
 #endif
             AddAllVariablesPreParse();
+            if (!IsErrorFree())
+            {
+                return;
+            }
 
             for (auto& nodeEntity : m_source.m_graphData->m_nodes)
             {
@@ -2286,6 +2331,16 @@ namespace ScriptCanvas
                 {
                     AddError(nullptr, ValidationConstPtr(aznew NullEntityInGraph()));
                 }
+
+                if (!IsErrorFree())
+                {
+                    return;
+                }
+            }
+
+            if (!IsErrorFree())
+            {
+                return;
             }
 
             ParseAutoConnectedEBusHandlerVariables();
@@ -2300,7 +2355,7 @@ namespace ScriptCanvas
             ParseUserFunctionTopology();
             ParseConstructionInputVariables();
             ParseExecutionCharacteristics();
-
+            
             // from here on, nothing more needs to happen during simple parsing
             // for example, in the editor, to get validation on syntax based effects for the view
             // parsing could stop now
@@ -2551,7 +2606,7 @@ namespace ScriptCanvas
 
             if (IsInfiniteVariableWriteHandlingLoop(*this, variableHandling, variableHandling->m_function, true))
             {
-                AddError(variableHandling->m_function, aznew NotYetImplemented(AZ::EntityId(), ScriptCanvas::ParseErrors::InfiniteLoopWritingToVariable));
+                AddError(variableHandling->m_function, aznew Internal::ParseError(AZ::EntityId(), ScriptCanvas::ParseErrors::InfiniteLoopWritingToVariable));
                 return false;
             }
 
@@ -2654,7 +2709,10 @@ namespace ScriptCanvas
             AZStd::vector<VariableId> inputVariableIds;
             AZStd::unordered_map<VariableId, Grammar::VariableConstPtr> inputVariablesById;
 
-            for (auto variable : GetVariables())
+            GenerateArtificialVariableIDs();
+
+            auto& variables = GetVariables();
+            for (auto variable : variables)
             {
                 auto constructionRequirement = ParseConstructionRequirement(variable);
 
@@ -2671,10 +2729,21 @@ namespace ScriptCanvas
 
                 case VariableConstructionRequirement::InputNodeable:
                 {
+                    if (variable->m_datum.Empty())
+                    {
+                        AddError(nullptr, aznew Internal::ParseError(AZ::EntityId{}, "Empty nodeable datum in variable, probably due to a problem with azrtti declarations"));
+                        break;
+                    }
+
                     // I solemnly swear no harm shall come to the nodeable
                     const Nodeable* nodeableSource = reinterpret_cast<const Nodeable*>(variable->m_datum.GetAsDanger());
-                    AZ_Assert(nodeableSource != nullptr, "the must be a raw nodeable held by this pointer");
-                    AZ_Assert(azrtti_typeid(nodeableSource) != azrtti_typeid<Nodeable>(), "type problem with nodeable");
+
+                    if (!nodeableSource)
+                    {
+                        AddError(nullptr, aznew Internal::ParseError(AZ::EntityId{}, "No raw nodeable held by variable"));
+                        break;
+                    }
+
                     nodeablesById.push_back({ variable->m_nodeableNodeId, const_cast<Nodeable*>(nodeableSource) });
                 }
                 break;
@@ -3328,7 +3397,7 @@ namespace ScriptCanvas
                     }
                     else
                     {
-                        AddError(execution, aznew NotYetImplemented(execution->GetNodeId(), childOutSlotsOutcome.TakeError()));
+                        AddError(execution, aznew Internal::ParseError(execution->GetNodeId(), childOutSlotsOutcome.TakeError()));
                     }
                 }
             }
@@ -3631,9 +3700,11 @@ namespace ScriptCanvas
 
         void AbstractCodeModel::ParseExecutionMultipleOutSyntaxSugar(ExecutionTreePtr execution, const EndpointsResolved& executionOutNodes, const AZStd::vector<const Slot*>& outSlots)
         {
+            const auto executionNodeId = execution->GetId().m_node ? execution->GetId().m_node->GetEntityId() : AZ::EntityId();
+
             if (executionOutNodes.size() != outSlots.size())
             {
-                AddError(AZ::EntityId(), execution, ParseErrors::ParseExecutionMultipleOutSyntaxSugarMismatchOutSize);
+                AddError(executionNodeId, execution, ParseErrors::ParseExecutionMultipleOutSyntaxSugarMismatchOutSize);
             }
 
             if (execution->GetSymbol() != Symbol::Sequence)
@@ -3646,13 +3717,13 @@ namespace ScriptCanvas
 
                 if (!child)
                 {
-                    AddError(AZ::EntityId(), execution, ParseErrors::ParseExecutionMultipleOutSyntaxSugarNullChildFound);
+                    AddError(executionNodeId, execution, ParseErrors::ParseExecutionMultipleOutSyntaxSugarNullChildFound);
                     return;
                 }
 
                 if (child->m_execution)
                 {
-                    AddError(AZ::EntityId(), execution, ParseErrors::ParseExecutionMultipleOutSyntaxSugarNonNullChildExecutionFound);
+                    AddError(executionNodeId, execution, ParseErrors::ParseExecutionMultipleOutSyntaxSugarNonNullChildExecutionFound);
                     return;
                 }
 
@@ -3676,7 +3747,7 @@ namespace ScriptCanvas
 
                 if (execution->GetChildrenCount() != executionOutNodes.size())
                 {
-                    AddError(AZ::EntityId(), execution, ParseErrors::ParseExecutionMultipleOutSyntaxSugarChildExecutionRemovedAndNotReplaced);
+                    AddError(executionNodeId, execution, ParseErrors::ParseExecutionMultipleOutSyntaxSugarChildExecutionRemovedAndNotReplaced);
                     return;
                 }
             }
@@ -4136,6 +4207,8 @@ namespace ScriptCanvas
 
         void AbstractCodeModel::ParseImplicitVariables(const Node& node)
         {
+            ApcExtConvertInputReferenceTypesToVariables(node);
+
             if (IsCycle(node))
             {
                 auto cycleVariable = AddMemberVariable(Datum(Data::NumberType(0)), "cycleControl");
@@ -4146,7 +4219,23 @@ namespace ScriptCanvas
                 auto onceControl = AddMemberVariable(Datum(Data::BooleanType(true)), "onceControl");
                 m_controlVariablesBySourceNode.insert({ &node, onceControl });
             }
-            else 
+            // ApcExt begin pure data conversion
+            else if (ApcExtScriptCanvas::IsPureDataNode(node))
+            {
+                auto variable = ApcExtScriptCanvas::ConvertPureDataNodeToVariable(node);
+
+                if (!variable)
+                {
+                    AddError(node.GetEntityId(), nullptr, "Failed to convert pure data node.");
+                    return;
+                }
+
+                AZ_Warning("ScriptCanvas", false, "PureData nodes are deprecated. Replace with named variables");
+                AddVariable(variable);
+                ApcExt_m_variableByPureDataNode.emplace(&node, variable);
+            }
+            // ApcExt end pure data conversion
+            else
             {
                 const auto nodelingType = CheckNodelingType(node);
                 if (nodelingType != NodelingType::None)
@@ -4203,7 +4292,7 @@ namespace ScriptCanvas
                 }
                 else
                 {
-                    AddError(nullptr, aznew NotYetImplemented(execution->GetNodeId(), dataSlotsOutcome.TakeError()));
+                    AddError(nullptr, aznew Internal::ParseError(execution->GetNodeId(), dataSlotsOutcome.TakeError()));
                 }
             }
         }
@@ -4263,7 +4352,14 @@ namespace ScriptCanvas
             }
             else
             {
-                if (auto sourceVariable = ParseConnectedInputData(input, execution, nodes, FirstNode::Parent))
+                // ApcExt begin pure data conversion
+                if (auto pureDataVariable = ApcExtFindPureDataVariable(nodes))
+                {
+                    execution->AddInput({ &input, pureDataVariable, DebugDataSource::FromOtherSlot(input.GetId(), input.GetDataType(), pureDataVariable->m_sourceSlotId) });
+                    CheckConversion(execution->ModConversions(), pureDataVariable, execution->GetInputCount() - 1, input.GetDataType());
+                }
+                // ApcExt end pure data conversion
+                else if (auto sourceVariable = ParseConnectedInputData(input, execution, nodes, FirstNode::Parent))
                 {
                     execution->AddInput({ &input, sourceVariable, DebugDataSource::FromOtherSlot(input.GetId(), input.GetDataType(), sourceVariable->m_sourceSlotId) });
                     CheckConversion(execution->ModConversions(), sourceVariable, execution->GetInputCount() - 1, input.GetDataType());
@@ -4324,6 +4420,7 @@ namespace ScriptCanvas
             {
                 if (auto variable = FindVariable(execution->GetNodeId()))
                 {
+                    execution->MarkInputHasThisPointer();
                     execution->AddInput({ nullptr, variable, DebugDataSource::FromInternal() });
                 }
                 else
@@ -4341,6 +4438,7 @@ namespace ScriptCanvas
                 {
                     auto variable = AZStd::make_shared<Variable>();
                     variable->m_datum = Datum(eventHandling->m_handlerName);
+                    execution->MarkInputHasThisPointer();
                     execution->AddInput({ nullptr, variable, DebugDataSource::FromInternal() });
                 }
                 else
@@ -4352,6 +4450,7 @@ namespace ScriptCanvas
             {
                 if (auto variable = FindVariable(execution->GetNodeId()))
                 {
+                    execution->MarkInputHasThisPointer();
                     execution->AddInput({ nullptr, variable, DebugDataSource::FromInternal() });
                 }
                 else
@@ -4381,12 +4480,159 @@ namespace ScriptCanvas
         void AbstractCodeModel::ParseMultiExecutionPost(ExecutionTreePtr execution)
         {
             ParsePropertyExtractionsPost(execution);
+            ParseMultipleFunctionCallPost(execution);
         }
 
         void AbstractCodeModel::ParseMultiExecutionPre(ExecutionTreePtr execution)
         {
             ParsePropertyExtractionsPre(execution);
-        }        
+        }
+
+        void AbstractCodeModel::ParseMultipleFunctionCallPost(ExecutionTreePtr execution)
+        {
+            auto& id = execution->GetId();
+            MultipleFunctionCallFromSingleSlotInfo info = id.m_node->GetMultipleFunctionCallFromSingleSlotInfo(*id.m_slot);
+
+            if (info.functionCalls.empty())
+            {
+                return;
+            }
+
+            auto parent = execution->ModParent();
+
+            if (!parent)
+            {
+                AddError(execution, aznew Internal::ParseError(id.m_node->GetEntityId(), "Null parent in MultipleFunctionCall"));
+                return;
+            }
+
+            size_t indexInParentCall = parent->FindChildIndex(execution);
+            if (indexInParentCall >= parent->GetChildrenCount())
+            {
+                AddError(execution, aznew Internal::ParseError(id.m_node->GetEntityId(), ParseErrors::MultipleFunctionCallFromSingleSlotNoChildren));
+                return;
+            }
+
+            ExecutionChild* executionChildInParent = &parent->ModChild(indexInParentCall);
+            
+            const size_t executionInputCount = execution->GetInputCount();
+            const size_t thisInputOffset = execution->InputHasThisPointer() ? 1 : 0;
+            
+            // the original index has ALL the input from the slots on the node
+            // create multiple calls with separate function call nodes, but ONLY take the inputs required
+            // as indicated by the function call info
+
+            AZStd::unordered_set<const Slot*> usedSlots;
+            bool variadicIsFound = false;
+
+            auto createChild = [&](auto parentCall, ExecutionChild* childInParent, auto& functionCallInfo)
+            {
+                auto child = CreateChild(parentCall, id.m_node, id.m_slot);
+                child->SetSymbol(Symbol::FunctionCall);
+                child->SetName(functionCallInfo.functionName);
+                child->SetNameLexicalScope(functionCallInfo.lexicalScope);
+                childInParent->m_execution = child;
+                return child;
+            };
+
+            auto addThisInput = [&](auto functionCall)
+            {
+                if (thisInputOffset != 0)
+                {
+                    if (executionInputCount == 0)
+                    {
+                        AddError(execution, aznew Internal::ParseError(id.m_node->GetEntityId(), ParseErrors::MultipleFunctionCallFromSingleSlotNotEnoughInputForThis));
+                        return;
+                    }
+
+                    const ExecutionInput& input = execution->GetInput(0);
+                    usedSlots.insert(input.m_slot);
+                    functionCall->AddInput(input);
+                }
+            };
+
+            auto addSlotInput = [&](auto functionCall, size_t inputIndex)
+            {
+                if (inputIndex >= executionInputCount)
+                {
+                    AddError(execution, aznew Internal::ParseError(id.m_node->GetEntityId(), ParseErrors::MultipleFunctionCallFromSingleSlotNotEnoughInput));
+                    return;
+                }
+
+                const ExecutionInput& input = execution->GetInput(inputIndex);
+
+                if (usedSlots.contains(input.m_slot))
+                {
+                    AddError(execution, aznew Internal::ParseError(id.m_node->GetEntityId(), ParseErrors::MultipleFunctionCallFromSingleSlotNotEnoughInput));
+                    return;
+                }
+
+                usedSlots.insert(input.m_slot);
+
+                if (input.m_value->m_source == execution)
+                {
+                    input.m_value->m_source = functionCall;
+                }
+
+                functionCall->AddInput(input);
+            };
+
+            auto addCall = [&](auto& functionCallInfo, auto childInParent, size_t startingIndex, size_t sentinel, size_t variadicOffset = 0)
+            {
+                auto child = createChild(parent, childInParent, functionCallInfo);
+                addThisInput(child);
+
+                for (size_t index = startingIndex; index < sentinel; ++index)
+                {
+                    const size_t inputIndex = index + thisInputOffset + variadicOffset;
+                    addSlotInput(child, inputIndex);
+                }
+
+                child->AddChild({});
+                childInParent = &child->ModChild(0);
+                return AZStd::make_pair(childInParent, child);
+            };
+
+            // loop through each call...
+            for (auto& functionCallInfo : info.functionCalls)
+            {
+                // ...first add any pre-variadic calls, using the starting index and the number of args, since they could come in any order, not input slot order...
+                if (!functionCallInfo.isVariadic)
+                {
+                    AZStd::pair<ExecutionChild*, ExecutionTreePtr> childInParentAndParent = addCall(functionCallInfo, executionChildInParent, functionCallInfo.startingIndex, functionCallInfo.startingIndex + functionCallInfo.numArguments);
+                    executionChildInParent = childInParentAndParent.first;
+                    parent = childInParentAndParent.second;
+                }
+                else
+                {
+                    // ...then add only one variadic call if there is one...
+                    if (variadicIsFound)
+                    {
+                        AddError(execution, aznew Internal::ParseError(id.m_node->GetEntityId(), ParseErrors::MultipleFunctionCallFromSingleSlotMultipleVariadic));
+                        return;
+                    }
+
+                    variadicIsFound = true;
+                    const size_t sentinel = executionInputCount == 0 ? 0 : executionInputCount - thisInputOffset;
+                    // ... by looping through the remaining slots, striding by functionCallInfo.numArguments, making repeated calls to the function
+                    for (size_t slotInputIndex = functionCallInfo.startingIndex; slotInputIndex < sentinel; slotInputIndex += functionCallInfo.numArguments)
+                    {
+                        AZStd::pair<ExecutionChild*, ExecutionTreePtr> childInParentAndParent = addCall(functionCallInfo, executionChildInParent, 0, functionCallInfo.numArguments, slotInputIndex);
+                        executionChildInParent = childInParentAndParent.first;
+                        parent = childInParentAndParent.second;
+                    }
+                }
+            }
+
+            if (info.errorOnUnusedSlot && usedSlots.size() != executionInputCount)
+            {
+                AddError(execution, aznew Internal::ParseError(id.m_node->GetEntityId(), ParseErrors::MultipleFunctionCallFromSingleSlotUnused));
+            }
+
+            // parent now refers to the last child call created
+            parent->SwapChildren(execution);
+            execution->Clear();
+        }
 
         void AbstractCodeModel::ParseNodelingVariables(const Node& node, NodelingType nodelingType)
         {
@@ -4510,13 +4756,13 @@ namespace ScriptCanvas
                     }
                     else
                     {
-                        AddError(execution, aznew NotYetImplemented(execution->GetNodeId(), returnSlotsOutcome.TakeError()));
+                        AddError(execution, aznew Internal::ParseError(execution->GetNodeId(), returnSlotsOutcome.TakeError()));
                     }
                 }
             }
             else
             {
-                AddError(execution, aznew NotYetImplemented(execution->GetNodeId(), outputSlotsOutcome.TakeError()));
+                AddError(execution, aznew Internal::ParseError(execution->GetNodeId(), outputSlotsOutcome.TakeError()));
             }
         }
 
@@ -5160,6 +5406,42 @@ namespace ScriptCanvas
             return type == Data::eType::BehaviorContextObject;
         }
 
-    } 
+        void AbstractCodeModel::ApcExtConvertInputReferenceTypesToVariables(const Node& node)
+        {
+            auto inputSlots = node.GetSlotsByType(CombinedSlotType::DataIn);
 
+            for (const Slot* inputSlot : inputSlots)
+            {
+                if (inputSlot->GetDataType().GetType() == Data::eType::BehaviorContextObject)
+                {
+                    if (auto datum = inputSlot->FindDatum())
+                    {
+                        if (!datum->Empty())
+                        {
+                            // \note if the variables need to have refreshed state every time they are called in the input, do not make them member variables, but regular, local variables
+                            auto promotedInput = AddMemberVariable(*datum, inputSlot->GetName());
+                            promotedInput->m_sourceSlotId = inputSlot->GetId();
+                            ApcExt_m_promotedInputVariablesBySlot.emplace(inputSlot, promotedInput);
+                        }
+                    }
+                }
+            }
+        }
+
+        VariableConstPtr AbstractCodeModel::ApcExtFindPureDataVariable(const EndpointsResolved& connectedNodes) const
+        {
+            if (connectedNodes.empty() || connectedNodes.size() > 1)
+            {
+                return nullptr;
+            }
+
+            auto iter = ApcExt_m_variableByPureDataNode.find(connectedNodes.front().first);
+            if (iter == ApcExt_m_variableByPureDataNode.end())
+            {
+                return nullptr;
+            }
+
+            return iter->second;
+        }
+    }
 } 

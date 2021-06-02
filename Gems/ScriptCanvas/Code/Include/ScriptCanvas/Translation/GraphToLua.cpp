@@ -32,6 +32,8 @@
 #include "TranslationContext.h"
 #include "TranslationContextBus.h"
 
+#include <ScriptCanvas/Grammar/ApcExtParsingUtilities.h>
+
 namespace GraphToLuaCpp
 {
     AZStd::string ToDependencyTableName(AZStd::string_view fileName)
@@ -606,7 +608,15 @@ namespace ScriptCanvas
             }
             else if (IsVariableSet(execution) || execution->GetSymbol() == Grammar::Symbol::VariableAssignment)
             {
-                WriteFunctionCallInput(execution);
+                if (ApcExtScriptCanvas::IsClassPropertyWrite(execution))
+                {
+                    ApcExtWriteClassPropertyWrite(execution); // set only the property slot name to only the property slot input, every thing else is the same
+                }
+                else
+                {
+                    WriteFunctionCallInput(execution);
+                }
+
                 m_dotLua.WriteNewLine();
             }
             else if (IsExecutedPropertyExtraction(execution))
@@ -636,6 +646,16 @@ namespace ScriptCanvas
             else if (Grammar::IsGlobalPropertyRead(execution))
             {
                 WriteGlobalPropertyRead(execution);
+            }
+            else if (Grammar::IsClassPropertyRead(execution))
+            {
+                WriteClassPropertyRead(execution);
+                m_dotLua.WriteNewLine();
+            }
+            else if (Grammar::IsClassPropertyWrite(execution))
+            {
+                WriteClassPropertyWrite(execution);
+                m_dotLua.WriteNewLine();
             }
             else
             {
@@ -1206,6 +1226,19 @@ namespace ScriptCanvas
             // translate the event handling...initialize to nil, check for nil before disconnecting
             TranslateEBusHandling(leftValue);
             TranslateNodeableParse();
+        }
+
+        void GraphToLua::WriteClassPropertyRead(Grammar::ExecutionTreeConstPtr execution)
+        {
+            WriteFunctionCallInput(execution, 0, IsFormatStringInput::No);
+            m_dotLua.Write(".%s", Grammar::ToIdentifier(execution->GetName()).c_str());
+        }
+
+        void GraphToLua::WriteClassPropertyWrite(Grammar::ExecutionTreeConstPtr execution)
+        {
+            WriteClassPropertyRead(execution);
+            m_dotLua.Write(" = ");
+            WriteFunctionCallInput(execution, 1, IsFormatStringInput::No);
         }
 
         void GraphToLua::WriteConditionalCaseSwitch(Grammar::ExecutionTreeConstPtr execution, Grammar::Symbol symbol, const Grammar::ExecutionChild& child, size_t index)
@@ -2357,7 +2390,11 @@ namespace ScriptCanvas
                     else
                     {
                         WriteVariableReference(firstOutput->m_source);
-                        m_dotLua.Write(" = ");
+
+                        if (!ApcExtScriptCanvas::IsClassPropertyWrite(execution))
+                        {
+                            m_dotLua.Write(" = ");
+                        }
                     }
                 }
             }
@@ -2390,5 +2427,14 @@ namespace ScriptCanvas
             }
         }
 
+        void GraphToLua::ApcExtWriteClassPropertyWrite(Grammar::ExecutionTreeConstPtr execution)
+        {
+            if (auto propertySetterMetaDataPair = ApcExtScriptCanvas::GetClassPropertyWriteInfo(execution))
+            {
+                m_dotLua.Write(".%s", Grammar::ToIdentifier(propertySetterMetaDataPair->first->m_propertyName.c_str()).c_str());
+                m_dotLua.Write(" = ");
+                WriteFunctionCallInput(execution, propertySetterMetaDataPair->second, IsFormatStringInput::No);
+            }
+        }
     } 
 } 

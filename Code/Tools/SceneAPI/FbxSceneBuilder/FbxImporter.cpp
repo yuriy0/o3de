@@ -54,6 +54,9 @@ namespace AZ
 
             FbxImporter::FbxImporter()
                 : m_sceneSystem(new FbxSceneSystem())
+                // APC BEGIN: Use FBX SDK, not AssImp
+                , m_useAssetImporterSDK(false)
+                // APC END
             {
 
                 if (m_useAssetImporterSDK)

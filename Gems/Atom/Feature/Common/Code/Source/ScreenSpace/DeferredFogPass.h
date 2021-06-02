@@ -45,7 +45,7 @@ namespace AZ
             , private DeferredFogGlobalNotificationBus::Handler
         {
         public:
-            ~DeferredFogPass_tpl() = default;
+            ~DeferredFogPass_tpl();
 
             static RPI::Ptr<Derived> Create(const RPI::PassDescriptor& descriptor);
 

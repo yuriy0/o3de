@@ -42,6 +42,9 @@ namespace ScriptCanvas
             AZ_Assert(result.object, "CloneSource::Clone failed to create an object.");
             AZ_Assert(!result.typeId.IsNull(), "CloneSource::Clone failed to return the type of the object.");
             AZ::Internal::LuaClassToStack(lua, result.object, result.typeId, AZ::ObjectToLua::ByReference, AZ::AcquisitionOnPush::ScriptAcquire);
+            AZ_Assert(AZ::Internal::LuaAnyClassFromStack(lua, -1, nullptr) != nullptr,
+                "CloneSourceObject failed to push the cloned object to the lua stack");
+
             return 1;
         }
 

@@ -327,12 +327,14 @@ namespace ScriptCanvasEditor::Nodes
             contextGroup = TranslationContextGroup::EbusSender;
             break;
         case ScriptCanvas::MethodType::Member:
+        case ScriptCanvas::MethodType::Getter:
+        case ScriptCanvas::MethodType::Setter:
         case ScriptCanvas::MethodType::Free:
             graphCanvasEntity->CreateComponent<ClassMethodNodeDescriptorComponent>();
             contextGroup = TranslationContextGroup::ClassMethod;
             break;
         default:
-            AZ_Error("ScriptCanvas", false, "Invalid method node type, node creation failed. This node nodes to be deleted.");
+            AZ_Error("ScriptCanvas", false, "Invalid method node type, node creation failed. This node needs to be deleted.");
             break;
         }
 
@@ -868,13 +870,11 @@ namespace ScriptCanvasEditor::Nodes
         {
             AZ_Error("Script Canvas", false, "Script Canvas Function asset (%s) is not loaded, unable to display the node.", functionNode->GetAssetId().ToString<AZStd::string>().c_str());
 
-            GraphCanvas::TranslationKeyedString errorTitle("ERROR!");
-            GraphCanvas::TranslationKeyedString errorSubstring("Missing Script Canvas Function Asset!");
+            GraphCanvas::TranslationKeyedString errorTitle("ERROR! Missing Script Canvas Function Asset!");
+            GraphCanvas::TranslationKeyedString errorSubstring(functionNode->GetAssetHint().c_str());
 
             GraphCanvas::NodeTitleRequestBus::Event(graphCanvasNodeId, &GraphCanvas::NodeTitleRequests::SetTranslationKeyedTitle, errorTitle);
             GraphCanvas::NodeTitleRequestBus::Event(graphCanvasNodeId, &GraphCanvas::NodeTitleRequests::SetTranslationKeyedSubTitle, errorSubstring);
-
-            return graphCanvasNodeId;
         }
 
         for (const auto& slot : functionNode->GetSlots())
@@ -887,12 +887,15 @@ namespace ScriptCanvasEditor::Nodes
             CopyTranslationKeyedNameToDatumLabel(graphCanvasNodeId, slot.GetId(), graphCanvasSlotId);
         }
 
-        if (asset)
+        if (asset && asset->GetStatus() != AZ::Data::AssetData::AssetStatus::Error)
         {
             GraphCanvas::NodeTitleRequestBus::Event(graphCanvasNodeId, &GraphCanvas::NodeTitleRequests::SetTitle, asset->GetData().m_name);
         }
 
-        GraphCanvas::NodeTitleRequestBus::Event(graphCanvasNodeId, &GraphCanvas::NodeTitleRequests::SetPaletteOverride, "MethodNodeTitlePalette");
+        if (asset->GetStatus() != AZ::Data::AssetData::AssetStatus::Error)
+        {
+            GraphCanvas::NodeTitleRequestBus::Event(graphCanvasNodeId, &GraphCanvas::NodeTitleRequests::SetPaletteOverride, "MethodNodeTitlePalette");
+        }
 
         return graphCanvasNodeId;
     }

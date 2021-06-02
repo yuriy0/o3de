@@ -66,6 +66,7 @@ namespace ScriptCanvas
                 const SlotId& GetDataInSlotId() const;
                 const SlotId& GetDataOutSlotId() const;
 
+
                 //////////////////////////////////////////////////////////////////////////
                 // Translation
                 AZ::Outcome<DependencyReport, void> GetDependencies() const override;
@@ -79,7 +80,6 @@ namespace ScriptCanvas
                 PropertyFields GetPropertyFields() const override;
                 // Translation
                 //////////////////////////////////////////////////////////////////////////
-                
 
             protected:
 
@@ -117,6 +117,8 @@ namespace ScriptCanvas
                 AZStd::string_view  m_variableName;
                 ModifiableDatumView m_variableView;
 
+            public:
+                AZStd::optional<AZStd::pair<const PropertySetterMetadata*, size_t>> ApcExtGetPropertySetterMetaData(SlotId slotID) const;
             };
         }
     }

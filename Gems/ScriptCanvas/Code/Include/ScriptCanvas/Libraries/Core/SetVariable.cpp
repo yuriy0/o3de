@@ -543,6 +543,21 @@ namespace ScriptCanvas
                 return GraphScopedVariableId(GetOwningScriptCanvasId(), m_variableId);
             }
 
+            AZStd::optional<AZStd::pair<const PropertySetterMetadata*, size_t>> SetVariableNode::ApcExtGetPropertySetterMetaData(SlotId slotId) const
+            {
+                for (size_t index = 0, sentinel = m_propertySetters.size(); index != sentinel; ++index)
+                {
+                    auto& candidate = m_propertySetters[index];
+
+                    if (candidate.m_signalSlotId == slotId)
+                    {
+                        return AZStd::make_pair(&candidate, index + 1);
+                    }
+                }
+
+                return AZStd::nullopt;
+            }
+
             void PropertySetterMetadata::Reflect(AZ::ReflectContext* context)
             {
                 if (auto serializeContext = azrtti_cast<AZ::SerializeContext*>(context))

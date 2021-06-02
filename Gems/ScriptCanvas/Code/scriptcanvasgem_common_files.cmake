@@ -218,6 +218,8 @@ set(FILES
     Include/ScriptCanvas/Grammar/ParsingMetaData.cpp
     Include/ScriptCanvas/Grammar/ParsingUtilities.h
     Include/ScriptCanvas/Grammar/ParsingUtilities.cpp
+    Include/ScriptCanvas/Grammar/ApcExtParsingUtilities.h
+    Include/ScriptCanvas/Grammar/ApcExtParsingUtilities.cpp
     Include/ScriptCanvas/Grammar/Primitives.h
     Include/ScriptCanvas/Grammar/Primitives.cpp
     Include/ScriptCanvas/Grammar/PrimitivesDeclarations.h

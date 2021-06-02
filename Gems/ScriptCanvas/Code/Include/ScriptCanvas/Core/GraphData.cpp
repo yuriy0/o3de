@@ -165,7 +165,6 @@ namespace ScriptCanvas
 
     void GraphData::BuildEndpointMap()
     {
-        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::ScriptCanvas);
         m_endpointMap.clear();
         for (auto& connectionEntity : m_connections)
         {

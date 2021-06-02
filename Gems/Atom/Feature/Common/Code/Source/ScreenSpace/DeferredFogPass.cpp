@@ -41,6 +41,12 @@ namespace AZ
         }
 
         template<class Derived, class BasePass>
+        DeferredFogPass_tpl<Derived, BasePass>::~DeferredFogPass_tpl()
+        {
+            DeferredFogGlobalNotificationBus::Handler::BusDisconnect();
+        }
+
+        template<class Derived, class BasePass>
         RPI::Ptr<Derived> DeferredFogPass_tpl<Derived, BasePass>::Create(const RPI::PassDescriptor& descriptor)
         {
             RPI::Ptr<Derived> pass = aznew Derived(descriptor);

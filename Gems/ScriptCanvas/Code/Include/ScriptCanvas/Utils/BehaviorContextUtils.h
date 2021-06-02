@@ -21,14 +21,13 @@ namespace ScriptCanvas
     class BehaviorContextUtils
     {
     public:
-        static bool FindClass(const AZ::BehaviorMethod*& outMethod, const AZ::BehaviorClass*& outClass, AZStd::string_view className, AZStd::string_view methodName, AZStd::string* outPrettyClassName = nullptr, bool warnOnMissing = true);
+        static bool FindClass(const AZ::BehaviorMethod*& outMethod, const AZ::BehaviorClass*& outClass, AZStd::string_view className, AZStd::string_view methodName, PropertyStatus propertyStatus = PropertyStatus::None, AZStd::string* outPrettyClassName = nullptr, bool warnOnMissing = true);
         static bool FindEBus(const AZ::BehaviorEBus*& outEBus, AZStd::string_view ebusName, bool warnOnMissing = true);
         static bool FindExplicitOverload(const AZ::BehaviorMethod*& outMethod, const AZ::BehaviorClass*& outClass, AZStd::string_view className, AZStd::string_view methodName, AZStd::string* outPrettyClassName = nullptr);
         static AZStd::string FindExposedMethodName(const AZ::BehaviorMethod& method, const AZ::BehaviorClass* behaviorClass);
         static bool FindEvent(const AZ::BehaviorMethod*& outMethod, AZStd::string_view ebusName, AZStd::string_view eventName, EventType* outEventType = nullptr, bool warnOnMissing = true);
         static bool FindEvent(const AZ::BehaviorMethod*& outMethod, const AZ::BehaviorEBus* const ebus, AZStd::string_view eventName, EventType* outEventType = nullptr, bool warnOnMissing = true);
         static bool FindFree(const AZ::BehaviorMethod*& outMethod, AZStd::string_view methodName, bool warnOnMissing = true);
-        static AZStd::optional<AZ::BehaviorMethod*> FindMethodOrProperty(const AZ::BehaviorClass* behaviorClass, AZStd::string_view methodName);
 
         static size_t GenerateFingerprintForBehaviorContext();
         static size_t GenerateFingerprintForMethod(const MethodType& methodType, const AZStd::string& className, const AZStd::string& methodName);

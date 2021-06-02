@@ -79,7 +79,7 @@
                     "SlotType": "Input",
                     "ShaderInputName": "m_lightListRemapped",
                     "ScopeAttachmentUsage": "Shader"
-                },
+                }/*,
 
                 // Imported images
                 {
@@ -87,7 +87,7 @@
                     "SlotType": "Input",
                     "ShaderInputName": "m_noiseTexture",
                     "ScopeAttachmentUsage": "Shader"
-                }
+                }*/
             ],
             "ImageAttachments": [
                 {
