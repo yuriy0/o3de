@@ -27,7 +27,6 @@ class Surface
     float3 position;            //!< Position in world-space
     float3 normal;              //!< Normal in world-space
     float3 albedo;              //!< Albedo color of the non-metallic material, will be multiplied against the diffuse lighting value
-
     float3 specularF0;          //!< Fresnel f0 spectral value of the surface
     float roughnessLinear;      //!< Perceptually linear roughness value authored by artists. Must be remapped to roughnessA before use
     float roughnessA;           //!< Actual roughness value ( a.k.a. "alpha roughness") to be used in microfacet calculations
@@ -59,7 +58,7 @@ void Surface::SetDualSpecularParams(float specMultiplier, float specAdd, float r
     dualRoughnessA = (dualRoughnessLinear * dualRoughnessLinear);
     dualRoughnessA2 = (dualRoughnessA * dualRoughnessA);
     dualSpecularContribution = contribution;
-}
+};
 
 // Specular Anti-Aliasing technique from this paper:
 // http://www.jp.square-enix.com/tech/library/pdf/ImprovedGeometricSpecularAA.pdf

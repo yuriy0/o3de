@@ -111,8 +111,7 @@ class BatchProcessing:
 
         self._events_firehose_delivery_stream = kinesisfirehose.CfnDeliveryStream(
             self._stack,
-            id='EventsFirehoseDeliveryStream',
-            delivery_stream_name=f'{self._stack.stack_name}-EventsFirehoseDeliveryStream',
+            id=f'{self._stack.stack_name}-EventsFirehoseDeliveryStream',
             delivery_stream_type='KinesisStreamAsSource',
             kinesis_stream_source_configuration=kinesisfirehose.CfnDeliveryStream.KinesisStreamSourceConfigurationProperty(
                 kinesis_stream_arn=self._input_stream_arn,
@@ -259,7 +258,7 @@ class BatchProcessing:
         )
         policy_statements.append(input_stream_policy_statement)
 
-        log_policy_statetement = iam.PolicyStatement(
+        log_policy_statement = iam.PolicyStatement(
             actions=[
                 'logs:PutLogEvents',
             ],
@@ -268,7 +267,7 @@ class BatchProcessing:
                 self._firehose_delivery_stream_log_group.log_group_arn
             ]
         )
-        policy_statements.append(log_policy_statetement)
+        policy_statements.append(log_policy_statement)
 
         data_catalog_policy_statement = iam.PolicyStatement(
             actions=[
@@ -327,7 +326,7 @@ class BatchProcessing:
 
     @property
     def delivery_stream_name(self) -> kinesisfirehose.CfnDeliveryStream.delivery_stream_name:
-        return self._events_firehose_delivery_stream.delivery_stream_name
+        return self._events_firehose_delivery_stream.ref
 
     @property
     def delivery_stream_role_arn(self) -> iam.Role.role_arn:

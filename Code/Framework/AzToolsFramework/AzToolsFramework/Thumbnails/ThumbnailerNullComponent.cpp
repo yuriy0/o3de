@@ -51,7 +51,7 @@ namespace AzToolsFramework
             services.push_back(AZ_CRC("ThumbnailerService", 0x65422b97));
         }
 
-        void ThumbnailerNullComponent::RegisterContext(const char* /*contextName*/, int)
+        void ThumbnailerNullComponent::RegisterContext(const char* /*contextName*/)
         {
         }
 

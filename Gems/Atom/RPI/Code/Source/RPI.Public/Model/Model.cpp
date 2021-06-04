@@ -145,8 +145,9 @@ namespace AZ
         bool Model::LocalRayIntersection(const AZ::Vector3& rayStart, const AZ::Vector3& dir, float& distance, AZ::Vector3& normal) const
         {
             AZ_PROFILE_FUNCTION(Debug::ProfileCategory::AzRender);
-            float firstHit;
-            const int result = Intersect::IntersectRayAABB2(rayStart, dir.GetReciprocal(), m_aabb, firstHit, distance);
+            float start;
+            float end;
+            const int result = Intersect::IntersectRayAABB2(rayStart, dir.GetReciprocal(), m_aabb, start, end);
             if (Intersect::ISECT_RAY_AABB_NONE != result)
             {
                 if (ModelAsset* modelAssetPtr = m_modelAsset.Get())
@@ -169,18 +170,24 @@ namespace AZ
             return false;
         }
 
-        bool Model::RayIntersection(const AZ::Transform& modelTransform, const AZ::Vector3& rayStart, const AZ::Vector3& dir, float& distanceFactor, AZ::Vector3& normal) const
+        bool Model::RayIntersection(
+            const AZ::Transform& modelTransform, const AZ::Vector3& nonUniformScale, const AZ::Vector3& rayStart, const AZ::Vector3& dir,
+            float& distanceFactor, AZ::Vector3& normal) const
         {
             AZ_PROFILE_FUNCTION(Debug::ProfileCategory::AzRender);
+            const AZ::Vector3 clampedScale = nonUniformScale.GetMax(AZ::Vector3(AZ::MinTransformScale));
+
             const AZ::Transform inverseTM = modelTransform.GetInverse();
-            const AZ::Vector3 raySrcLocal = inverseTM.TransformPoint(rayStart);
+            const AZ::Vector3 raySrcLocal = inverseTM.TransformPoint(rayStart) / clampedScale;
 
             // Instead of just rotating 'dir' we need it to be scaled too, so that 'distanceFactor' will be in the target units rather than object local units.
             const AZ::Vector3 rayDest = rayStart + dir;
-            const AZ::Vector3 rayDestLocal = inverseTM.TransformPoint(rayDest);
+            const AZ::Vector3 rayDestLocal = inverseTM.TransformPoint(rayDest) / clampedScale;
             const AZ::Vector3 rayDirLocal = rayDestLocal - raySrcLocal;
 
-            return LocalRayIntersection(raySrcLocal, rayDirLocal, distanceFactor, normal);
+            bool result = LocalRayIntersection(raySrcLocal, rayDirLocal, distanceFactor, normal);
+            normal = (normal * clampedScale).GetNormalized();
+            return result;
         }
 
         const AZStd::unordered_set<AZ::Name>& Model::GetUvNames() const

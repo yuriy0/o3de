@@ -256,6 +256,8 @@ namespace AzToolsFramework
 
             m_userSettings = AZ::UserSettings::CreateFind<AssetEditorWidgetUserSettings>(k_assetEditorWidgetSettings, AZ::UserSettings::CT_LOCAL);
 
+            UpdateRecentFileListState();
+
             QObject::connect(m_recentFileMenu, &QMenu::aboutToShow, this, &AssetEditorWidget::PopulateRecentMenu);
         }
 
@@ -480,6 +482,8 @@ namespace AzToolsFramework
                             m_userSettings->m_lastSavePath = m_userSettings->m_lastSavePath.substr(0, findIndex);
                         }
                     }
+
+                    m_dirty = false;
 
                     AddRecentPath(targetFilePath);
 
@@ -952,7 +956,8 @@ namespace AzToolsFramework
 
         void AssetEditorWidget::AddRecentPath(const AZStd::string& recentPath)
         {
-            m_userSettings->AddRecentPath(recentPath);            
+            m_userSettings->AddRecentPath(recentPath);
+            UpdateRecentFileListState();
         }
 
         void AssetEditorWidget::PopulateRecentMenu()
@@ -987,6 +992,21 @@ namespace AzToolsFramework
             // Activate "Save" and "Save As..." actions
             m_saveAssetAction->setEnabled(true);
             m_saveAsAssetAction->setEnabled(true);
+        }
+
+        void AssetEditorWidget::UpdateRecentFileListState()
+        {
+            if (m_recentFileMenu)
+            {
+                if (!m_userSettings || m_userSettings->m_recentPaths.empty())
+                {
+                    m_recentFileMenu->setEnabled(false);
+                }
+                else
+                {
+                    m_recentFileMenu->setEnabled(true);
+                }
+            }
         }
 
     } // namespace AssetEditor

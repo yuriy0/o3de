@@ -19,7 +19,7 @@
 #include <Integration/Rendering/RenderActorInstance.h>
 #include <EMotionFX/Source/MorphTargetStandard.h>
 
-#include <LmbrCentral/Rendering/MeshComponentBus.h>
+#include <LmbrCentral/Animation/SkeletalHierarchyRequestBus.h>
 
 #include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentBus.h>
 #include <AtomLyIntegration/CommonFeatures/Mesh/MeshComponentBus.h>

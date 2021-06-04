@@ -42,6 +42,7 @@ namespace Ui
 
 namespace AzToolsFramework
 {
+    class EditorEntityUiInterface;
     class EntityOutlinerListModel;
     class EntityOutlinerSortFilterProxyModel;
 
@@ -165,6 +166,8 @@ namespace AzToolsFramework
         // to a given entity
         void QueueScrollToNewContent(const AZ::EntityId& entityId) override;
 
+        void SetDefaultTreeViewEditTriggers();
+
         void ScrollToNewContent();
         bool m_scrollToNewContentQueued;
         bool m_scrollToSelectedEntity;
@@ -193,6 +196,8 @@ namespace AzToolsFramework
         EntityIdSet m_entitiesToSort;
         EntityOutliner::DisplaySortMode m_sortMode;
         bool m_sortContentQueued;
+
+        EditorEntityUiInterface* m_editorEntityUiInterface = nullptr;
     };
 
 }

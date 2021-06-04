@@ -9,6 +9,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 *
 */
+
 #include <Launcher.h>
 
 #include <AzCore/Casting/numeric_cast.h>
@@ -22,11 +23,12 @@
 #include <AzCore/Utils/Utils.h>
 #include <AzFramework/Asset/AssetSystemBus.h>
 #include <AzFramework/IO/RemoteStorageDrive.h>
+#include <AzFramework/Windowing/NativeWindow.h>
+#include <AzFramework/Windowing/WindowBus.h>
 
 #include <AzGameFramework/Application/GameApplication.h>
 
 #include <CryLibrary.h>
-#include <IConsole.h>
 #include <ISystem.h>
 #include <ITimer.h>
 #include <LegacyAllocator.h>
@@ -46,6 +48,36 @@ extern "C" void CreateStaticModules(AZStd::vector<AZ::Module*>& modulesOut);
 
 namespace
 {
+    void OnViewportResize(const AZ::Vector2& value);
+
+    AZ_CVAR(AZ::Vector2, r_viewportSize, AZ::Vector2::CreateZero(), OnViewportResize, AZ::ConsoleFunctorFlags::DontReplicate,
+        "The default size for the launcher viewport, 0 0 means full screen");
+
+    void OnViewportResize(const AZ::Vector2& value)
+    {
+        AzFramework::NativeWindowHandle windowHandle = nullptr;
+        AzFramework::WindowSystemRequestBus::BroadcastResult(windowHandle, &AzFramework::WindowSystemRequestBus::Events::GetDefaultWindowHandle);
+        AzFramework::WindowSize newSize = AzFramework::WindowSize(aznumeric_cast<int32_t>(value.GetX()), aznumeric_cast<int32_t>(value.GetY()));
+        AzFramework::WindowRequestBus::Broadcast(&AzFramework::WindowRequestBus::Events::ResizeClientArea, newSize);
+    }
+
+    void ExecuteConsoleCommandFile(AzFramework::Application& application)
+    {
+        const AZStd::string_view customConCmdKey = "console-command-file";
+        const AZ::CommandLine* commandLine = application.GetCommandLine();
+        AZStd::size_t numSwitchValues = commandLine->GetNumSwitchValues(customConCmdKey);
+        if (numSwitchValues > 0)
+        {
+            // The expectations for command line parameters is that the "last one wins"
+            // That way it allows users and test scripts to override previous command line options by just listing them later on the invocation line
+            const AZStd::string& consoleCmd = commandLine->GetSwitchValue(customConCmdKey, numSwitchValues - 1);
+            if (!consoleCmd.empty())
+            {
+                AZ::Interface<AZ::IConsole>::Get()->ExecuteConfigFile(consoleCmd.c_str());
+            }
+        }
+    }
+
 #if AZ_TRAIT_LAUNCHER_USE_CRY_DYNAMIC_MODULE_HANDLE
     // mimics AZ::DynamicModuleHandle but uses CryLibrary under the hood,
     // which is necessary to properly load legacy Cry libraries on some platforms
@@ -313,7 +345,7 @@ namespace O3DELauncher
                 return "Failed to initialize the CrySystem Interface";
 
             case ReturnCode::ErrCryEnvironment:
-                return "Failed to initialize the CryEngine global environment";
+                return "Failed to initialize the global environment";
 
             case ReturnCode::ErrAssetProccessor:
                 return "Failed to connect to AssetProcessor while the /Amazon/AzCore/Bootstrap/wait_for_connect value is 1\n."
@@ -433,18 +465,14 @@ namespace O3DELauncher
 
         // Non-host platforms cannot use the project path that is #defined within the launcher.
         // In this case the the result of AZ::Utils::GetDefaultAppRoot is used instead
+#if !AZ_TRAIT_OS_IS_HOST_OS_PLATFORM
         AZStd::string_view projectPath;
-#if AZ_TRAIT_OS_IS_HOST_OS_PLATFORM
-        // Insert the project_path option to the front of the command line arguments
-        projectPath = GetProjectPath();
-#else
         // Make sure the defaultAppRootPath variable is in scope long enough until the projectPath string_view is used below
         AZStd::optional<AZ::IO::FixedMaxPathString> defaultAppRootPath = AZ::Utils::GetDefaultAppRootPath();
         if (defaultAppRootPath.has_value())
         {
             projectPath = *defaultAppRootPath;
         }
-#endif
         if (!projectPath.empty())
         {
             const auto projectPathKey = FixedValueString(AZ::SettingsRegistryMergeUtils::BootstrapSettingsRootKey)
@@ -455,15 +483,14 @@ namespace O3DELauncher
 
             // For non-host platforms set the engine root to be the project root
             // Since the directories available during execution are limited on those platforms
-#if !AZ_TRAIT_OS_IS_HOST_OS_PLATFORM
             AZStd::string_view enginePath = projectPath;
             const auto enginePathKey = FixedValueString(AZ::SettingsRegistryMergeUtils::BootstrapSettingsRootKey)
                 + "/engine_path";
             enginePathOptionOverride = FixedValueString ::format(R"(--regset="%s=%.*s")",
                 enginePathKey.c_str(), aznumeric_cast<int>(enginePath.size()), enginePath.data());
             argContainer.emplace_back(enginePathOptionOverride.data());
-#endif
         }
+#endif
 
         AzGameFramework::GameApplication gameApplication(aznumeric_cast<int>(argContainer.size()), argContainer.data());
         // The settings registry has been created by the AZ::ComponentApplication constructor at this point
@@ -477,8 +504,8 @@ namespace O3DELauncher
         const AZStd::string_view buildTargetName = GetBuildTargetName();
         AZ::SettingsRegistryMergeUtils::MergeSettingsToRegistry_AddBuildSystemTargetSpecialization(*settingsRegistry, buildTargetName);
 
-        AZ_TracePrintf("Launcher", R"(Running project "%.*s.)" "\n"
-            R"(The project name value has been successfully set in the Settings Registry at key "%s/project_name)"
+        AZ_TracePrintf("Launcher", R"(Running project "%.*s")" "\n"
+            R"(The project name has been successfully set in the Settings Registry at key "%s/project_name")"
             R"( for Launcher target "%.*s")" "\n",
             aznumeric_cast<int>(launcherProjectName.size()), launcherProjectName.data(),
             AZ::SettingsRegistryMergeUtils::ProjectSettingsRootKey,
@@ -562,11 +589,6 @@ namespace O3DELauncher
         systemInitParams.hWnd = mainInfo.m_window;
         systemInitParams.pPrintSync = mainInfo.m_printSink;
 
-        if (strstr(mainInfo.m_commandLine, "-norandom"))
-        {
-            systemInitParams.bNoRandom = true;
-        }
-
         systemInitParams.bDedicatedServer = IsDedicatedServer();
         if (IsDedicatedServer())
         {
@@ -637,7 +659,12 @@ namespace O3DELauncher
             if (gEnv && gEnv->pConsole)
             {
                 // Execute autoexec.cfg to load the initial level
-                gEnv->pConsole->ExecuteString("exec autoexec.cfg");
+                auto autoExecFile = AZ::IO::FixedMaxPath{pathToAssets} / "autoexec.cfg";
+                AZ::Interface<AZ::IConsole>::Get()->ExecuteConfigFile(autoExecFile.Native());
+
+                // Find out if console command file was passed 
+                // via --console-command-file=%filename% and execute it
+                ExecuteConsoleCommandFile(gameApplication);
 
                 gEnv->pSystem->ExecuteCommandLine(false);
 

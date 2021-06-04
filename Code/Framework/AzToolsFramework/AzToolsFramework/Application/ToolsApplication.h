@@ -85,6 +85,7 @@ namespace AzToolsFramework
 
         void AddDirtyEntity(AZ::EntityId entityId) override;
         int RemoveDirtyEntity(AZ::EntityId entityId) override;
+        void ClearDirtyEntities() override;
         bool IsDuringUndoRedo() override { return m_isDuringUndoRedo; }
         void UndoPressed() override;
         void RedoPressed() override;
@@ -101,6 +102,7 @@ namespace AzToolsFramework
         SourceControlFileInfo GetSceneSourceControlInfo() override;
 
         bool AreAnyEntitiesSelected() override { return !m_selectedEntities.empty(); }
+        int GetSelectedEntitiesCount() override { return m_selectedEntities.size(); }
         const EntityIdList& GetSelectedEntities() override { return m_selectedEntities; }
         const EntityIdList& GetHighlightedEntities() override { return m_highlightedEntities; }
         void SetSelectedEntities(const EntityIdList& selectedEntities) override;

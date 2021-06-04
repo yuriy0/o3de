@@ -11,10 +11,16 @@
 */
 
 
+#include <AzCore/Math/MatrixUtils.h>
+#include <AzCore/EBus/Results.h>
+
+#include <AzFramework/Components/TransformComponent.h>
+
 #include <Atom/Feature/ImageBasedLights/ImageBasedLightFeatureProcessorInterface.h>
 #include <Atom/Feature/PostProcess/PostProcessFeatureProcessorInterface.h>
 #include <Atom/Feature/SkyBox/SkyBoxFeatureProcessorInterface.h>
 #include <Atom/Feature/Utils/LightingPreset.h>
+
 #include <Atom/RPI.Public/RenderPipeline.h>
 #include <Atom/RPI.Public/Scene.h>
 #include <Atom/RPI.Public/View.h>
@@ -23,10 +29,11 @@
 #include <Atom/RPI.Reflect/Model/ModelAsset.h>
 #include <Atom/RPI.Reflect/System/RenderPipelineDescriptor.h>
 #include <Atom/RPI.Reflect/System/SceneDescriptor.h>
+
 #include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentConstants.h>
 #include <AtomLyIntegration/CommonFeatures/Mesh/MeshComponentConstants.h>
-#include <AzCore/Math/MatrixUtils.h>
-#include <AzFramework/Components/TransformComponent.h>
+#include <AtomLyIntegration/CommonFeatures/Thumbnails/ThumbnailFeatureProcessorProviderBus.h>
+
 #include <Thumbnails/Rendering/ThumbnailRendererData.h>
 #include <Thumbnails/Rendering/ThumbnailRendererContext.h>
 #include <Thumbnails/Rendering/ThumbnailRendererSteps/InitializeStep.h>
@@ -37,7 +44,6 @@ namespace AZ
     {
         namespace Thumbnails
         {
-
             InitializeStep::InitializeStep(ThumbnailRendererContext* context)
                 : ThumbnailRendererStep(context)
             {
@@ -50,24 +56,23 @@ namespace AZ
                 data->m_entityContext = AZStd::make_unique<AzFramework::EntityContext>();
                 data->m_entityContext->InitContext();
 
-                // Create and register a scene with minimum required feature processors
+                // Create and register a scene with all required feature processors
                 RPI::SceneDescriptor sceneDesc;
-                sceneDesc.m_featureProcessorNames.push_back("AZ::Render::TransformServiceFeatureProcessor");
-                sceneDesc.m_featureProcessorNames.push_back("AZ::Render::MeshFeatureProcessor");
-                sceneDesc.m_featureProcessorNames.push_back("AZ::Render::SimplePointLightFeatureProcessor");
-                sceneDesc.m_featureProcessorNames.push_back("AZ::Render::SimpleSpotLightFeatureProcessor");
-                sceneDesc.m_featureProcessorNames.push_back("AZ::Render::PointLightFeatureProcessor");
-                // There is currently a bug where having multiple DirectionalLightFeatureProcessors active can result in shadow flickering [ATOM-13568]
-                // as well as continually rebuilding MeshDrawPackets [ATOM-13633]. Lets just disable the directional light FP for now.
-                // Possibly re-enable with [GFX TODO][ATOM-13639] 
-                // sceneDesc.m_featureProcessorNames.push_back("AZ::Render::DirectionalLightFeatureProcessor");
-                sceneDesc.m_featureProcessorNames.push_back("AZ::Render::DiskLightFeatureProcessor");
-                sceneDesc.m_featureProcessorNames.push_back("AZ::Render::CapsuleLightFeatureProcessor");
-                sceneDesc.m_featureProcessorNames.push_back("AZ::Render::QuadLightFeatureProcessor");
-                sceneDesc.m_featureProcessorNames.push_back("AZ::Render::DecalTextureArrayFeatureProcessor");
-                sceneDesc.m_featureProcessorNames.push_back("AZ::Render::ImageBasedLightFeatureProcessor");
-                sceneDesc.m_featureProcessorNames.push_back("AZ::Render::PostProcessFeatureProcessor");
-                sceneDesc.m_featureProcessorNames.push_back("AZ::Render::SkyBoxFeatureProcessor");
+
+                AZ::EBusAggregateResults<AZStd::vector<AZStd::string>> results;
+                ThumbnailFeatureProcessorProviderBus::BroadcastResult(results, &ThumbnailFeatureProcessorProviderBus::Handler::GetCustomFeatureProcessors);
+
+                AZStd::set<AZStd::string> featureProcessorNames;
+                for (auto& resultCollection : results.values)
+                {
+                    for (auto& featureProcessorName : resultCollection)
+                    {
+                        if (featureProcessorNames.emplace(featureProcessorName).second)
+                        {
+                            sceneDesc.m_featureProcessorNames.push_back(featureProcessorName);
+                        }
+                    }
+                }
 
                 data->m_scene = RPI::Scene::CreateScene(sceneDesc);
 
@@ -100,24 +105,15 @@ namespace AZ
                 data->m_scene->SetShaderResourceGroupCallback(callback);
 
                 // Bind m_defaultScene to the GameEntityContext's AzFramework::Scene
-                Outcome<AzFramework::Scene*, AZStd::string> createSceneOutcome;
-                AzFramework::SceneSystemRequestBus::BroadcastResult(
-                    createSceneOutcome,
-                    &AzFramework::SceneSystemRequests::CreateScene,
-                    data->m_sceneName);
+                auto* sceneSystem = AzFramework::SceneSystemInterface::Get();
+                AZ_Assert(sceneSystem, "Thumbnail system failed to get scene system implementation.");
+                Outcome<AZStd::shared_ptr<AzFramework::Scene>, AZStd::string> createSceneOutcome =
+                    sceneSystem->CreateScene(data->m_sceneName);
                 AZ_Assert(createSceneOutcome, createSceneOutcome.GetError().c_str()); // This should never happen unless scene creation has changed.
-                createSceneOutcome.GetValue()->SetSubsystem(data->m_scene.get());
-                data->m_frameworkScene = createSceneOutcome.GetValue();
-                data->m_frameworkScene->SetSubsystem(data->m_scene.get());
+                data->m_frameworkScene = createSceneOutcome.TakeValue();
+                data->m_frameworkScene->SetSubsystem(data->m_scene);
 
-                bool success = false;
-                AzFramework::SceneSystemRequestBus::BroadcastResult(
-                    success,
-                    &AzFramework::SceneSystemRequests::SetSceneForEntityContextId,
-                    data->m_entityContext->GetContextId(),
-                    data->m_frameworkScene);
-                AZ_Assert(success, "Unable to set entity context on AzFramework::Scene: %s", data->m_sceneName.c_str());
-
+                data->m_frameworkScene->SetSubsystem(data->m_entityContext.get());
                 // Create a render pipeline from the specified asset for the window context and add the pipeline to the scene
                 RPI::RenderPipelineDescriptor pipelineDesc;
                 pipelineDesc.m_mainViewTagName = "MainCamera";
@@ -198,6 +194,7 @@ namespace AZ
                     m_context->GetData()->DefaultModelPath,
                     RPI::ModelAsset::RTTI_Type(),
                     false);
+                AZ_Error("ThumbnailRenderer", defaultModelAssetId.IsValid(), "Default model asset is invalid. Verify the asset %s exists.", m_context->GetData()->DefaultModelPath);
                 if (m_context->GetData()->m_assetsToLoad.emplace(defaultModelAssetId).second)
                 {
                     data->m_defaultModelAsset.Create(defaultModelAssetId);
@@ -212,6 +209,7 @@ namespace AZ
                     m_context->GetData()->DefaultMaterialPath,
                     RPI::MaterialAsset::RTTI_Type(),
                     false);
+                AZ_Error("ThumbnailRenderer", defaultMaterialAssetId.IsValid(), "Default material asset is invalid. Verify the asset %s exists.", m_context->GetData()->DefaultMaterialPath);
                 if (m_context->GetData()->m_assetsToLoad.emplace(defaultMaterialAssetId).second)
                 {
                     data->m_defaultMaterialAsset.Create(defaultMaterialAssetId);

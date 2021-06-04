@@ -116,6 +116,12 @@ namespace {{attribute_Namespace}}
 {% for item in Class.iter('Output') %}
 {%      if item.attrib['DisplayGroup'] is defined %}{% set displayGroup = item.attrib['DisplayGroup'] %}{% endif %}
 {% endfor %}
+{% set branches = [] %}
+{% for method in Class.findall('Input') %}
+{%      for branch in method.findall('Branch') %}
+{%			if branches.append(branch) %}{% endif %}
+{%		endfor %}
+{% endfor %}
 {# ExecutionOuts #}
 // ExecutionOuts begin
 {{ nodemacro.ExecutionOutDefinitions(Class, attribute_QualifiedName)}}
@@ -265,7 +271,7 @@ void Nodes::{{ nodeableNodeName }}::Reflect(AZ::ReflectContext* context)
 {% if ExtendReflectionSerialize is defined %}
         ExtendReflectionSerialize(&{{preSerialize}});
 {% endif %}
-        
+
         if (AZ::EditContext* editContext = serializeContext->GetEditContext())
         {
             {% if ExtendReflectionEdit is defined %}auto {{preEdit}} = {%endif%}editContext->Class<{{ nodeableNodeName }}>("{{ attribute_PreferredClassName }}", "{{ attribute_Description }}"){{postEdit}}

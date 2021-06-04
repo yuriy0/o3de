@@ -146,8 +146,8 @@ namespace AZ
                 ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
                 ->Method("GetTranslated", &Aabb::GetTranslated)
                 ->Method("GetSurfaceArea", &Aabb::GetSurfaceArea)
-                ->Method("GetTransformedObb", &Aabb::GetTransformedObb)
-                ->Method("GetTransformedAabb", &Aabb::GetTransformedAabb)
+                ->Method("GetTransformedObb", static_cast<Obb(Aabb::*)(const Transform&) const>(&Aabb::GetTransformedObb))
+                ->Method("GetTransformedAabb", static_cast<Aabb(Aabb::*)(const Transform&) const>(&Aabb::GetTransformedAabb))
                 ->Method("ApplyTransform", &Aabb::ApplyTransform)
                 ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
                 ->Method("Clone", [](const Aabb& rhs) -> Aabb { return rhs; })
@@ -195,6 +195,20 @@ namespace AZ
     }
 
 
+    Obb Aabb::GetTransformedObb(const Matrix3x4& matrix3x4) const
+    {
+        Matrix3x4 matrixNoScale = matrix3x4;
+        const AZ::Vector3 scale = matrixNoScale.ExtractScale();
+        const AZ::Quaternion rotation = AZ::Quaternion::CreateFromMatrix3x4(matrixNoScale);
+
+        return Obb::CreateFromPositionRotationAndHalfLengths(
+            matrix3x4 * GetCenter(),
+            rotation,
+            0.5f * scale * GetExtents()
+        );
+    }
+
+
     void Aabb::ApplyTransform(const Transform& transform)
     {
         Vector3 a, b, axisCoeffs;
@@ -213,7 +227,7 @@ namespace AZ
             // the min and max of each part and sum them to get the min and max co-ordinate of the transformed box. For a given new axis,
             // the coefficients for what proportion of each original axis is rotated onto that new axis are the same as the components we
             // would get by performing the inverse rotation on the new axis, so we need to take the conjugate to get the inverse rotation.
-            axisCoeffs = transform.GetScale() * (transform.GetRotation().GetConjugate().TransformVector(axis));
+            axisCoeffs = transform.GetUniformScale() * (transform.GetRotation().GetConjugate().TransformVector(axis));
             a = axisCoeffs * m_min;
             b = axisCoeffs * m_max;
 
@@ -223,5 +237,18 @@ namespace AZ
 
         m_min = newMin;
         m_max = newMax;
+    }
+
+
+    void Aabb::ApplyMatrix3x4(const Matrix3x4& matrix3x4)
+    {
+        const AZ::Vector3 extents = GetExtents();
+        const AZ::Vector3 center = matrix3x4 * GetCenter();
+        AZ::Vector3 newHalfExtents(
+            0.5f * matrix3x4.GetRowAsVector3(0).GetAbs().Dot(extents),
+            0.5f * matrix3x4.GetRowAsVector3(1).GetAbs().Dot(extents),
+            0.5f * matrix3x4.GetRowAsVector3(2).GetAbs().Dot(extents));
+        m_min = center - newHalfExtents;
+        m_max = center + newHalfExtents;
     }
 }

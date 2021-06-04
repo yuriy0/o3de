@@ -113,7 +113,7 @@ namespace AZ::SceneGenerationComponents
         auto* serializeContext = azrtti_cast<AZ::SerializeContext*>(context);
         if (serializeContext)
         {
-            serializeContext->Class<MeshOptimizerComponent, GenerationComponent>()->Version(1);
+            serializeContext->Class<MeshOptimizerComponent, GenerationComponent>()->Version(2);
         }
     }
 

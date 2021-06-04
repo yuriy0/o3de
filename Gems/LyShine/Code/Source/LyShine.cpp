@@ -165,11 +165,6 @@ CLyShine::CLyShine(ISystem* system)
 
     UiAnimationSystem::StaticInitialize();
 
-    if (m_system->GetIRenderer())
-    {
-        m_system->GetIRenderer()->AddRenderDebugListener(this);
-    }
-
     AzFramework::InputChannelEventListener::Connect();
     AzFramework::InputTextEventListener::Connect();
     UiCursorBus::Handler::BusConnect();
@@ -254,11 +249,6 @@ CLyShine::~CLyShine()
     AzFramework::InputTextEventListener::Disconnect();
     AzFramework::InputChannelEventListener::Disconnect();
     AZ::Render::Bootstrap::NotificationBus::Handler::BusDisconnect();
-
-    if (m_system->GetIRenderer())
-    {
-        m_system->GetIRenderer()->RemoveRenderDebugListener(this);
-    }
 
     UiCanvasComponent::Shutdown();
 
@@ -464,7 +454,6 @@ void CLyShine::Render()
 
     GetUiRenderer()->EndUiFrameRender();
 
-#ifdef LYSHINE_ATOM_TODO // convert debug info to Atom
 #ifndef _RELEASE
     if (CV_ui_DisplayElemBounds)
     {
@@ -483,7 +472,6 @@ void CLyShine::Render()
     {
         m_uiCanvasManager->DebugDisplayDrawCallData();
     }
-#endif
 #endif
 }
 

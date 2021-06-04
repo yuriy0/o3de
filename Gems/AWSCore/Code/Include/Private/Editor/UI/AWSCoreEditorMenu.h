@@ -18,6 +18,11 @@
 
 #include <QMenu>
 
+namespace AzFramework
+{
+    class ProcessWatcher;
+}
+
 namespace AWSCore
 {
     class AWSCoreEditorMenu
@@ -25,38 +30,30 @@ namespace AWSCore
         , AWSCoreEditorRequestBus::Handler
     {
     public:
-        static constexpr const char ResourceMappingToolPath[] = "Gems/AWSCore/Code/Tools/ResourceMappingTool/resource_mapping_tool.cmd";
-        static constexpr const char AWSResourceMappingToolActionText[] = "AWS Resource Mapping Tool...";
-        static constexpr const char CredentialConfigurationActionText[] = "Credential Configuration";
-        static constexpr const char CredentialConfigurationUrl[] = "https://docs.aws.amazon.com/sdk-for-cpp/v1/developer-guide/credentials.html";
-        static constexpr const char NewToAWSActionText[] = "New to AWS?";
-        static constexpr const char NewToAWSUrl[] = "https://o3deorg.netlify.app/docs/user-guide/gems/reference/aws";
-        static constexpr const char AWSAndScriptCanvasActionText[] = "AWS && ScriptCanvas";
-        static constexpr const char AWSAndScriptCanvasUrl[] = "https://o3deorg.netlify.app/docs/user-guide/gems/reference/aws";
-        static constexpr const char AWSClientAuthActionText[] = "Client Auth";
-        static constexpr const char AWSMetricsActionText[] = "Metrics";
+        static constexpr const char AWSResourceMappingToolReadMeWarningText[] =
+            "Failed to launch Resource Mapping Tool, please follow <a href=\"file:///%s\">README</a> to setup tool before using it.";
+        static constexpr const char AWSResourceMappingToolIsRunningText[] = "Resource Mapping Tool is running...";
+        static constexpr const char AWSResourceMappingToolLogWarningText[] =
+            "Failed to launch Resource Mapping Tool, please check <a href=\"file:///%s\">logs</a> for details.";
 
         AWSCoreEditorMenu(const QString& text);
         ~AWSCoreEditorMenu();
 
     private:
-        void InitializeEngineRootFolder();
+        QAction* AddExternalLinkAction(const AZStd::string& name, const AZStd::string& url, const AZStd::string& icon = "");
+
         void InitializeResourceMappingToolAction();
         void InitializeAWSDocActions();
+        void InitializeAWSGlobalDocsSubMenu();
         void InitializeAWSFeatureGemActions();
-
-        void StartResourceMappingProcess();
 
         // AWSCoreEditorRequestBus interface implementation
         void SetAWSClientAuthEnabled() override;
         void SetAWSMetricsEnabled() override;
 
-        void SetAWSFeatureActionsEnabled(const AZStd::string actionText);
+        QMenu* SetAWSFeatureSubMenu(const AZStd::string& menuText);
 
-        AZStd::string m_engineRootFolder;
-
-        AZStd::mutex m_resourceMappingToolMutex;
-        bool m_resourceMappintToolIsRunning;
-        AZStd::thread m_resourceMappingToolThread;
+        // To improve experience, use process watcher to keep track of ongoing tool process
+        AZStd::unique_ptr<AzFramework::ProcessWatcher> m_resourceMappingToolWatcher;
     };
 } // namespace AWSCore

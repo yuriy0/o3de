@@ -36,10 +36,10 @@ ly_add_target(
             AZ::AzCore
             AZ::AzFramework
             Legacy::CryCommon
-            Gem::LmbrCentral
         PUBLIC
             AZ::AtomCore
             Gem::Atom_RPI.Public
+            Gem::LmbrCentral
     COMPILE_DEFINITIONS
         PUBLIC
             EMFX_DEVELOPMENT_BUILD
@@ -67,13 +67,11 @@ ly_add_target(
         Gem::LmbrCentral
 )
 
-if (PAL_TRAIT_BUILD_HOST_TOOLS)
+# Clients and servers use the above EMotionFX module
+ly_create_alias(NAME EMotionFX.Clients NAMESPACE Gem TARGETS EMotionFX)
+ly_create_alias(NAME EMotionFX.Servers NAMESPACE Gem TARGETS EMotionFX)
 
-    find_package(OpenGL QUIET REQUIRED)
-    # Imported targets (like OpenGL::GL) are scoped to a directory. Add a
-    # a global scope
-    add_library(3rdParty::OpenGLInterface INTERFACE IMPORTED GLOBAL)
-    target_link_libraries(3rdParty::OpenGLInterface INTERFACE OpenGL::GL)
+if (PAL_TRAIT_BUILD_HOST_TOOLS)
     
     ly_add_target(
         NAME EMotionFX.Editor.Static STATIC
@@ -135,6 +133,11 @@ if (PAL_TRAIT_BUILD_HOST_TOOLS)
         RUNTIME_DEPENDENCIES
             Gem::LmbrCentral.Editor
     )
+
+    # builders and tools use the above EMotionFX.Editor module
+    ly_create_alias(NAME EMotionFX.Builders NAMESPACE Gem TARGETS EMotionFX.Editor)
+    ly_create_alias(NAME EMotionFX.Tools NAMESPACE Gem TARGETS EMotionFX.Editor)
+
 endif()
 
 ################################################################################

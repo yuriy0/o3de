@@ -59,6 +59,12 @@ namespace AZ
                 m_featureProcessor->SetRgbIntensity(m_lightHandle, m_photometricValue.GetCombinedRgb<FeatureProcessorType::PhotometricUnitType>());
             }
         }
+        
+        template <typename FeatureProcessorType>
+        void LightDelegateBase<FeatureProcessorType>::SetConfig(const AreaLightComponentConfig* config)
+        {
+            m_componentConfig = config;
+        }
 
         template <typename FeatureProcessorType>
         void LightDelegateBase<FeatureProcessorType>::SetChroma(const AZ::Color& color)
@@ -95,20 +101,12 @@ namespace AZ
         template <typename FeatureProcessorType>
         void LightDelegateBase<FeatureProcessorType>::OnShapeChanged(ShapeChangeReasons changeReason)
         {
-            // Shape change events should only be sent to light types which use a shape
-            // However this method may be called with `changeReason==TransformChanged' even when there is no shape
-            // Handle this as a special case
-            if (m_shapeBus == nullptr)
+            if (!m_shapeBus)
             {
-                AZ_Assert(changeReason == ShapeChangeReasons::TransformChanged, AZ_FUNCTION_SIGNATURE " - got shape change event but we have no shape");
-                AZ_Assert(TransformNotificationBus::Handler::BusIsConnected(), AZ_FUNCTION_SIGNATURE " - got shape change event for light with neither a shape nor a transform handler");
-
-                const AZ::EntityId entityId = TransformNotificationBus::Handler::m_node.GetBusId();
-                TransformBus::EventResult(m_transform, entityId, &TransformBus::Events::GetWorldTM);
-                HandleShapeChanged();
+                AZ_Assert(false, "OnShapeChanged called without a shape bus present.");
                 return;
             }
-
+            
             if (changeReason == ShapeChangeReasons::TransformChanged)
             {
                 AZ::Aabb aabb; // unused, but required for GetTransformAndLocalBounds()
@@ -141,7 +139,11 @@ namespace AZ
             {
                 // now visible, acquire light handle and update values.
                 m_lightHandle = m_featureProcessor->AcquireLight();
-                OnShapeChanged(ShapeChangeReasons::TransformChanged);
+                if (m_shapeBus)
+                {
+                    // For lights that get their transform from the shape bus, force an OnShapeChanged to update the transform.
+                    OnShapeChanged(ShapeChangeReasons::TransformChanged);
+                }
             }
         }
 

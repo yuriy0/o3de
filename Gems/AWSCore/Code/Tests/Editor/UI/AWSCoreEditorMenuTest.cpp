@@ -14,6 +14,7 @@
 
 #include <AWSCoreBus.h>
 #include <AWSCoreEditor_Traits_Platform.h>
+#include <Editor/Constants/AWSCoreEditorMenuNames.h>
 #include <Editor/UI/AWSCoreEditorMenu.h>
 #include <Editor/UI/AWSCoreEditorUIFixture.h>
 #include <TestFramework/AWSCoreFixture.h>
@@ -35,8 +36,7 @@ class AWSCoreEditorMenuTest
     {
         AWSCoreEditorUIFixture::SetUp();
         AWSCoreFixture::SetUp();
-
-        m_localFileIO->SetAlias("@engroot@", "dummy engine root");
+        m_localFileIO->SetAlias("@devroot@", "dummy engine root");
     }
 
     void TearDown() override
@@ -48,7 +48,6 @@ class AWSCoreEditorMenuTest
 
 TEST_F(AWSCoreEditorMenuTest, AWSCoreEditorMenu_NoEngineRootFolder_ExpectOneError)
 {
-    m_localFileIO->ClearAlias("@engroot@");
     AZ_TEST_START_TRACE_SUPPRESSION;
     AWSCoreEditorMenu testMenu("dummy title");
     AZ_TEST_STOP_TRACE_SUPPRESSION(1); // expect the above have thrown an AZ_Error
@@ -56,7 +55,9 @@ TEST_F(AWSCoreEditorMenuTest, AWSCoreEditorMenu_NoEngineRootFolder_ExpectOneErro
 
 TEST_F(AWSCoreEditorMenuTest, AWSCoreEditorMenu_GetAllActions_GetExpectedNumberOfActions)
 {
+    AZ_TEST_START_TRACE_SUPPRESSION;
     AWSCoreEditorMenu testMenu("dummy title");
+    AZ_TEST_STOP_TRACE_SUPPRESSION(1); // expect the above have thrown an AZ_Error
 
     QList<QAction*> actualActions = testMenu.actions();
 #ifdef AWSCORE_EDITOR_RESOURCE_MAPPING_TOOL_ENABLED
@@ -68,7 +69,9 @@ TEST_F(AWSCoreEditorMenuTest, AWSCoreEditorMenu_GetAllActions_GetExpectedNumberO
 
 TEST_F(AWSCoreEditorMenuTest, AWSCoreEditorMenu_BroadcastFeatureGemsAreEnabled_CorrespondingActionsAreEnabled)
 {
+    AZ_TEST_START_TRACE_SUPPRESSION;
     AWSCoreEditorMenu testMenu("dummy title");
+    AZ_TEST_STOP_TRACE_SUPPRESSION(1); // expect the above have thrown an AZ_Error
 
     AWSCoreEditorRequestBus::Broadcast(&AWSCoreEditorRequests::SetAWSClientAuthEnabled);
     AWSCoreEditorRequestBus::Broadcast(&AWSCoreEditorRequests::SetAWSMetricsEnabled);
@@ -76,12 +79,12 @@ TEST_F(AWSCoreEditorMenuTest, AWSCoreEditorMenu_BroadcastFeatureGemsAreEnabled_C
     QList<QAction*> actualActions = testMenu.actions();
     for (QList<QAction*>::iterator itr = actualActions.begin(); itr != actualActions.end(); itr++)
     {
-        if (QString::compare((*itr)->text(), AWSCoreEditorMenu::AWSClientAuthActionText) == 0)
+        if (QString::compare((*itr)->text(), AWSClientAuthActionText) == 0)
         {
             EXPECT_TRUE((*itr)->isEnabled());
         }
 
-        if (QString::compare((*itr)->text(), AWSCoreEditorMenu::AWSMetricsActionText) == 0)
+        if (QString::compare((*itr)->text(), AWSMetricsActionText) == 0)
         {
             EXPECT_TRUE((*itr)->isEnabled());
         }

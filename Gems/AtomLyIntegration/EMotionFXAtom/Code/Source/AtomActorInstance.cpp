@@ -93,8 +93,7 @@ namespace AZ
                 m_meshFeatureProcessor->SetLocalAabb(*m_meshHandle, m_localAABB);
             }
 
-            AzFramework::EntityBoundsUnionRequestBus::Broadcast(
-                &AzFramework::EntityBoundsUnionRequestBus::Events::RefreshEntityLocalBoundsUnion, m_entityId);
+            AZ::Interface<AzFramework::IEntityBoundsUnion>::Get()->RefreshEntityLocalBoundsUnion(m_entityId);
         }
 
         AZ::Aabb AtomActorInstance:: GetWorldBounds()

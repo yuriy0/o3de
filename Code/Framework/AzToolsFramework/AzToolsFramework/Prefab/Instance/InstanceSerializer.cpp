@@ -124,7 +124,7 @@ namespace AzToolsFramework
                         "PrefabLoaderInterface could not be found. It is required to load Prefab Instances");
 
                     // Make sure we have a relative path
-                    instance->m_templateSourcePath = loaderInterface->GetRelativePathToProject(instance->m_templateSourcePath);
+                    instance->m_templateSourcePath = loaderInterface->GenerateRelativePath(instance->m_templateSourcePath);
 
                     TemplateId templateId = prefabSystemComponentInterface->GetTemplateIdFromFilePath(instance->GetTemplateSourcePath());
 
@@ -200,7 +200,7 @@ namespace AzToolsFramework
             }
 
             return context.Report(result,
-                result.GetProcessing() == JSR::Processing::Completed ? "Succesfully loaded instance information for prefab." :
+                result.GetProcessing() == JSR::Processing::Completed ? "Successfully loaded instance information for prefab." :
                 "Failed to load instance information for prefab");
         }
 

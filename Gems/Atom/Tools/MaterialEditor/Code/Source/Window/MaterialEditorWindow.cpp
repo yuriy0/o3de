@@ -39,6 +39,7 @@
 #include <Viewport/MaterialViewportWidget.h>
 #include <Window/CreateMaterialDialog/CreateMaterialDialog.h>
 #include <Window/HelpDialog/HelpDialog.h>
+#include <Window/SettingsDialog/SettingsDialog.h>
 #include <Window/MaterialBrowserWidget.h>
 #include <Window/MaterialEditorWindow.h>
 #include <Window/MaterialInspector/MaterialInspector.h>
@@ -160,6 +161,12 @@ namespace MaterialEditor
     {
         MaterialDocumentNotificationBus::Handler::BusDisconnect();
         MaterialEditorWindowRequestBus::Handler::BusDisconnect();
+    }
+
+    void MaterialEditorWindow::ActivateWindow()
+    {
+        activateWindow();
+        raise();
     }
 
     bool MaterialEditorWindow::AddDockWidget(const AZStd::string& name, QWidget* widget, uint32_t area, uint32_t orientation)
@@ -308,7 +315,7 @@ namespace MaterialEditor
 
         m_actionUndo->setEnabled(canUndo);
         m_actionRedo->setEnabled(canRedo);
-        m_actionPreferences->setEnabled(false);
+        m_actionSettings->setEnabled(true);
 
         m_actionAssetBrowser->setEnabled(true);
         m_actionInspector->setEnabled(true);
@@ -501,9 +508,11 @@ namespace MaterialEditor
 
         m_menuEdit->addSeparator();
 
-        m_actionPreferences = m_menuEdit->addAction("&Preferences...", [this]() {
+        m_actionSettings = m_menuEdit->addAction("&Settings...", [this]() {
+            SettingsDialog dialog(this);
+            dialog.exec();
         }, QKeySequence::Preferences);
-        m_actionPreferences->setEnabled(false);
+        m_actionSettings->setEnabled(true);
 
         m_menuView = m_menuBar->addMenu("&View");
 
@@ -548,8 +557,8 @@ namespace MaterialEditor
         m_menuHelp = m_menuBar->addMenu("&Help");
 
         m_actionHelp = m_menuHelp->addAction("&Help...", [this]() {
-            HelpDialog dlg(this);
-            dlg.exec();
+            HelpDialog dialog(this);
+            dialog.exec();
         });
 
         m_actionAbout = m_menuHelp->addAction("&About...", [this]() {

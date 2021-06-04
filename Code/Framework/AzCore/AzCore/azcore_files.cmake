@@ -292,6 +292,8 @@ set(FILES
     Math/MathScriptHelpers.h
     Math/MathUtils.cpp
     Math/MathUtils.h
+    Math/MathMatrixSerializer.h
+    Math/MathMatrixSerializer.cpp
     Math/MathVectorSerializer.h
     Math/MathVectorSerializer.cpp
     Math/Matrix3x3.cpp

@@ -30,7 +30,7 @@ namespace LyViewPane
     static const char* const EntityInspector = "Entity Inspector";
     static const char* const EntityInspectorPinned = "Pinned Entity Inspector";
     static const char* const LevelInspector = "Level Inspector";
-    static const char* const ProjectSettingsTool = "Project Settings Tool";
+    static const char* const ProjectSettingsTool = "Edit Platform Settings...";
     static const char* const ErrorReport = "Error Report";
     static const char* const Console = "Console";
     static const char* const ConsoleMenuName = "&Console";
@@ -43,10 +43,7 @@ namespace LyViewPane
     static const char* const TerrainEditor = "Terrain Editor";
     static const char* const TerrainTool = "Terrain Tool";
     static const char* const TerrainTextureLayers = "Terrain Texture Layers";
-    static const char* const MaterialEditor = "Material Editor";
     static const char* const ParticleEditor = "Particle Editor";
-    static const char* const LensFlareEditor = "Lens Flare Editor";
-    static const char* const TimeOfDayEditor = "Time Of Day";
     static const char* const AudioControlsEditor = "Audio Controls Editor";
     static const char* const SubstanceEditor = "Substance Editor";
     static const char* const VegetationEditor = "Vegetation Editor";

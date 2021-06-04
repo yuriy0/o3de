@@ -163,7 +163,7 @@ namespace AZ
         return Obb::CreateFromPositionRotationAndHalfLengths(
             transform.TransformPoint(obb.GetPosition()),
             transform.GetRotation() * obb.GetRotation(),
-            transform.GetScale() * obb.GetHalfLengths()
+            transform.GetUniformScale() * obb.GetHalfLengths()
         );
     }
 }

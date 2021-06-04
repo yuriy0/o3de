@@ -90,9 +90,9 @@ namespace AZ
             AddDrawPacket(drawPacket, depth);
         }
 
-        void View::AddDrawItem(RHI::DrawListTag drawListTag, const RHI::DrawItemKeyPair& drawItemKeyPair)
+        void View::AddDrawItem(RHI::DrawListTag drawListTag, const RHI::DrawItemProperties& drawItemProperties)
         {
-            m_drawListContext.AddDrawItem(drawListTag, drawItemKeyPair);
+            m_drawListContext.AddDrawItem(drawListTag, drawItemProperties);
         }
 
         void View::SetWorldToViewMatrix(const AZ::Matrix4x4& worldToView)
@@ -114,8 +114,8 @@ namespace AZ
         {
             static const Quaternion yUpToZUp = Quaternion::CreateRotationX(-AZ::Constants::HalfPi);
             return AZ::Transform::CreateFromQuaternionAndTranslation(
-                Quaternion::CreateFromMatrix4x4(m_worldToViewMatrix) * yUpToZUp,
-                m_worldToViewMatrix.GetTranslation()
+                Quaternion::CreateFromMatrix4x4(m_viewToWorldMatrix) * yUpToZUp,
+                m_viewToWorldMatrix.GetTranslation()
             ).GetOrthogonalized();
         }
 

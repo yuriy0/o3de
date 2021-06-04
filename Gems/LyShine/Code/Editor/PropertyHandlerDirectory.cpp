@@ -49,7 +49,7 @@ PropertyDirectoryCtrl::PropertyDirectoryCtrl(QWidget* parent)
 
         refreshButton->setFocusPolicy(Qt::StrongFocus);
 
-        refreshButton->setIcon(QIcon("Editor/Icons/PropertyEditor/reset_icon.png"));
+        refreshButton->setIcon(QIcon("Icons/PropertyEditor/reset_icon.png"));
 
         // The icon size needs to be smaller than the fixed size to make sure it visually aligns properly.
         QSize iconSize = QSize(fixedSize.width() - 2, fixedSize.height() - 2);
@@ -158,7 +158,10 @@ bool PropertyHandlerDirectory::ReadValuesIntoGUI(size_t index, PropertyDirectory
 
     ctrl->blockSignals(true);
     {
+        // Set currently selected folder path
+        // Note: this must be done before setting asset type below which updates the GUI display
         ctrl->SetCurrentAssetHint(instance);
+        ctrl->SetFolderSelection(instance);
 
         // We need to set the asset type so the property panel labels get
         // populated properly (via SetCurrentAssetType). To avoid defining
@@ -166,8 +169,6 @@ bool PropertyHandlerDirectory::ReadValuesIntoGUI(size_t index, PropertyDirectory
         // logic to run (otherwise it will early-out due to invalid asset type).
         const char* throwAwayAssetType = "{43EDD212-F589-43C8-BC02-A8F9243271CB}";
         ctrl->SetCurrentAssetType(AZ::Data::AssetType(throwAwayAssetType));
-
-        ctrl->SetFolderSelection(instance);
     }
     ctrl->blockSignals(false);
 

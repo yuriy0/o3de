@@ -40,7 +40,7 @@ namespace MaterialEditor
         ~ViewportSettingsInspector() override;
 
     private:
-        void Popuate();
+        void Populate();
         void AddGeneralGroup();
 
         void AddModelGroup();

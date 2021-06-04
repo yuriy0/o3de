@@ -36,7 +36,6 @@ class AWSCoreEditorSystemComponentTest
         AWSCoreEditorUIFixture::SetUp();
         AWSCoreFixture::SetUp();
 
-        m_localFileIO->SetAlias("@engroot@", "dummy engine root");
         m_serializeContext = AZStd::make_unique<AZ::SerializeContext>();
         m_serializeContext->CreateEditContext();
         m_behaviorContext = AZStd::make_unique<AZ::BehaviorContext>();
@@ -46,7 +45,9 @@ class AWSCoreEditorSystemComponentTest
 
         m_entity = aznew AZ::Entity();
         m_coreEditorSystemsComponent.reset(m_entity->CreateComponent<AWSCoreEditorSystemComponent>());
+        AZ_TEST_START_TRACE_SUPPRESSION;
         m_entity->Init();
+        AZ_TEST_STOP_TRACE_SUPPRESSION(1); // expect the above have thrown an AZ_Error
         m_entity->Activate();
     }
 
@@ -84,7 +85,7 @@ TEST_F(AWSCoreEditorSystemComponentTest, NotifyMainWindowInitialized_HaveDummyMe
     testMenuBar->addMenu("dummy menu");
     AzToolsFramework::EditorEvents::Bus::Broadcast(&AzToolsFramework::EditorEvents::NotifyMainWindowInitialized, &testMainWindow);
     EXPECT_TRUE(testMenuBar->actions().size() == 2);
-    EXPECT_TRUE(QString::compare(testMenuBar->actions()[1]->text(), AWSCoreEditorManager::CLOUD_SERVICES_MENU_TEXT) == 0);
+    EXPECT_TRUE(QString::compare(testMenuBar->actions()[1]->text(), AWSCoreEditorManager::AWS_MENU_TEXT) == 0);
 }
 
 TEST_F(AWSCoreEditorSystemComponentTest, NotifyMainWindowInitialized_HaveHelpMenuInMenuBar_ExpectedMenuGetsAddedAtFront)
@@ -94,5 +95,5 @@ TEST_F(AWSCoreEditorSystemComponentTest, NotifyMainWindowInitialized_HaveHelpMen
     testMenuBar->addMenu(AWSCoreEditorSystemComponent::EDITOR_HELP_MENU_TEXT);
     AzToolsFramework::EditorEvents::Bus::Broadcast(&AzToolsFramework::EditorEvents::NotifyMainWindowInitialized, &testMainWindow);
     EXPECT_TRUE(testMenuBar->actions().size() == 2);
-    EXPECT_TRUE(QString::compare(testMenuBar->actions()[0]->text(), AWSCoreEditorManager::CLOUD_SERVICES_MENU_TEXT) == 0);
+    EXPECT_TRUE(QString::compare(testMenuBar->actions()[0]->text(), AWSCoreEditorManager::AWS_MENU_TEXT) == 0);
 }

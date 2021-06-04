@@ -46,12 +46,14 @@ ly_add_target(
             AZ::AzCore
             AZ::AzFramework
             Legacy::CryCommon
+        PRIVATE
             Gem::LmbrCentral
 )
 
 ly_add_target(
     NAME PhysX ${PAL_TRAIT_MONOLITHIC_DRIVEN_MODULE_TYPE}
     NAMESPACE Gem
+    OUTPUT_NAME PhysX.Gem
     FILES_CMAKE
         ${physx_shared_files}
     COMPILE_DEFINITIONS
@@ -65,11 +67,19 @@ ly_add_target(
     BUILD_DEPENDENCIES
         PRIVATE
             Gem::PhysX.Static
+            Gem::LmbrCentral
     RUNTIME_DEPENDENCIES
         Gem::LmbrCentral
 )
 
+# use the PhysX module in clients and servers:
+ly_create_alias(NAME PhysX.Clients NAMESPACE Gem TARGETS Gem::PhysX)
+ly_create_alias(NAME PhysX.Servers NAMESPACE Gem TARGETS Gem::PhysX)
+
 if(PAL_TRAIT_BUILD_HOST_TOOLS)
+
+     ly_associate_package(PACKAGE_NAME poly2tri-0.3.3-rev2-multiplatform TARGETS poly2tri PACKAGE_HASH 04092d06716f59b936b61906eaf3647db23b685d81d8b66131eb53e0aeaa1a38) 
+     ly_associate_package(PACKAGE_NAME v-hacd-2.0-rev1-multiplatform     TARGETS v-hacd   PACKAGE_HASH 5c71aef19cc9787d018d64eec076e9f51ea5a3e0dc6b6e22e57c898f6cc4afe3)
 
     ly_add_target(
         NAME PhysX.Editor.Static STATIC
@@ -103,9 +113,7 @@ if(PAL_TRAIT_BUILD_HOST_TOOLS)
                 AZ::SceneCore
                 AZ::SceneData
                 Legacy::CryCommon
-                Legacy::CryCommonTools
-                Legacy::Cry3DEngine.CGF.Static
-                Gem::LmbrCentral
+                Gem::LmbrCentral.Editor
                 Gem::PhysX.NumericalMethods
                 Gem::PhysX.Static
                 Gem::AtomLyIntegration_CommonFeatures.Static
@@ -115,11 +123,14 @@ if(PAL_TRAIT_BUILD_HOST_TOOLS)
 
     ly_add_target(
         NAME PhysX.Editor GEM_MODULE
-
         NAMESPACE Gem
+        OUTPUT_NAME PhysX.Editor.Gem
         AUTOMOC
         FILES_CMAKE
             physx_editor_shared_files.cmake
+        COMPILE_DEFINITIONS
+            PUBLIC
+                PHYSX_ENABLE_MULTI_THREADING
         INCLUDE_DIRECTORIES
             PRIVATE
                 .
@@ -134,6 +145,10 @@ if(PAL_TRAIT_BUILD_HOST_TOOLS)
             Gem::LmbrCentral.Editor
     )
 
+    # use the PhysX.Editor module in dev tools:
+    ly_create_alias(NAME PhysX.Builders NAMESPACE Gem TARGETS Gem::PhysX.Editor)
+    ly_create_alias(NAME PhysX.Tools    NAMESPACE Gem TARGETS Gem::PhysX.Editor)
+
 endif()
 
 ################################################################################
@@ -144,6 +159,7 @@ if(PAL_TRAIT_BUILD_TESTS_SUPPORTED)
     ly_add_target(
         NAME PhysX.Tests ${PAL_TRAIT_TEST_TARGET_TYPE}
         NAMESPACE Gem
+        OUTPUT_NAME PhysX.Tests.Gem
         FILES_CMAKE
             physx_tests_files.cmake
         INCLUDE_DIRECTORIES
@@ -154,6 +170,7 @@ if(PAL_TRAIT_BUILD_TESTS_SUPPORTED)
                 AZ::AzTestShared
                 AZ::AzTest
                 Gem::PhysX.Static
+                Gem::LmbrCentral
         RUNTIME_DEPENDENCIES
             Gem::LmbrCentral
     )
@@ -163,7 +180,7 @@ if(PAL_TRAIT_BUILD_TESTS_SUPPORTED)
     ly_add_googlebenchmark(
         NAME Gem::PhysX.Benchmarks
         TARGET Gem::PhysX.Tests
-        TIMEOUT 2400 #40mins
+        TIMEOUT 1500 #25mins
     )
 
     list(APPEND testTargets PhysX.Tests)
@@ -172,6 +189,7 @@ if(PAL_TRAIT_BUILD_TESTS_SUPPORTED)
         ly_add_target(
             NAME PhysX.Editor.Tests ${PAL_TRAIT_TEST_TARGET_TYPE}
             NAMESPACE Gem
+            OUTPUT_NAME PhysX.Editor.Tests.Gem
             FILES_CMAKE
                 physx_editor_tests_files.cmake
             INCLUDE_DIRECTORIES

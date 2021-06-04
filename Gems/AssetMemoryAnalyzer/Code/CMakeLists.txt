@@ -23,7 +23,6 @@ ly_add_target(
         PUBLIC
             AZ::AzCore
             Legacy::CryCommon
-            Legacy::CryRender.Headers
             Gem::ImGui.Static
 )
 
@@ -43,6 +42,10 @@ ly_add_target(
     RUNTIME_DEPENDENCIES
         Gem::ImGui
 )
+
+# AssetMemoryAnalyzer is available in clients and servers.
+ly_create_alias(NAME AssetMemoryAnalyzer.Clients NAMESPACE Gem TARGETS Gem::AssetMemoryAnalyzer)
+ly_create_alias(NAME AssetMemoryAnalyzer.Servers NAMESPACE Gem TARGETS Gem::AssetMemoryAnalyzer)
 
 ################################################################################
 # Tests
@@ -66,3 +69,4 @@ if(PAL_TRAIT_BUILD_TESTS_SUPPORTED)
         NAME Gem::AssetMemoryAnalyzer.Tests
     )
 endif()
+

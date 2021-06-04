@@ -16,11 +16,14 @@
 #include <Atom/RPI.Public/Pass/PassFilter.h>
 #include <Atom/RPI.Public/Pass/RenderPass.h>
 #include <Atom/RPI.Public/Pass/Specific/SwapChainPass.h>
+#include <Atom/RPI.Public/ViewportContextManager.h>
 
 #include <Atom/Utils/DdsFile.h>
 #include <Atom/Utils/PpmFile.h>
 
 #include <AtomCore/Serialization/Json/JsonUtils.h>
+#include <AzCore/Jobs/JobFunction.h>
+#include <AzCore/Jobs/JobCompletion.h>
 
 #include <AzCore/IO/SystemFile.h>
 #include <AzCore/RTTI/BehaviorContext.h>
@@ -31,12 +34,89 @@
 #include <AzFramework/StringFunc/StringFunc.h>
 
 #include <AzCore/Preprocessor/EnumReflectUtils.h>
+#include <AzCore/Console/Console.h>
+
+#if defined(OPEN_IMAGE_IO_ENABLED)
+#include <OpenImageIO/imageio.h>
+#endif
 
 namespace AZ
 {
     namespace Render
     {
         AZ_ENUM_DEFINE_REFLECT_UTILITIES(FrameCaptureResult);
+
+#if defined(OPEN_IMAGE_IO_ENABLED)
+        AZ_CVAR(unsigned int,
+            r_pngCompressionLevel,
+            3, // A compression level of 3 seems like the best default in terms of file size and saving speeds
+            nullptr,
+            ConsoleFunctorFlags::Null,
+            "Sets the compression level for saving png screenshots. Valid values are from 0 to 8"
+        );
+
+        FrameCaptureOutputResult PngFrameCaptureOutput(
+            const AZStd::string& outputFilePath, const AZ::RPI::AttachmentReadback::ReadbackResult& readbackResult)
+        {
+            AZStd::shared_ptr<AZStd::vector<uint8_t>> buffer = readbackResult.m_dataBuffer;
+
+            // convert bgra to rgba by swapping channels
+            const int numChannels = AZ::RHI::GetFormatComponentCount(readbackResult.m_imageDescriptor.m_format);
+            if (readbackResult.m_imageDescriptor.m_format == RHI::Format::B8G8R8A8_UNORM)
+            {
+                buffer = AZStd::make_shared<AZStd::vector<uint8_t>>(readbackResult.m_dataBuffer->size());
+                AZStd::copy(readbackResult.m_dataBuffer->begin(), readbackResult.m_dataBuffer->end(), buffer->begin());
+
+                AZ::JobCompletion jobCompletion;
+                const int numThreads = 8;
+                const int numPixelsPerThread = buffer->size() / numChannels / numThreads;
+                for (int i = 0; i < numThreads; ++i)
+                {
+                    int startPixel = i * numPixelsPerThread;
+
+                    AZ::Job* job = AZ::CreateJobFunction(
+                        [&, startPixel, numPixelsPerThread]()
+                        {
+                            for (int pixelOffset = 0; pixelOffset < numPixelsPerThread; ++pixelOffset)
+                            {
+                                if (startPixel * numChannels + numChannels < buffer->size())
+                                {
+                                    AZStd::swap(
+                                        buffer->data()[(startPixel + pixelOffset) * numChannels],
+                                        buffer->data()[(startPixel + pixelOffset) * numChannels + 2]
+                                    );
+                                }
+                            }
+                        }, true, nullptr);
+
+                    job->SetDependent(&jobCompletion);
+                    job->Start();
+                }
+                jobCompletion.StartAndWaitForCompletion();
+            }
+
+            using namespace OIIO;
+            AZStd::unique_ptr<ImageOutput> out = ImageOutput::create(outputFilePath.c_str());
+            if (out)
+            {
+                ImageSpec spec(
+                    readbackResult.m_imageDescriptor.m_size.m_width,
+                    readbackResult.m_imageDescriptor.m_size.m_height,
+                    numChannels
+                );
+                spec.attribute("png:compressionLevel", r_pngCompressionLevel);
+
+                if (out->open(outputFilePath.c_str(), spec))
+                {
+                    out->write_image(TypeDesc::UINT8, buffer->data());
+                    out->close();
+                    return FrameCaptureOutputResult{FrameCaptureResult::Success, AZStd::nullopt};
+                }
+            }
+
+            return FrameCaptureOutputResult{FrameCaptureResult::InternalError, "Unable to save frame capture output to " + outputFilePath};
+        }
+#endif
 
         FrameCaptureOutputResult DdsFrameCaptureOutput(
             const AZStd::string& outputFilePath, const AZ::RPI::AttachmentReadback::ReadbackResult& readbackResult)
@@ -210,11 +290,7 @@ namespace AZ
 
         bool FrameCaptureSystemComponent::CaptureScreenshot(const AZStd::string& filePath)
         {
-            AzFramework::NativeWindowHandle windowHandle = nullptr;
-            AzFramework::WindowSystemRequestBus::BroadcastResult(
-                windowHandle,
-                &AzFramework::WindowSystemRequestBus::Events::GetDefaultWindowHandle);
-
+            AzFramework::NativeWindowHandle windowHandle = AZ::RPI::ViewportContextRequests::Get()->GetDefaultViewportContext()->GetWindowHandle();
             if (windowHandle)
             {
                 return CaptureScreenshotForWindow(filePath, windowHandle);
@@ -377,7 +453,6 @@ namespace AZ
                 if (readbackResult.m_attachmentType == AZ::RHI::AttachmentType::Buffer)
                 {
                     // write buffer data to the data file
-
                     AZ::IO::FileIOStream fileStream(m_outputFilePath.c_str(), AZ::IO::OpenMode::ModeWrite | AZ::IO::OpenMode::ModeCreatePath);
                     if (fileStream.IsOpen())
                     {
@@ -418,6 +493,28 @@ namespace AZ
                         m_result = ddsFrameCapture.m_result;
                         m_latestCaptureInfo = ddsFrameCapture.m_errorMessage.value_or("");
                     }
+#if defined(OPEN_IMAGE_IO_ENABLED)
+                    else if (extension == "png")
+                    {
+                        if (readbackResult.m_imageDescriptor.m_format == RHI::Format::R8G8B8A8_UNORM ||
+                            readbackResult.m_imageDescriptor.m_format == RHI::Format::B8G8R8A8_UNORM)
+                        {
+                            AZStd::string folderPath;
+                            AzFramework::StringFunc::Path::GetFolderPath(m_outputFilePath.c_str(), folderPath);
+                            AZ::IO::SystemFile::CreateDir(folderPath.c_str());
+
+                            const auto frameCaptureResult = PngFrameCaptureOutput(m_outputFilePath, readbackResult);
+                            m_result = frameCaptureResult.m_result;
+                            m_latestCaptureInfo = frameCaptureResult.m_errorMessage.value_or("");
+                        }
+                        else
+                        {
+                            m_latestCaptureInfo = AZStd::string::format(
+                                "Can't save image with format %s to a png file", RHI::ToString(readbackResult.m_imageDescriptor.m_format));
+                            m_result = FrameCaptureResult::UnsupportedFormat;
+                        }
+                    }
+#endif
                     else
                     {
                         m_latestCaptureInfo = AZStd::string::format("Only supports saving image to ppm or dds files");

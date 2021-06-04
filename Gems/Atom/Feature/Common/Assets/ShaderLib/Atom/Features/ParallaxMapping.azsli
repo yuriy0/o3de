@@ -58,7 +58,7 @@ DepthResult DepthResultAbsolute(float depth)
 
 //! The client shader must define this function.
 //! This allows the client shader to implement special depth map sampling, for example procedurally generating or blending depth maps.
-//! In simple cases though, the implementation of GetDepth() can simply call SampleDepthOrHeightMap().
+//! In simple cases though, the implementation of GetDepth() can simply call SampleDepthFromHeightmap().
 //! @param uv the UV coordinates to use for sampling
 //! @param uv_ddx will be set to ddx_fine(uv)
 //! @param uv_ddy will be set to ddy_fine(uv)
@@ -169,7 +169,7 @@ ParallaxOffset AdvancedParallaxMapping(float depthFactor, float depthOffset, flo
     float2 ddx_uv = ddx_fine(uv);
     float2 ddy_uv = ddy_fine(uv);
 
-    float depthSearchStart = -depthOffset;
+    float depthSearchStart = depthOffset;
     float depthSearchEnd = depthSearchStart + depthFactor;
     
     float inverseDepthFactor = 1.0 / depthFactor;
@@ -398,7 +398,8 @@ ParallaxOffset GetParallaxOffset( float depthFactor,
 
 struct PixelDepthOffset
 {
-    float m_depth;
+    float m_depthNDC; //!< The new depth value, in normalized device coordinates (used for final depth output)
+    float m_depthCS;  //!< The new depth value, in clip space (can be used for other operations like light culling)
     float3 m_worldPosition;
 };
 
@@ -432,7 +433,8 @@ PixelDepthOffset CalcPixelDepthOffset(  float depthFactor,
     float4 clipOffsetPosition = mul(viewProjectionMatrix, float4(worldOffsetPosition, 1.0));
 
     PixelDepthOffset pdo;
-    pdo.m_depth = clipOffsetPosition.z / clipOffsetPosition.w;
+    pdo.m_depthCS = clipOffsetPosition.z;
+    pdo.m_depthNDC = clipOffsetPosition.z / clipOffsetPosition.w;
     pdo.m_worldPosition = worldOffsetPosition;
     return pdo;
 }

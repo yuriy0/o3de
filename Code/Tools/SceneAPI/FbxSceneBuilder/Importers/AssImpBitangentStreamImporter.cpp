@@ -74,13 +74,13 @@ namespace AZ
                 const bool allMeshesHaveTangentsAndBitangents = AZStd::all_of(currentNode->mMeshes, currentNode->mMeshes + currentNode->mNumMeshes, meshHasTangentsAndBitangents);
                 if (!allMeshesHaveTangentsAndBitangents)
                 {
-                    const char* mixedBitangentsError =
-                        "Node with name %s has meshes with and without bitangents. "
-                        "Placeholder incorrect bitangents will be generated to allow the data to process, "
-                        "but the source art needs to be fixed to correct this. Either apply bitangents to all meshes on this node, "
-                        "or remove all bitangents from all meshes on this node.";
                     AZ_Error(
-                        Utilities::ErrorWindow, false, mixedBitangentsError, currentNode->mName.C_Str());
+                        Utilities::ErrorWindow, false,
+                        "Node with name %s has meshes with and without bitangents. "
+                            "Placeholder incorrect bitangents will be generated to allow the data to process, "
+                            "but the source art needs to be fixed to correct this. Either apply bitangents to all meshes on this node, "
+                            "or remove all bitangents from all meshes on this node.",
+                        currentNode->mName.C_Str());
                 }
 
                 const uint64_t vertexCount = GetVertexCountForAllMeshesOnNode(*currentNode, *scene);
@@ -104,7 +104,7 @@ namespace AZ
                             // An error was already thrown above. Output stub bitangents so
                             // the mesh can still be output in some form, even if the data isn't correct.
                             // The bitangent count needs to match the vertex count on the associated mesh node.
-                            bitangentStream->AppendBitangent(Vector3::CreateAxisX());
+                            bitangentStream->AppendBitangent(Vector3::CreateAxisY());
                         }
                         else
                         {

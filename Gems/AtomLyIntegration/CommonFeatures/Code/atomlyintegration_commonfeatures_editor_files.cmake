@@ -10,9 +10,12 @@
 #
 
 set(FILES
-    Source/Module.cpp
     Include/AtomLyIntegration/CommonFeatures/Material/EditorMaterialSystemComponentRequestBus.h
     Include/AtomLyIntegration/CommonFeatures/ReflectionProbe/EditorReflectionProbeBus.h
+    Include/AtomLyIntegration/CommonFeatures/Thumbnails/ThumbnailFeatureProcessorProviderBus.h
+    Source/Module.cpp
+    Source/Animation/EditorAttachmentComponent.h
+    Source/Animation/EditorAttachmentComponent.cpp
     Source/EditorCommonFeaturesSystemComponent.h
     Source/EditorCommonFeaturesSystemComponent.cpp
     Source/CoreLights/EditorAreaLightComponent.h
@@ -41,6 +44,8 @@ set(FILES
     Source/Material/EditorMaterialModelUvNameMapInspector.h
     Source/Material/EditorMaterialSystemComponent.cpp
     Source/Material/EditorMaterialSystemComponent.h
+    Source/Material/MaterialBrowserInteractions.h
+    Source/Material/MaterialBrowserInteractions.cpp
     Source/Material/MaterialThumbnail.cpp
     Source/Material/MaterialThumbnail.h
     Source/Mesh/EditorMeshComponent.h

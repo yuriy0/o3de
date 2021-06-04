@@ -15,6 +15,7 @@
 #include <AzCore/Component/TickBus.h>
 #include <AzCore/Interface/Interface.h>
 #include <AzToolsFramework/Entity/EditorEntityContextBus.h>
+#include <AzToolsFramework/Entity/EditorEntityHelpers.h>
 #include <AzToolsFramework/API/ToolsApplicationAPI.h>
 #include <AzToolsFramework/Prefab/Instance/Instance.h>
 #include <AzToolsFramework/Prefab/Instance/TemplateInstanceMapperInterface.h>
@@ -71,8 +72,16 @@ namespace AzToolsFramework
 
             for (auto instance : findInstancesResult->get())
             {
-                m_instancesUpdateQueue.emplace(instance);
+                m_instancesUpdateQueue.emplace_back(instance);
             }
+        }
+
+        void InstanceUpdateExecutor::RemoveTemplateInstanceFromQueue(const Instance* instance)
+        {
+            AZStd::erase_if(m_instancesUpdateQueue, [instance](Instance* entry)
+            {
+                return entry == instance;
+            });
         }
 
         bool InstanceUpdateExecutor::UpdateTemplateInstancesInQueue()
@@ -96,9 +105,16 @@ namespace AzToolsFramework
                     ToolsApplicationRequestBus::BroadcastResult(selectedEntityIds, &ToolsApplicationRequests::GetSelectedEntities);
                     ToolsApplicationRequestBus::Broadcast(&ToolsApplicationRequests::SetSelectedEntities, EntityIdList());
 
-                    for (int i = 0; i < instanceCountToUpdateInBatch; ++i)
+                    // Process all instances in the queue, capped to the batch size.
+                    // Even though we potentially initialized the batch size to the queue, it's possible for the queue size to shrink
+                    // during instance processing if the instance gets deleted and it was queued multiple times.  To handle this, we
+                    // make sure to end the loop once the queue is empty, regardless of what the initial size was.
+                    for (int i = 0; (i < instanceCountToUpdateInBatch) && !m_instancesUpdateQueue.empty(); ++i)
                     {
                         Instance* instanceToUpdate = m_instancesUpdateQueue.front();
+                        m_instancesUpdateQueue.pop_front();
+                        AZ_Assert(instanceToUpdate != nullptr, "Invalid instance on update queue.");
+
                         TemplateId instanceTemplateId = instanceToUpdate->GetTemplateId();
                         if (currentTemplateId != instanceTemplateId)
                         {
@@ -112,14 +128,54 @@ namespace AzToolsFramework
                                     "Could not find Template using Id '%llu'. Unable to update Instance.",
                                     currentTemplateId);
 
+                                // Remove the instance from update queue if its corresponding template couldn't be found
                                 isUpdateSuccessful = false;
+                                continue;
                             }
+                        }
+
+                        auto findInstancesResult = m_templateInstanceMapperInterface->FindInstancesOwnedByTemplate(instanceTemplateId);
+                        AZ_Assert(
+                            findInstancesResult.has_value(), "Prefab Instances corresponding to template with id %llu couldn't be found.",
+                            instanceTemplateId);
+
+                        if (findInstancesResult == AZStd::nullopt ||
+                            findInstancesResult->get().find(instanceToUpdate) == findInstancesResult->get().end())
+                        {
+                            // Since nested instances get reconstructed during propagation, remove any nested instance that no longer
+                            // maps to a template.
+                            isUpdateSuccessful = false;
+                            continue;
                         }
 
                         Template& currentTemplate = currentTemplateReference->get();
                         Instance::EntityList newEntities;
                         if (PrefabDomUtils::LoadInstanceFromPrefabDom(*instanceToUpdate, newEntities, currentTemplate.GetPrefabDom()))
                         {
+                            // If a link was created for a nested instance before the changes were propagated,
+                            // then we associate it correctly here
+                            instanceToUpdate->GetNestedInstances([&](AZStd::unique_ptr<Instance>& nestedInstance) {
+                                if (nestedInstance->GetLinkId() != InvalidLinkId)
+                                {
+                                    return;
+                                }
+
+                                for (auto linkId : currentTemplate.GetLinks())
+                                {
+                                    LinkReference nestedLink = m_prefabSystemComponentInterface->FindLink(linkId);
+                                    if (!nestedLink.has_value())
+                                    {
+                                        continue;
+                                    }
+
+                                    if (nestedLink->get().GetInstanceName() == nestedInstance->GetInstanceAlias())
+                                    {
+                                        nestedInstance->SetLinkId(linkId);
+                                        break;
+                                    }
+                                }
+                            });
+
                             AzToolsFramework::EditorEntityContextRequestBus::Broadcast(
                                 &AzToolsFramework::EditorEntityContextRequests::HandleEntitiesAdded, newEntities);
                         }
@@ -133,11 +189,18 @@ namespace AzToolsFramework
 
                             isUpdateSuccessful = false;
                         }
-
-                        m_instancesUpdateQueue.pop();
-
                     }
 
+                    for (auto entityIdIterator = selectedEntityIds.begin(); entityIdIterator != selectedEntityIds.end(); entityIdIterator++)
+                    {
+                        // Since entities get recreated during propagation, we need to check whether the entities correspoding to the list
+                        // of selected entity ids are present or not.
+                        AZ::Entity* entity = GetEntityById(*entityIdIterator);
+                        if (entity == nullptr)
+                        {
+                            selectedEntityIds.erase(entityIdIterator--);
+                        }
+                    }
                     ToolsApplicationRequestBus::Broadcast(&ToolsApplicationRequests::SetSelectedEntities, selectedEntityIds);
 
                     // Notify Propagation has ended

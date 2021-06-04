@@ -10,11 +10,23 @@
 *
 */
 
+// SRGs
 #include <viewsrg.srgi>
-#include <Atom/Features/PBR/ForwardPassSrg.azsli>
 #include <Atom/Features/PBR/DefaultObjectSrg.azsli>
+#include <Atom/Features/PBR/ForwardPassSrg.azsli>
+
+// Pass Output
 #include <Atom/Features/PBR/ForwardPassOutput.azsli>
+
+// Utility
 #include <Atom/Features/ColorManagement/TransformColor.azsli>
+#include <Atom/Features/PBR/AlphaUtils.azsli>
+
+// Custom Surface & Lighting
+#include <Atom/Features/PBR/Lighting/StandardLighting.azsli>
+
+// Decals
+#include <Atom/Features/PBR/Decals.azsli>
 
 // ---------- Material Parameters ----------
 
@@ -45,6 +57,9 @@ DEFINE_LAYER_OPTIONS(o_layer3_)
 
 #include "MaterialInputs/TransmissionInput.azsli"
 #include "StandardMultilayerPBR_Common.azsli"
+
+
+// ---------- Vertex Shader ----------
 
 struct VSInput
 {
@@ -82,8 +97,6 @@ struct VSOutput
     float3 m_blendMask : UV7;
 };
 
-#include <Atom/Features/PBR/AlphaUtils.azsli>
-#include <Atom/Features/PBR/LightingModel.azsli>
 #include <Atom/Features/Vertex/VertexHelper.azsli>
 
 VSOutput ForwardPassVS(VSInput IN)
@@ -300,23 +313,19 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     LayerBlendSource blendSource = GetFinalLayerBlendSource();
 
     // ------- Tangents & Bitangets -------
+    float3 tangents[UvSetCount] = { IN.m_tangent.xyz, IN.m_tangent.xyz };
+    float3 bitangents[UvSetCount] = { IN.m_bitangent.xyz, IN.m_bitangent.xyz };
 
-    // We support two UV streams, but only a single stream of tangent/bitangent. So for UV[1+] we generated the tangent/bitangent in screen-space.
-    float3 tangents[UvSetCount] = { IN.m_tangent.xyz, float3(0, 0, 0) };
-    float3 bitangents[UvSetCount] = { IN.m_bitangent.xyz, float3(0, 0, 0) };
-
-    if ((o_parallax_feature_enabled && !o_enableSubsurfaceScattering && MaterialSrg::m_parallaxUvIndex != 0)
-        || (o_layer1_o_normal_useTexture && MaterialSrg::m_layer1_m_normalMapUvIndex != 0)
-        || (o_layer2_o_normal_useTexture && MaterialSrg::m_layer2_m_normalMapUvIndex != 0)
-        || (o_layer3_o_normal_useTexture && MaterialSrg::m_layer3_m_normalMapUvIndex != 0)
-        || (o_layer1_o_clearCoat_normal_useTexture && MaterialSrg::m_layer1_m_clearCoatNormalMapUvIndex != 0)
-        || (o_layer2_o_clearCoat_normal_useTexture && MaterialSrg::m_layer2_m_clearCoatNormalMapUvIndex != 0)
-        || (o_layer3_o_clearCoat_normal_useTexture && MaterialSrg::m_layer3_m_clearCoatNormalMapUvIndex != 0)
+    if ((o_parallax_feature_enabled && !o_enableSubsurfaceScattering)
+        || o_layer1_o_normal_useTexture
+        || o_layer2_o_normal_useTexture
+        || o_layer3_o_normal_useTexture
+        || o_layer1_o_clearCoat_normal_useTexture
+        || o_layer2_o_clearCoat_normal_useTexture
+        || o_layer3_o_clearCoat_normal_useTexture
         )
     {
-        // Generate the tangent/bitangent for UV[1+]
-        const int startIndex = 1;
-        PrepareGeneratedTangent(IN.m_normal, IN.m_worldPosition, isFrontFace, IN.m_uv, UvSetCount, tangents, bitangents, startIndex);
+        PrepareGeneratedTangent(IN.m_normal, IN.m_worldPosition, isFrontFace, IN.m_uv, UvSetCount, tangents, bitangents);
     }
     
     // ------- Debug Modes -------
@@ -324,7 +333,7 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     if(o_debugDrawMode == DebugDrawMode::BlendMask)
     {
         float3 blendMaskValues = GetApplicableBlendMaskValues(blendSource, IN.m_uv[MaterialSrg::m_blendMaskUvIndex], IN.m_blendMask);
-        return MakeDebugOutput(IN, blendMaskValues);
+        return DebugOutput(blendMaskValues);
     }
     
     if(o_debugDrawMode == DebugDrawMode::Displacement)
@@ -333,13 +342,13 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
         float stopDepth = -MaterialSrg::m_displacementMin;
         float depth = GetNormalizedDepth(startDepth, stopDepth, IN.m_uv[MaterialSrg::m_parallaxUvIndex], float2(0,0), float2(0,0));
         float height = 1 - saturate(depth);
-        return MakeDebugOutput(IN, float3(height,height,height));
+        return DebugOutput(float3(height,height,height));
     }
     
     if(o_debugDrawMode == DebugDrawMode::FinalBlendWeights)
     {
         float3 blendWeights = GetBlendWeights(blendSource, IN.m_uv[MaterialSrg::m_blendMaskUvIndex], IN.m_blendMask);
-        return MakeDebugOutput(IN, blendWeights);
+        return DebugOutput(blendWeights);
     }
 
     // ------- Parallax -------
@@ -355,8 +364,8 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
         float parallaxOverallFactor = MaterialSrg::m_displacementMax - MaterialSrg::m_displacementMin;
         GetParallaxInput(IN.m_normal, tangents[MaterialSrg::m_parallaxUvIndex], bitangents[MaterialSrg::m_parallaxUvIndex], parallaxOverallFactor, parallaxOverallOffset, 
                          ObjectSrg::GetWorldMatrix(), uvMatrix, uvMatrixInverse,
-                         IN.m_uv[MaterialSrg::m_parallaxUvIndex], IN.m_worldPosition, depthNDC, displacementIsClipped);
-    
+                         IN.m_uv[MaterialSrg::m_parallaxUvIndex], IN.m_worldPosition, depthNDC, IN.m_position.w, displacementIsClipped);
+
         // Adjust directional light shadow coorinates for parallax correction
         if(o_parallax_enablePixelDepthOffset)
         {
@@ -424,13 +433,6 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     surface.position = IN.m_worldPosition;
     surface.transmission.InitializeToZero();
 
-    // Note this part is only needed due to a merge conflict where some refactoring is not available yet on this fork.
-    // On the main engine repo, there is no anisotropy in Surface.
-    // We just need to set these to zero to avoid DXC validation failures regarding uninitialized variables.
-    surface.anisotropy.tangent = float3(0,0,0);
-    surface.anisotropy.bitangent = float3(0,0,0);
-    surface.anisotropy.anisotropyFactors = float2(0,0);
-    
     // ------- Combine Normals ---------
 
     float3 normalTS = float3(0,0,1);
@@ -547,8 +549,6 @@ ForwardPassOutputWithDepth ForwardPassPS(VSOutput IN, bool isFrontFace : SV_IsFr
     OUT.m_specularF0 = lightingOutput.m_specularF0;
     OUT.m_albedo = lightingOutput.m_albedo;
     OUT.m_normal = lightingOutput.m_normal;
-    OUT.m_clearCoatNormal = lightingOutput.m_clearCoatNormal;
-    OUT.m_scatterDistance = lightingOutput.m_scatterDistance;
     OUT.m_depth = depth;
     return OUT;
 }
@@ -566,8 +566,6 @@ ForwardPassOutput ForwardPassPS_EDS(VSOutput IN, bool isFrontFace : SV_IsFrontFa
     OUT.m_specularF0 = lightingOutput.m_specularF0;
     OUT.m_albedo = lightingOutput.m_albedo;
     OUT.m_normal = lightingOutput.m_normal;
-    OUT.m_clearCoatNormal = lightingOutput.m_clearCoatNormal;
-    OUT.m_scatterDistance = lightingOutput.m_scatterDistance;
 
     return OUT;
 }

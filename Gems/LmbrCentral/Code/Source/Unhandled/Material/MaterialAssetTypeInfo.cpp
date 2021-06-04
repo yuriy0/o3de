@@ -51,7 +51,7 @@ namespace LmbrCentral
 
     const char* MaterialAssetTypeInfo::GetBrowserIcon() const
     {
-        return "Editor/Icons/Components/Decal.svg";
+        return "Icons/Components/Decal.svg";
     }
 
     // DccMaterialAssetTypeInfo
@@ -88,6 +88,6 @@ namespace LmbrCentral
 
     const char* DccMaterialAssetTypeInfo::GetBrowserIcon() const
     {
-        return "Editor/Icons/Components/Decal.svg";
+        return "Icons/Components/Decal.svg";
     }
 } // namespace LmbrCentral

@@ -557,6 +557,19 @@ namespace
                     categoryPath.append(displayName.c_str());
                 }
 
+                for (auto property : behaviorClass->m_properties)
+                {
+                    if (property.second->m_getter)
+                    {
+                        RegisterMethod(nodePaletteModel, behaviorContext, categoryPath, behaviorClass, property.first, *property.second->m_getter, ScriptCanvas::PropertyStatus::Getter, behaviorClass->IsMethodOverloaded(property.first));
+                    }
+
+                    if (property.second->m_setter)
+                    {
+                        RegisterMethod(nodePaletteModel, behaviorContext, categoryPath, behaviorClass, property.first, *property.second->m_setter, ScriptCanvas::PropertyStatus::Setter, behaviorClass->IsMethodOverloaded(property.first));
+                    }
+                }
+
                 for (auto methodIter : behaviorClass->m_methods)
                 {
                     if (!IsExplicitOverload(*methodIter.second))

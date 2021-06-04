@@ -10,11 +10,16 @@
 *
 */
 
-#include <viewsrg.srgi>
 #include "Skin_Common.azsli"
+
+// SRGs
 #include <Atom/Features/PBR/DefaultObjectSrg.azsli>
 #include <Atom/Features/PBR/ForwardPassSrg.azsli>
-#include <Atom/Features/PBR/ForwardPassOutput.azsli>
+
+// Pass Output
+#include <Atom/Features/PBR/ForwardSubsurfacePassOutput.azsli>
+
+// Utility
 #include <Atom/Features/ColorManagement/TransformColor.azsli>
 #include <Atom/Features/PBR/AlphaUtils.azsli> // TODO: Remove this after OpacityMode is removed from LightingModel
 
@@ -56,10 +61,6 @@ option bool o_wrinkleLayers_showBlendMaskValues;
 // (search "m_optional_" in ShaderVariantAssetBuilder for details on the naming convention).
 // [GFX TODO][ATOM-14475]: Come up with a more elegant way to associate the isBound flag with the input stream.
 option bool o_blendMask_isBound;
-
-
-[[range(0,3)]]
-option uint o_wrinkleLayers_showNormals = 0;
 
 #include "MaterialInputs/SubsurfaceInput.azsli"
 #include "MaterialInputs/TransmissionInput.azsli"
@@ -179,17 +180,12 @@ PbrLightingOutput SkinPS_Common(VSOutput IN)
     float3x3 uvMatrix = CreateIdentity3x3();
 
     // ------- Tangents & Bitangets -------
+    float3 tangents[UvSetCount] = { IN.m_tangent.xyz, IN.m_tangent.xyz };
+    float3 bitangents[UvSetCount] = { IN.m_bitangent.xyz, IN.m_bitangent.xyz };
 
-    // We support two UV streams, but only a single stream of tangent/bitangent. So for UV[1+] we generated the tangent/bitangent in screen-space.
-    float3 tangents[UvSetCount] = { IN.m_tangent.xyz, float3(0, 0, 0) };
-    float3 bitangents[UvSetCount] = { IN.m_bitangent.xyz, float3(0, 0, 0) };
-
-    if ( (o_normal_useTexture && MaterialSrg::m_normalMapUvIndex != 0) || 
-         (o_detail_normal_useTexture && MaterialSrg::m_detail_allMapsUvIndex != 0))
+    if (o_normal_useTexture || o_detail_normal_useTexture)
     {
-        // Generate the tangent/bitangent for UV[1+]
-        const int startIndex = 1;
-        PrepareGeneratedTangent(IN.m_normal, IN.m_worldPosition, isFrontFace, IN.m_uv, UvSetCount, tangents, bitangents, startIndex);
+        PrepareGeneratedTangent(IN.m_normal, IN.m_worldPosition, isFrontFace, IN.m_uv, UvSetCount, tangents, bitangents);
     }
     
     Surface surface;
@@ -306,7 +302,6 @@ PbrLightingOutput SkinPS_Common(VSOutput IN)
         if(o_wrinkleLayers_count > 3) { baseColor = lerp(baseColor, float3(1,1,1), IN.m_wrinkleBlendFactors.a); }
     }
 
-
     // ------- Specular -------
 
     float2 specularUv = IN.m_uv[MaterialSrg::m_specularF0MapUvIndex];
@@ -314,18 +309,18 @@ PbrLightingOutput SkinPS_Common(VSOutput IN)
 
     surface.SetAlbedoAndSpecularF0(baseColor, specularF0Factor);
 
+    // ------- Dual Specular -------
+
+    surface.SetDualSpecularParams(MaterialSrg::m_dualSpecularF0Multiplier, MaterialSrg::m_dualSpecularF0Addition,
+                                  MaterialSrg::m_dualSpecularRoughnessMultiplier, MaterialSrg::m_dualSpecularRoughnessAddition,
+                                  MaterialSrg::m_dualSpecularContribution);
+
     // ------- Roughness -------
 
     float2 roughnessUv = IN.m_uv[MaterialSrg::m_roughnessMapUvIndex];
     surface.roughnessLinear = GetRoughnessInput(MaterialSrg::m_roughnessMap, MaterialSrg::m_sampler, roughnessUv, MaterialSrg::m_roughnessFactor,
                                         MaterialSrg::m_roughnessLowerBound, MaterialSrg::m_roughnessUpperBound, o_roughness_useTexture);
     surface.CalculateRoughnessA();
-
-    // ------- Dual Specular -------
-
-    surface.SetDualSpecularParams(MaterialSrg::m_dualSpecularF0Multiplier, MaterialSrg::m_dualSpecularF0Addition,
-                                  MaterialSrg::m_dualSpecularRoughnessMultiplier, MaterialSrg::m_dualSpecularRoughnessAddition,
-                                  MaterialSrg::m_dualSpecularContribution);
 
     // ------- Subsurface -------
 
@@ -362,7 +357,6 @@ PbrLightingOutput SkinPS_Common(VSOutput IN)
 
     // ------- Lighting Calculation -------
 
-
     surface.clearCoat.factor = 0.0;
     surface.clearCoat.roughness = 0.0;
     surface.clearCoat.normal = float3(0.0, 0.0, 0.0);
@@ -386,22 +380,7 @@ PbrLightingOutput SkinPS_Common(VSOutput IN)
     // Pack factor and quality, drawback: because of precision limit of float16 cannot represent exact 1, maximum representable value is 0.9961
     uint factorAndQuality = dot(round(float2(saturate(surfaceScatteringFactor), MaterialSrg::m_subsurfaceScatteringQuality) * 255), float2(256, 1));
     lightingOutput.m_diffuseColor.w = factorAndQuality * (o_enableSubsurfaceScattering ? 1.0 : -1.0);
-    lightingOutput.m_scatterDistance = MaterialSrg::m_multiplyScatterDistanceByAlbedo
-                                       ? MaterialSrg::m_scatterDistance * surface.albedo
-                                       : MaterialSrg::m_scatterDistance;
-
-
-
-    if(o_wrinkleLayers_enabled && o_wrinkleLayers_showNormals != 0)
-    {
-        float3 c = 0;
-        if (o_wrinkleLayers_showNormals == 1)
-        {
-            c = surface.normal * 0.5 + 0.5;
-        }
-
-        lightingOutput.m_diffuseColor.rgb = c;
-    }
+    lightingOutput.m_scatterDistance = MaterialSrg::m_scatterDistance;
 
     return lightingOutput;
 }
@@ -418,7 +397,6 @@ ForwardPassOutput SkinPS(VSOutput IN)
     OUT.m_specularF0 = lightingOutput.m_specularF0;
     OUT.m_albedo = lightingOutput.m_albedo;
     OUT.m_normal = lightingOutput.m_normal;
-    OUT.m_clearCoatNormal = lightingOutput.m_clearCoatNormal;
     OUT.m_scatterDistance = lightingOutput.m_scatterDistance;
 
     return OUT;

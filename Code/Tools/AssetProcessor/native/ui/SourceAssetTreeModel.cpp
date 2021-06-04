@@ -14,6 +14,7 @@
 #include "SourceAssetTreeItemData.h"
 
 #include <AzCore/Component/TickBus.h>
+#include <AzCore/IO/Path/Path.h>
 #include <native/utilities/assetUtils.h>
 
 
@@ -62,19 +63,7 @@ namespace AssetProcessor
         }
 
 
-        AZStd::string fullPath = source.m_sourceName;
-
-        // The source assets should look like they do on disk.
-        // If the scan folder has an output prefix, strip it from the source file's path in the database, before
-        // the scan folder path is prepended to the source file.
-        if (!scanFolder.m_outputPrefix.empty())
-        {
-            AZStd::string prefixPath = scanFolder.m_outputPrefix;
-            AzFramework::StringFunc::Append(prefixPath, AZ_CORRECT_DATABASE_SEPARATOR);
-            AzFramework::StringFunc::Replace(fullPath, prefixPath.c_str(), "", false, true);
-        }
-
-        AzFramework::StringFunc::AssetDatabasePath::Join(scanFolder.m_scanFolder.c_str(), fullPath.c_str(), fullPath, true, false);
+        AZ::IO::Path fullPath = AZ::IO::Path(scanFolder.m_scanFolder, AZ::IO::PosixPathSeparator) / source.m_sourceName;
 
         // It's common for Open 3D Engine game projects and scan folders to be in a subfolder
         // of the engine install. To improve readability of the source files, strip out
@@ -85,37 +74,38 @@ namespace AssetProcessor
         }
         if (m_assetRootSet)
         {
-            AzFramework::StringFunc::Replace(fullPath, m_assetRoot.absolutePath().toUtf8(), "");
+            AzFramework::StringFunc::Replace(fullPath.Native(), m_assetRoot.absolutePath().toUtf8(), "");
         }
 
-
-        AZStd::vector<AZStd::string> tokens;
-        AzFramework::StringFunc::Tokenize(fullPath.c_str(), tokens, AZ_CORRECT_DATABASE_SEPARATOR, false, true);
-
-        if (tokens.empty())
+        if (fullPath.empty())
         {
-            AZ_Warning("AssetProcessor", false, "Source id %s has an invalid name: %s",
-                source.m_sourceGuid.ToString<AZStd::string>().c_str(), source.m_sourceName.c_str());
+            AZ_Warning(
+                "AssetProcessor", false, "Source id %s has an invalid name: %s", source.m_sourceGuid.ToString<AZStd::string>().c_str(),
+                source.m_sourceName.c_str());
             return;
         }
 
         QModelIndex newIndicesStart;
 
         AssetTreeItem* parentItem = m_root.get();
-        AZStd::string fullFolderName;
-        for (int i = 0; i < tokens.size() - 1; ++i)
+        AZ::IO::Path currentFullFolderPath;
+        const AZ::IO::PathView filename = fullPath.Filename();
+        const AZ::IO::PathView fullPathWithoutFilename = fullPath.RemoveFilename();
+        AZStd::fixed_string<AZ::IO::MaxPathLength> currentPath;
+        for (auto pathIt = fullPathWithoutFilename.begin(); pathIt != fullPathWithoutFilename.end(); ++pathIt)
         {
-            AzFramework::StringFunc::AssetDatabasePath::Join(fullFolderName.c_str(), tokens[i].c_str(), fullFolderName);
-            AssetTreeItem* nextParent = parentItem->GetChildFolder(tokens[i].c_str());
+            currentPath = pathIt->FixedMaxPathString();
+            currentFullFolderPath /= currentPath;
+            AssetTreeItem* nextParent = parentItem->GetChildFolder(currentPath.c_str());
             if (!nextParent)
             {
                 if (!modelIsResetting)
                 {
-                    QModelIndex parentIndex = parentItem == m_root.get() ? QModelIndex() : createIndex(parentItem->GetRow(), 0, parentItem);
+                    QModelIndex parentIndex = createIndex(parentItem->GetRow(), 0, parentItem);
                     beginInsertRows(parentIndex, parentItem->getChildCount(), parentItem->getChildCount());
                 }
-                nextParent = parentItem->CreateChild(SourceAssetTreeItemData::MakeShared(nullptr, nullptr, fullFolderName, tokens[i].c_str(), true));
-                m_sourceToTreeItem[fullFolderName] = nextParent;
+                nextParent = parentItem->CreateChild(SourceAssetTreeItemData::MakeShared(nullptr, nullptr, currentFullFolderPath.Native(), currentPath.c_str(), true));
+                m_sourceToTreeItem[currentFullFolderPath.Native()] = nextParent;
                 // Folders don't have source IDs, don't add to m_sourceIdToTreeItem
                 if (!modelIsResetting)
                 {
@@ -127,12 +117,12 @@ namespace AssetProcessor
 
         if (!modelIsResetting)
         {
-            QModelIndex parentIndex = parentItem == m_root.get() ? QModelIndex() : createIndex(parentItem->GetRow(), 0, parentItem);
+            QModelIndex parentIndex = createIndex(parentItem->GetRow(), 0, parentItem);
             beginInsertRows(parentIndex, parentItem->getChildCount(), parentItem->getChildCount());
         }
 
         m_sourceToTreeItem[source.m_sourceName] =
-            parentItem->CreateChild(SourceAssetTreeItemData::MakeShared(&source, &scanFolder, source.m_sourceName, tokens[tokens.size() - 1].c_str(), false));
+            parentItem->CreateChild(SourceAssetTreeItemData::MakeShared(&source, &scanFolder, source.m_sourceName, AZStd::fixed_string<AZ::IO::MaxPathLength>(filename.Native()).c_str(), false));
         m_sourceIdToTreeItem[source.m_sourceID] = m_sourceToTreeItem[source.m_sourceName];
         if (!modelIsResetting)
         {

@@ -11,9 +11,8 @@
 
 set(FILES
     BuiltInPackages.cmake
-    FindClang.cmake
+    FindOpenGLInterface.cmake
     FindFbxSdk.cmake
-    Findlibav.cmake
     FindRadTelemetry.cmake
     FindVkValidation.cmake
     FindWwise.cmake

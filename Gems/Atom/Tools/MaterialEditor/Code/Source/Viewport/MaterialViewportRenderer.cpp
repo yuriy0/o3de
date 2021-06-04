@@ -16,6 +16,7 @@
 #include <AzCore/Component/Component.h>
 
 #include <AzFramework/Components/TransformComponent.h>
+#include <AzFramework/Components/NonUniformScaleComponent.h>
 #include <AzFramework/Entity/GameEntityContextBus.h>
 
 #include <AtomCore/Instance/InstanceDatabase.h>
@@ -90,11 +91,13 @@ namespace MaterialEditor
         m_scene->SetShaderResourceGroupCallback(callback);
 
         // Bind m_defaultScene to the GameEntityContext's AzFramework::Scene
-        AZStd::vector<AzFramework::Scene*> scenes;
-        AzFramework::SceneSystemRequestBus::BroadcastResult(scenes, &AzFramework::SceneSystemRequests::GetAllScenes);
+        auto sceneSystem = AzFramework::SceneSystemInterface::Get();
+        AZ_Assert(sceneSystem, "MaterialViewportRenderer was unable to get the scene system during construction.");
+        AZStd::shared_ptr<AzFramework::Scene> mainScene = sceneSystem->GetScene(AzFramework::Scene::MainSceneName);
 
-        AZ_Assert(scenes.size() > 0, "Error: Scenes missing during system component initialization"); // This should never happen unless scene creation has changed.
-        scenes.at(0)->SetSubsystem(m_scene.get());
+        // This should never happen unless scene creation has changed.
+        AZ_Assert(mainScene, "Main scenes missing during system component initialization");
+        mainScene->SetSubsystem(m_scene);
 
         // Create a render pipeline from the specified asset for the window context and add the pipeline to the scene
         AZ::Data::Asset<AZ::RPI::AnyAsset> pipelineAsset = AZ::RPI::AssetUtils::LoadAssetByProductPath<AZ::RPI::AnyAsset>(m_defaultPipelineAssetPath.c_str(), AZ::RPI::AssetUtils::TraceLevel::Error);
@@ -180,9 +183,10 @@ namespace MaterialEditor
         m_shadowCatcherEntity->CreateComponent(AZ::Render::MeshComponentTypeId);
         m_shadowCatcherEntity->CreateComponent(AZ::Render::MaterialComponentTypeId);
         m_shadowCatcherEntity->CreateComponent(azrtti_typeid<AzFramework::TransformComponent>());
+        m_shadowCatcherEntity->CreateComponent(azrtti_typeid<AzFramework::NonUniformScaleComponent>());
         m_shadowCatcherEntity->Activate();
 
-        AZ::TransformBus::Event(m_shadowCatcherEntity->GetId(), &AZ::TransformBus::Events::SetLocalScale, AZ::Vector3{ 100, 100, 1.0 });
+        AZ::NonUniformScaleRequestBus::Event(m_shadowCatcherEntity->GetId(), &AZ::NonUniformScaleRequests::SetScale, AZ::Vector3{ 100, 100, 1.0 });
 
         AZ::Data::AssetId shadowCatcherModelAssetId = RPI::AssetUtils::GetAssetIdForProductPath("materialeditor/viewportmodels/plane_1x1.azmodel", RPI::AssetUtils::TraceLevel::Error);
         AZ::Render::MeshComponentRequestBus::Event(m_shadowCatcherEntity->GetId(),
@@ -231,6 +235,8 @@ namespace MaterialEditor
         MaterialViewportRequestBus::BroadcastResult(modelPreset, &MaterialViewportRequestBus::Events::GetModelPresetSelection);
         OnModelPresetSelected(modelPreset);
 
+        m_viewportController->Init(m_cameraEntity->GetId(), m_modelEntity->GetId(), m_iblEntity->GetId());
+
         // Apply user settinngs restored since last run
         AZStd::intrusive_ptr<MaterialViewportSettings> viewportSettings =
             AZ::UserSettings::CreateFind<MaterialViewportSettings>(AZ::Crc32("MaterialViewportSettings"), AZ::UserSettings::CT_GLOBAL);
@@ -246,8 +252,6 @@ namespace MaterialEditor
         AZ::TickBus::Handler::BusConnect();
         AZ::TransformNotificationBus::MultiHandler::BusConnect(m_cameraEntity->GetId());
         AzFramework::WindowSystemRequestBus::Handler::BusConnect();
-
-        m_viewportController->Init(m_cameraEntity->GetId(), m_modelEntity->GetId(), m_iblEntity->GetId());
     }
 
     MaterialViewportRenderer::~MaterialViewportRenderer()
@@ -285,6 +289,13 @@ namespace MaterialEditor
             m_directionalLightFeatureProcessor->ReleaseLight(handle);
         }
         m_lightHandles.clear();
+
+        auto sceneSystem = AzFramework::SceneSystemInterface::Get();
+        AZ_Assert(sceneSystem, "MaterialViewportRenderer was unable to get the scene system during destruction.");
+        AZStd::shared_ptr<AzFramework::Scene> mainScene = sceneSystem->GetScene(AzFramework::Scene::MainSceneName);
+        // This should never happen unless scene creation has changed.
+        AZ_Assert(mainScene, "Main scenes missing during system component destruction");
+        mainScene->UnsetSubsystem(m_scene);
 
         m_swapChainPass = nullptr;
         AZ::RPI::RPISystemInterface::Get()->UnregisterScene(m_scene);

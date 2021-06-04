@@ -11,7 +11,7 @@
 
 set(FILES
     BuiltInPackages_mac.cmake
-    Clang_mac.cmake
     FbxSdk_mac.cmake
+    OpenGLInterface_mac.cmake
     Wwise_mac.cmake
 )

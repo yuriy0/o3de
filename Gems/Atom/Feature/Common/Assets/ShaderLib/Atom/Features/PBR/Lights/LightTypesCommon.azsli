@@ -16,9 +16,6 @@
 
 #include <Atom/Features/PBR/BackLighting.azsli>
 #include <Atom/Features/PBR/Hammersley.azsli>
-#include <Atom/Features/PBR/LightingUtils.azsli>
-#include <Atom/Features/PBR/Surface.azsli>
-#include <Atom/Features/PBR/Microfacet/Brdf.azsli>
 
 option bool o_area_light_validation = false;
 

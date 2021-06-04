@@ -28,6 +28,17 @@ function(ios_get_dependencies_recursive ios_DEPENDENCIES ly_TARGET)
         return() # Nothing to do
     endif()
 
+    # See if we already have dependencies cached.
+    get_property(are_dependencies_cached GLOBAL PROPERTY LY_RUNTIME_DEPENDENCIES_${ly_TARGET} SET)
+    if(are_dependencies_cached)
+
+        # We already walked through this target
+        get_property(cached_dependencies GLOBAL PROPERTY LY_RUNTIME_DEPENDENCIES_${ly_TARGET})
+        set(${ios_DEPENDENCIES} ${cached_dependencies} PARENT_SCOPE)
+        return()
+
+    endif()
+
     # Collect all direct dependencies.
     unset(direct_dependencies)
     unset(dependencies)
@@ -102,61 +113,70 @@ function(ios_get_dependencies_recursive ios_DEPENDENCIES ly_TARGET)
 
     # Remove duplicate dependencies and return.
     list(REMOVE_DUPLICATES all_dependencies)
+    set_property(GLOBAL PROPERTY LY_RUNTIME_DEPENDENCIES_${ly_TARGET} "${all_dependencies}")
     set(${ios_DEPENDENCIES} ${all_dependencies} PARENT_SCOPE)
 
 endfunction()
 
-# For each (non-monolithic) game project, find runtime dependencies and tell XCode to embed/sign them
-if(NOT LY_MONOLITHIC_GAME)
+function(ly_delayed_generate_runtime_dependencies)
 
-    foreach(game_project ${LY_PROJECTS})
+    # For each (non-monolithic) game project, find runtime dependencies and tell XCode to embed/sign them
+    if(NOT LY_MONOLITHIC_GAME)
 
-        # Recursively get all dependent frameworks for the game project.
-        unset(dependencies)
-        ios_get_dependencies_recursive(dependencies ${game_project}.GameLauncher)
-        if(dependencies)
-            set_target_properties(${game_project}.GameLauncher
-                PROPERTIES
-                XCODE_EMBED_FRAMEWORKS "${dependencies}"
-                XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY TRUE
-                XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks"
-            )
+        foreach(game_project ${LY_PROJECTS})
+
+            # Recursively get all dependent frameworks for the game project.
+            unset(dependencies)
+            ios_get_dependencies_recursive(dependencies ${game_project}.GameLauncher)
+            if(dependencies)
+                set_target_properties(${game_project}.GameLauncher
+                    PROPERTIES
+                    XCODE_EMBED_FRAMEWORKS "${dependencies}"
+                    XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY TRUE
+                    XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks"
+                )
+            endif()
+
+        endforeach()
+
+    endif()
+
+    get_property(all_targets GLOBAL PROPERTY LY_ALL_TARGETS)
+    unset(test_runner_dependencies)
+    foreach(aliased_target IN LISTS all_targets)
+
+        unset(target)
+        ly_de_alias_target(${aliased_target} target)
+
+        # Exclude targets that dont produce runtime outputs
+        get_target_property(target_type ${target} TYPE)
+        if(NOT target_type IN_LIST LY_TARGET_TYPES_WITH_RUNTIME_OUTPUTS)
+            continue()
         endif()
+        
+        file(GENERATE
+            OUTPUT ${CMAKE_BINARY_DIR}/runtime_dependencies/$<CONFIG>/${target}.cmake
+            CONTENT ""
+        )
 
+        if(target_type IN_LIST IOS_FRAMEWORK_TARGET_TYPES)
+            list(APPEND test_runner_dependencies ${target})
+        endif()
     endforeach()
 
-endif()
+    if(PAL_TRAIT_BUILD_TESTS_SUPPORTED)
+        add_dependencies("AzTestRunner" ${test_runner_dependencies})
+        
+        # We still need to add indirect dependencies(eg. 3rdParty)
+        unset(all_dependencies)
+        ios_get_dependencies_recursive(all_dependencies AzTestRunner)
 
-get_property(all_targets GLOBAL PROPERTY LY_ALL_TARGETS)
-unset(test_runner_dependencies)
-foreach(target IN LISTS all_targets)
-    # Exclude targets that dont produce runtime outputs
-    get_target_property(target_type ${target} TYPE)
-    if(NOT target_type IN_LIST LY_TARGET_TYPES_WITH_RUNTIME_OUTPUTS)
-        continue()
+        set_target_properties("AzTestRunner"
+            PROPERTIES
+            XCODE_EMBED_FRAMEWORKS "${all_dependencies}"
+            XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY TRUE
+            XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks"
+        )
     endif()
-    
-    file(GENERATE
-        OUTPUT ${CMAKE_BINARY_DIR}/runtime_dependencies/$<CONFIG>/${target}.cmake
-        CONTENT ""
-    )
 
-    if(target_type IN_LIST IOS_FRAMEWORK_TARGET_TYPES)
-        list(APPEND test_runner_dependencies ${target})
-    endif()
-endforeach()
-
-if(PAL_TRAIT_BUILD_TESTS_SUPPORTED)
-    add_dependencies("AzTestRunner" ${test_runner_dependencies})
-    
-    # We still need to add indirect dependencies(eg. 3rdParty)
-    unset(all_dependencies)
-    ios_get_dependencies_recursive(all_dependencies AzTestRunner)
-
-    set_target_properties("AzTestRunner"
-        PROPERTIES
-        XCODE_EMBED_FRAMEWORKS "${all_dependencies}"
-        XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY TRUE
-        XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks"
-    )
-endif()
+endfunction()

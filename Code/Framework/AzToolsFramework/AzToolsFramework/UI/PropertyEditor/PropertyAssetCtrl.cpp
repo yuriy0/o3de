@@ -63,7 +63,7 @@ AZ_POP_DISABLE_WARNING
 
 #include <UI/PropertyEditor/Model/AssetCompleterModel.h>
 #include <UI/PropertyEditor/View/AssetCompleterListView.h>
-#include <UI/PropertyEditor/ThumbnailDropDown.h>
+#include <UI/PropertyEditor/ThumbnailPropertyCtrl.h>
 
 namespace AzToolsFramework
 {
@@ -93,15 +93,11 @@ namespace AzToolsFramework
 
         setAcceptDrops(true);
 
-        m_thumbnail = new Thumbnailer::ThumbnailWidget(this);
-        m_thumbnail->setFixedSize(QSize(24, 24));
+        m_thumbnail = new ThumbnailPropertyCtrl(this);
+        m_thumbnail->setFixedSize(QSize(40, 24));
         m_thumbnail->setVisible(false);
 
-        m_thumbnailDropDown = new ThumbnailDropDown(this);
-        m_thumbnailDropDown->setFixedSize(QSize(40, 24));
-        m_thumbnailDropDown->setVisible(false);
-
-        connect(m_thumbnailDropDown, &ThumbnailDropDown::clicked, this, &PropertyAssetCtrl::OnEditButtonClicked);
+        connect(m_thumbnail, &ThumbnailPropertyCtrl::clicked, this, &PropertyAssetCtrl::OnThumbnailClicked);
 
         m_editButton = new QToolButton(this);
         m_editButton->setAutoRaise(true);
@@ -112,7 +108,6 @@ namespace AzToolsFramework
         connect(m_editButton, &QToolButton::clicked, this, &PropertyAssetCtrl::OnEditButtonClicked);
 
         pLayout->addWidget(m_thumbnail);
-        pLayout->addWidget(m_thumbnailDropDown);
         pLayout->addWidget(m_browseEdit);
         pLayout->addWidget(m_editButton);
 
@@ -185,6 +180,17 @@ namespace AzToolsFramework
         else
         {
             SetSelectedAssetID(GetCurrentAssetID());
+        }
+    }
+
+    void PropertyAssetCtrl::OnThumbnailClicked()
+    {
+        const AZ::Data::AssetId assetID = GetCurrentAssetID();
+        if (m_thumbnailCallback)
+        {
+            AZ_Error("Asset Property", m_editNotifyTarget, "No notification target set for edit callback.");
+            m_thumbnailCallback->Invoke(m_editNotifyTarget, assetID, GetCurrentAssetType());
+            return;
         }
     }
 
@@ -538,7 +544,7 @@ namespace AzToolsFramework
             m_errorButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
             m_errorButton->setFixedSize(QSize(16, 16));
             m_errorButton->setMouseTracking(true);
-            m_errorButton->setIcon(QIcon("Editor/Icons/PropertyEditor/error_icon.png"));
+            m_errorButton->setIcon(QIcon("Icons/PropertyEditor/error_icon.png"));
             m_errorButton->setToolTip("Show Errors");
 
             // Insert the error button after the asset label
@@ -674,6 +680,13 @@ namespace AzToolsFramework
         AzQtComponents::BrowseEdit::removeDropTargetStyle(m_browseEdit);
     }
 
+    AssetSelectionModel PropertyAssetCtrl::GetAssetSelectionModel()
+    {
+        auto selectionModel = AssetSelectionModel::AssetTypeSelection(GetCurrentAssetType());
+        selectionModel.SetTitle(m_title);
+        return selectionModel;
+    }
+
     void PropertyAssetCtrl::UpdateTabOrder()
     {
         setTabOrder(m_browseEdit, m_editButton);
@@ -756,6 +769,31 @@ namespace AzToolsFramework
         // Request the AssetBrowser Dialog and set a type filter
         AssetSelectionModel selection = GetAssetSelectionModel();
         selection.SetSelectedAssetId(m_selectedAssetID);
+
+        AZStd::string defaultDirectory;
+        if (m_defaultDirectoryCallback)
+        {
+            m_defaultDirectoryCallback->Invoke(m_editNotifyTarget, defaultDirectory);
+            selection.SetDefaultDirectory(defaultDirectory);
+        }
+
+        if (m_hideProductFilesInAssetPicker)
+        {
+            FilterConstType displayFilter = selection.GetDisplayFilter();
+
+            EntryTypeFilter* productsFilter = new EntryTypeFilter();
+            productsFilter->SetEntryType(AssetBrowserEntry::AssetEntryType::Product);
+
+            InverseFilter* noProductsFilter = new InverseFilter();
+            noProductsFilter->SetFilter(FilterConstType(productsFilter));
+
+            CompositeFilter* compFilter = new CompositeFilter(CompositeFilter::LogicOperatorType::AND);
+            compFilter->AddFilter(FilterConstType(displayFilter));
+            compFilter->AddFilter(FilterConstType(noProductsFilter));
+
+            selection.SetDisplayFilter(FilterConstType(compFilter));
+        }
+
         AssetBrowserComponentRequestBus::Broadcast(&AssetBrowserComponentRequests::PickAssets, selection, parentWidget());
         if (selection.IsValid())
         {
@@ -915,11 +953,16 @@ namespace AzToolsFramework
             return;
         }
 
-        const AZ::Data::AssetId assetID = GetCurrentAssetID();
-        m_currentAssetHint = "";
-
-        if (!m_unnamedType)
+        const AZStd::string& folderPath = GetFolderSelection();
+        if (!folderPath.empty())
         {
+            m_currentAssetHint = folderPath;
+        }
+        else
+        {
+            const AZ::Data::AssetId assetID = GetCurrentAssetID();
+            m_currentAssetHint = "";
+
             AZ::Outcome<AssetSystem::JobInfoContainer> jobOutcome = AZ::Failure();
             AssetSystemJobRequestBus::BroadcastResult(jobOutcome, &AssetSystemJobRequestBus::Events::GetAssetJobsInfoByAssetID, assetID, false, false);
 
@@ -933,7 +976,7 @@ namespace AzToolsFramework
 
                 if (!jobs.empty())
                 {
-                    // The default behavior is show to the source filename.
+                    // The default behavior is to show the source filename.
                     assetPath = jobs[0].m_sourceFile;
 
                     AZStd::string errorLog;
@@ -1052,6 +1095,11 @@ namespace AzToolsFramework
         m_editButton->setIcon(icon);
     }
 
+    void PropertyAssetCtrl::SetTitle(const QString& title)
+    {
+        m_title = title;
+    }
+
     void PropertyAssetCtrl::SetEditNotifyTarget(void* editNotifyTarget)
     {
         m_editNotifyTarget = editNotifyTarget;
@@ -1060,6 +1108,11 @@ namespace AzToolsFramework
     void PropertyAssetCtrl::SetEditNotifyCallback(EditCallbackType* editNotifyCallback)
     {
         m_editNotifyCallback = editNotifyCallback;
+    }
+
+    void PropertyAssetCtrl::SetDefaultDirectoryCallback(DefaultDirectoryCallbackType* callback)
+    {
+        m_defaultDirectoryCallback = callback;
     }
 
     void PropertyAssetCtrl::SetClearNotifyCallback(ClearCallbackType* clearNotifyCallback)
@@ -1091,10 +1144,10 @@ namespace AzToolsFramework
     void PropertyAssetCtrl::UpdateThumbnail()
     {
         m_thumbnail->setVisible(m_showThumbnail);
-        m_thumbnailDropDown->setVisible(m_showThumbnailDropDown);
 
-        if (m_showThumbnail || m_showThumbnailDropDown)
+        if (m_showThumbnail)
         {
+            m_thumbnail->ShowDropDownArrow(m_showThumbnailDropDownButton);
             const AZ::Data::AssetId assetID = GetCurrentAssetID();
             if (assetID.IsValid())
             {
@@ -1112,17 +1165,12 @@ namespace AzToolsFramework
                     {
                         m_thumbnail->SetThumbnailKey(thumbnailKey, Thumbnailer::ThumbnailContext::DefaultContext);
                     }
-                    if (m_showThumbnailDropDown)
-                    {
-                        m_thumbnailDropDown->SetThumbnailKey(thumbnailKey, Thumbnailer::ThumbnailContext::DefaultContext);
-                    }
                     return;
                 }
             }
         }
 
         m_thumbnail->ClearThumbnail();
-        m_thumbnailDropDown->ClearThumbnail();
     }
 
     void PropertyAssetCtrl::SetClearButtonEnabled(bool enable)
@@ -1146,6 +1194,16 @@ namespace AzToolsFramework
         return m_showProductAssetName;
     }
 
+    void PropertyAssetCtrl::SetHideProductFilesInAssetPicker(bool hide)
+    {
+        m_hideProductFilesInAssetPicker = hide;
+    }
+
+    bool PropertyAssetCtrl::GetHideProductFilesInAssetPicker() const
+    {
+        return m_hideProductFilesInAssetPicker;
+    }
+
     void PropertyAssetCtrl::SetShowThumbnail(bool enable)
     {
         m_showThumbnail = enable;
@@ -1156,14 +1214,19 @@ namespace AzToolsFramework
         return m_showThumbnail;
     }
 
-    void PropertyAssetCtrl::SetShowThumbnailDropDown(bool enable)
+    void PropertyAssetCtrl::SetShowThumbnailDropDownButton(bool enable)
     {
-        m_showThumbnailDropDown = enable;
+        m_showThumbnailDropDownButton = enable;
     }
 
-    bool PropertyAssetCtrl::GetShowThumbnailDropDown() const
+    bool PropertyAssetCtrl::GetShowThumbnailDropDownButton() const
     {
-        return m_showThumbnailDropDown;
+        return m_showThumbnailDropDownButton;
+    }
+
+    void PropertyAssetCtrl::SetThumbnailCallback(EditCallbackType* editNotifyCallback)
+    {
+        m_thumbnailCallback = editNotifyCallback;
     }
 
     const AZ::Uuid& AssetPropertyHandlerDefault::GetHandledType() const
@@ -1187,7 +1250,21 @@ namespace AzToolsFramework
     {
         (void)debugName;
 
-        if (attrib == AZ_CRC("EditCallback", 0xb74f2ee1))
+        if (attrib == AZ_CRC_CE("AssetPickerTitle"))
+        {
+            AZStd::string title;
+            attrValue->Read<AZStd::string>(title);
+            if (!title.empty())
+            {
+                GUI->SetTitle(title.c_str());
+            }
+        }
+        else if (attrib == AZ_CRC_CE("DefaultStartingDirectoryCallback"))
+        {
+            // This is assumed to be an Asset Browser path to a specific folder to be used as a default by the asset picker if provided
+            GUI->SetDefaultDirectoryCallback(azdynamic_cast<PropertyAssetCtrl::DefaultDirectoryCallbackType*>(attrValue->GetAttribute()));
+        }
+        else if (attrib == AZ_CRC("EditCallback", 0xb74f2ee1))
         {
             PropertyAssetCtrl::EditCallbackType* func = azdynamic_cast<PropertyAssetCtrl::EditCallbackType*>(attrValue->GetAttribute());
             if (func)
@@ -1252,6 +1329,14 @@ namespace AzToolsFramework
                 GUI->SetShowProductAssetName(showProductAssetName);
             }
         }
+        else if(attrib == AZ::Edit::Attributes::HideProductFilesInAssetPicker)
+        {
+            bool hideProductFilesInAssetPicker = false;
+            if (attrValue->Read<bool>(hideProductFilesInAssetPicker))
+            {
+                GUI->SetHideProductFilesInAssetPicker(hideProductFilesInAssetPicker);
+            }
+        }
         else if (attrib == AZ::Edit::Attributes::ClearNotify)
         {
             PropertyAssetCtrl::ClearCallbackType* func = azdynamic_cast<PropertyAssetCtrl::ClearCallbackType*>(attrValue->GetAttribute());
@@ -1283,17 +1368,19 @@ namespace AzToolsFramework
                 GUI->SetShowThumbnail(showThumbnail);
             }
         }
-        else if (attrib == AZ_CRC_CE("ThumbnailWithDropDown"))
+        else if (attrib == AZ_CRC_CE("ThumbnailCallback"))
         {
             PropertyAssetCtrl::EditCallbackType* func = azdynamic_cast<PropertyAssetCtrl::EditCallbackType*>(attrValue->GetAttribute());
             if (func)
             {
-                GUI->SetShowThumbnailDropDown(true);
-                GUI->SetEditNotifyCallback(func);
+                GUI->SetShowThumbnail(true);
+                GUI->SetShowThumbnailDropDownButton(true);
+                GUI->SetThumbnailCallback(func);
             }
             else
             {
-                GUI->SetEditNotifyCallback(nullptr);
+                GUI->SetShowThumbnailDropDownButton(false);
+                GUI->SetThumbnailCallback(nullptr);
             }
         }
     }

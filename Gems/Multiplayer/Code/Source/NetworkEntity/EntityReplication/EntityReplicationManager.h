@@ -13,19 +13,21 @@
 #pragma once
 
 #include <Source/NetworkEntity/EntityReplication/EntityReplicator.h>
-#include <Source/NetworkEntity/INetworkEntityManager.h>
-#include <Source/ReplicationWindows/IReplicationWindow.h>
-#include <Source/EntityDomains/IEntityDomain.h>
-#include <Source/NetworkEntity/NetworkEntityHandle.h>
-#include <Source/Components/NetBindComponent.h>
+#include <Multiplayer/Components/NetBindComponent.h>
+#include <Multiplayer/EntityDomains/IEntityDomain.h>
+#include <Multiplayer/NetworkEntity/INetworkEntityManager.h>
+#include <Multiplayer/NetworkEntity/NetworkEntityHandle.h>
+#include <Multiplayer/NetworkEntity/NetworkEntityUpdateMessage.h>
+#include <Multiplayer/NetworkEntity/NetworkEntityRpcMessage.h>
+#include <Multiplayer/ReplicationWindows/IReplicationWindow.h>
 #include <AzNetworking/DataStructures/TimeoutQueue.h>
 #include <AzNetworking/PacketLayer/IPacketHeader.h>
 #include <AzCore/std/containers/map.h>
 #include <AzCore/std/containers/vector.h>
+#include <AzCore/std/containers/deque.h>
 #include <AzCore/std/limits.h>
 #include <AzCore/EBus/Event.h>
 #include <AzCore/EBus/ScheduledEvent.h>
-#include <Source/AutoGen/Multiplayer.AutoPackets.h>
 
 namespace AzNetworking
 {
@@ -58,7 +60,7 @@ namespace Multiplayer
         HostId GetRemoteHostId() const;
 
         void ActivatePendingEntities();
-        void SendUpdates(AZ::TimeMs serverGameTimeMs);
+        void SendUpdates(AZ::TimeMs hostTimeMs);
         void Clear(bool forMigration);
 
         bool SetEntityRebasing(NetworkEntityHandle& entityHandle);
@@ -81,10 +83,10 @@ namespace Multiplayer
 
         void AddAutonomousEntityReplicatorCreatedHandle(AZ::Event<NetEntityId>::Handler& handler);
 
-        bool HandleMessage(AzNetworking::IConnection* connection, MultiplayerPackets::EntityMigration& message);
+        bool HandleEntityMigration(AzNetworking::IConnection* invokingConnection, EntityMigrationMessage& message);
         bool HandleEntityDeleteMessage(EntityReplicator* entityReplicator, const AzNetworking::IPacketHeader& packetHeader, const NetworkEntityUpdateMessage& updateMessage);
-        bool HandleEntityUpdateMessage(AzNetworking::IConnection* connection, const AzNetworking::IPacketHeader& packetHeader, const NetworkEntityUpdateMessage& updateMessage);
-        bool HandleEntityRpcMessage(AzNetworking::IConnection* connection, NetworkEntityRpcMessage& message);
+        bool HandleEntityUpdateMessage(AzNetworking::IConnection* invokingConnection, const AzNetworking::IPacketHeader& packetHeader, const NetworkEntityUpdateMessage& updateMessage);
+        bool HandleEntityRpcMessage(AzNetworking::IConnection* invokingConnection, NetworkEntityRpcMessage& message);
 
         AZ::TimeMs GetResendTimeoutTimeMs() const;
 
@@ -114,12 +116,12 @@ namespace Multiplayer
         using RpcMessages = AZStd::list<NetworkEntityRpcMessage>;
         bool DispatchOrphanedRpc(NetworkEntityRpcMessage& message, EntityReplicator* entityReplicator);
 
-        using EntityReplicatorList = AZStd::vector<EntityReplicator*>;
+        using EntityReplicatorList = AZStd::deque<EntityReplicator*>;
         EntityReplicatorList GenerateEntityUpdateList();
 
-        void SendEntityUpdatesPacketHelper(AZ::TimeMs serverGameTimeMs, EntityReplicatorList& toSendList, uint32_t maxPayloadSize, AzNetworking::IConnection& connection);
+        void SendEntityUpdatesPacketHelper(AZ::TimeMs hostTimeMs, EntityReplicatorList& toSendList, uint32_t maxPayloadSize, AzNetworking::IConnection& connection);
 
-        void SendEntityUpdates(AZ::TimeMs serverGameTimeMs);
+        void SendEntityUpdates(AZ::TimeMs hostTimeMs);
         void SendEntityRpcs(RpcMessages& deferredRpcs, bool reliable);
 
         void MigrateEntityInternal(NetEntityId entityId);
@@ -154,31 +156,27 @@ namespace Multiplayer
             OrphanedEntityRpcs(EntityReplicationManager& replicationManager);
             void Update();
             bool DispatchOrphanedRpcs(EntityReplicator& entityReplicator);
-            void AddOrphanedRpc(NetEntityId entityId, NetworkEntityRpcMessage& entityPrcMessage);
+            void AddOrphanedRpc(NetEntityId entityId, NetworkEntityRpcMessage& entityRpcMessage);
             AZStd::size_t Size() const { return m_entityRpcMap.size(); }
         private:
             AzNetworking::TimeoutResult HandleTimeout(AzNetworking::TimeoutQueue::TimeoutItem& item) override;
-
             struct OrphanedRpcs
             {
                 OrphanedRpcs() = default;
                 OrphanedRpcs(OrphanedRpcs&& rhs)
                 {
+                    m_rpcMessages.swap(rhs.m_rpcMessages);
                     m_timeoutId = rhs.m_timeoutId;
                     rhs.m_timeoutId = AzNetworking::TimeoutId{ 0 };
-                    m_rpcMessages.swap(rhs.m_rpcMessages);
                 }
-
-                AzNetworking::TimeoutId m_timeoutId = AzNetworking::TimeoutId{ 0 };
                 RpcMessages m_rpcMessages;
+                AzNetworking::TimeoutId m_timeoutId = AzNetworking::TimeoutId{ 0 };
             };
-
             typedef AZStd::unordered_map<NetEntityId, OrphanedRpcs> EntityRpcMap;
             EntityRpcMap m_entityRpcMap;
             AzNetworking::TimeoutQueue m_timeoutQueue;
             EntityReplicationManager& m_replicationManager;
         };
-
         OrphanedEntityRpcs m_orphanedEntityRpcs;
         EntityReplicatorMap m_entityReplicatorMap;
 

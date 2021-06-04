@@ -28,8 +28,12 @@
 
 #include <AzCore/std/string/conversions.h>
 #include <AzCore/std/string/string_view.h>
+#include <AzCore/std/parallel/lock.h>
+#include <AzCore/Interface/Interface.h>
 #include <AzFramework/Archive/IArchive.h>
 
+#include <Atom/RPI.Public/RPIUtils.h>
+#include <Atom/RPI.Public/DynamicDraw/DynamicDrawInterface.h>
 
 // Static member definitions
 const AZ::AtomFont::GlyphSize AZ::AtomFont::defaultGlyphSize = AZ::AtomFont::GlyphSize(ICryFont::defaultGlyphSizeX, ICryFont::defaultGlyphSizeY);
@@ -348,10 +352,35 @@ AZ::AtomFont::AtomFont(ISystem* system)
     REGISTER_COMMAND("r_ReloadFonts", ReloadFonts, VF_NULL,
         "Reload all fonts");
 #endif
+    AZ::Interface<AzFramework::FontQueryInterface>::Register(this);
+
+    // register font per viewport dynamic draw context.
+    static const char* shaderFilepath = "Shaders/SimpleTextured.azshader";
+    AZ::AtomBridge::PerViewportDynamicDraw::Get()->RegisterDynamicDrawContext(
+        AZ::Name(AZ::AtomFontDynamicDrawContextName),
+        [](RPI::Ptr<RPI::DynamicDrawContext> drawContext)
+        {
+            Data::Instance<RPI::Shader> shader = AZ::RPI::LoadShader(shaderFilepath);
+            AZ::RPI::ShaderOptionList shaderOptions;
+            shaderOptions.push_back(AZ::RPI::ShaderOption(AZ::Name("o_useColorChannels"), AZ::Name("false")));
+            shaderOptions.push_back(AZ::RPI::ShaderOption(AZ::Name("o_clamp"), AZ::Name("true")));
+            drawContext->InitShaderWithVariant(shader, &shaderOptions);
+            drawContext->InitVertexFormat(
+                {
+                    {"POSITION", RHI::Format::R32G32B32_FLOAT},
+                    {"COLOR", RHI::Format::B8G8R8A8_UNORM},
+                    {"TEXCOORD0", RHI::Format::R32G32_FLOAT}
+                });
+            drawContext->EndInit();
+        });
+
 }
 
 AZ::AtomFont::~AtomFont()
 {
+    AZ::Interface<AzFramework::FontQueryInterface>::Unregister(this);
+    m_defaultFontDrawInterface = nullptr;
+
     // Persist fonts for application lifetime to prevent unnecessary work
     m_persistedFontFamilies.clear();
 
@@ -372,22 +401,39 @@ IFFont* AZ::AtomFont::NewFont(const char* fontName)
 {
     string name = fontName;
     name.MakeLower();
+    AzFramework::FontId fontId = GetFontId(name.c_str());
 
-    FontMapItor it = m_fonts.find(CONST_TEMP_STRING(name.c_str()));
+    FontMapItor it = m_fonts.find(fontId);
     if (it != m_fonts.end())
     {
         return it->second;
     }
 
     FFont* font = new FFont(this, name.c_str());
-    m_fonts.insert(FontMapItor::value_type(name, font));
+    m_fonts.insert(FontMapItor::value_type(fontId, font));
+    if(!m_defaultFontDrawInterface)
+    {
+        m_defaultFontDrawInterface = static_cast<AzFramework::FontDrawInterface*>(font);
+    }
     return font;
 }
 
 IFFont* AZ::AtomFont::GetFont(const char* fontName) const
 {
-    FontMapConstItor it = m_fonts.find(CONST_TEMP_STRING(string(fontName).MakeLower()));
+    AzFramework::FontId fontId = GetFontId(string(fontName).MakeLower().c_str());
+    FontMapConstItor it = m_fonts.find(fontId);
     return it != m_fonts.end() ? it->second : 0;
+}
+
+AzFramework::FontDrawInterface* AZ::AtomFont::GetFontDrawInterface(AzFramework::FontId fontId) const
+{
+    FontMapConstItor it = m_fonts.find(fontId);
+    return (it != m_fonts.end()) ? it->second : nullptr;
+}
+
+AzFramework::FontDrawInterface* AZ::AtomFont::GetDefaultFontDrawInterface() const
+{
+    return m_defaultFontDrawInterface;
 }
 
 FontFamilyPtr AZ::AtomFont::LoadFontFamily(const char* fontFamilyName)
@@ -648,7 +694,8 @@ void AZ::AtomFont::ReloadAllFonts()
 
 void AZ::AtomFont::UnregisterFont(const char* fontName)
 {
-    FontMapItor it = m_fonts.find(CONST_TEMP_STRING(fontName));
+    AzFramework::FontId fontId = GetFontId(string(fontName).MakeLower().c_str());
+    FontMapItor it = m_fonts.find(fontId);
 
 #if defined(AZ_ENABLE_TRACING)
     IFFont* fontPtr = it->second;
@@ -822,6 +869,5 @@ XmlNodeRef AZ::AtomFont::LoadFontFamilyXml(const char* fontFamilyName, string& o
 
     return root;
 }
-
 #endif
 

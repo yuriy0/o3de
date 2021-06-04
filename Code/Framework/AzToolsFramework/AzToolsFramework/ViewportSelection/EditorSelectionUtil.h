@@ -45,7 +45,7 @@ namespace AzToolsFramework
         const AZ::Vector3& worldPosition, const AzFramework::CameraState& cameraState);
 
     /// Map from world space to screen space.
-    QPoint GetScreenPosition(int viewportId, const AZ::Vector3& worldTranslation);
+     AzFramework::ScreenPoint GetScreenPosition(int viewportId, const AZ::Vector3& worldTranslation);
 
     /// Given a mouse interaction, determine if the pick ray from its position
     /// in screen space intersected an aabb in world space.
@@ -59,6 +59,9 @@ namespace AzToolsFramework
 
     /// Wrapper for EBus call to return the CameraState for a given viewport.
     AzFramework::CameraState GetCameraState(int viewportId);
+
+    /// Wrapper for EBus call to return the DPI scaling for a given viewport.
+    float GetScreenDisplayScaling(const int viewportId);
 
     /// A utility to return the center of several points.
     /// Take several positions and store the min and max of each in

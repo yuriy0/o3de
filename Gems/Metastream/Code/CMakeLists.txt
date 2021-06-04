@@ -36,6 +36,7 @@ ly_add_target(
         metastream_shared_files.cmake
         ${pal_source_dir}/platform_${PAL_PLATFORM_NAME_LOWERCASE}_files.cmake
     PLATFORM_INCLUDE_FILES
+        ${pal_source_dir}/metastream_${PAL_PLATFORM_NAME_LOWERCASE}.cmake
         ${common_source_dir}/${PAL_TRAIT_COMPILER_ID}/metastream_${PAL_TRAIT_COMPILER_ID_LOWERCASE}.cmake
     INCLUDE_DIRECTORIES
         PRIVATE
@@ -49,6 +50,11 @@ ly_add_target(
             Legacy::CryCommon
 )
 
+# The above "Metastream" target is used by all types of applications, including dev tools.
+ly_create_alias(NAME Metastream.Clients  NAMESPACE Gem TARGETS Gem::Metastream)
+ly_create_alias(NAME Metastream.Servers  NAMESPACE Gem TARGETS Gem::Metastream)
+ly_create_alias(NAME Metastream.Builders NAMESPACE Gem TARGETS Gem::Metastream)
+ly_create_alias(NAME Metastream.Tools    NAMESPACE Gem TARGETS Gem::Metastream)
 
 ################################################################################
 # Tests
@@ -62,6 +68,7 @@ if(PAL_TRAIT_BUILD_TESTS_SUPPORTED)
             metastream_shared_files.cmake
             ${pal_source_dir}/platform_${PAL_PLATFORM_NAME_LOWERCASE}_files.cmake
         PLATFORM_INCLUDE_FILES
+            ${pal_source_dir}/metastream_${PAL_PLATFORM_NAME_LOWERCASE}.cmake
             ${common_source_dir}/${PAL_TRAIT_COMPILER_ID}/metastream_${PAL_TRAIT_COMPILER_ID_LOWERCASE}.cmake
         INCLUDE_DIRECTORIES
             PRIVATE

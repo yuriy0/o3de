@@ -24,7 +24,6 @@
 #include <QTextDocumentFragment>
 
 #include <AzCore/Interface/Interface.h>
-#include <AzFramework/API/AtomActiveInterface.h>
 #include <AzQtComponents/Components/Style.h>    // for AzQtComponents::Style
 
 // Editor
@@ -396,13 +395,6 @@ void CLayoutWnd::CreateLayoutView(CLayoutSplitter* wndSplitter, int row, int col
 //////////////////////////////////////////////////////////////////////////
 void CLayoutWnd::CreateLayout(EViewLayout layout, bool bBindViewports, EViewportType defaultView)
 {
-    // Early-out if our layout is unchanged.
-    // This prevents our viewport from being recreated, which is not supported with the Atom Shim.
-    if (m_layout == layout)
-    {
-        return;
-    }
-
     UnbindViewports();
 
     m_layout = layout;

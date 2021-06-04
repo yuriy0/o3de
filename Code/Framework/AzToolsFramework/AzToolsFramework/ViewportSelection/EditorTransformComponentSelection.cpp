@@ -13,6 +13,9 @@
 #include "EditorTransformComponentSelection.h"
 
 #include <AzCore/std/algorithm.h>
+#include <AzCore/Math/Matrix3x3.h>
+#include <AzCore/Math/Matrix3x4.h>
+#include <AzCore/Math/Matrix4x4.h>
 #include <AzCore/Math/VectorConversions.h>
 #include <AzFramework/API/ApplicationAPI.h>
 #include <AzFramework/Viewport/CameraState.h>
@@ -53,7 +56,7 @@ namespace AzToolsFramework
         float, cl_viewportGizmoAxisLabelOffset, 1.15f, nullptr, AZ::ConsoleFunctorFlags::Null,
         "The offset of the label for the viewport axis gizmo");
     AZ_CVAR(
-        float, cl_viewportGizmoAxisLabelSize, 2.0f, nullptr, AZ::ConsoleFunctorFlags::Null,
+        float, cl_viewportGizmoAxisLabelSize, 1.0f, nullptr, AZ::ConsoleFunctorFlags::Null,
         "The size of each label for the viewport axis gizmo");
     AZ_CVAR(
         AZ::Vector2, cl_viewportGizmoAxisScreenPosition, AZ::Vector2(0.045f, 0.9f), nullptr,
@@ -234,16 +237,15 @@ namespace AzToolsFramework
                 mouseInteraction.m_mouseInteraction.m_keyboardModifiers.Alt();
         }
 
-        static bool IndividualSelect(const ViewportInteraction::MouseInteractionEvent& mouseInteraction)
+        static bool IndividualSelect(const AzFramework::ClickDetector::ClickOutcome clickOutcome)
         {
-            return mouseInteraction.m_mouseInteraction.m_mouseButtons.Left() &&
-                mouseInteraction.m_mouseEvent == ViewportInteraction::MouseEvent::Down;
+            return clickOutcome == AzFramework::ClickDetector::ClickOutcome::Click;
         }
 
-        static bool AdditiveIndividualSelect(const ViewportInteraction::MouseInteractionEvent& mouseInteraction)
+        static bool AdditiveIndividualSelect(
+            const AzFramework::ClickDetector::ClickOutcome clickOutcome, const ViewportInteraction::MouseInteractionEvent& mouseInteraction)
         {
-            return mouseInteraction.m_mouseInteraction.m_mouseButtons.Left() &&
-                mouseInteraction.m_mouseEvent == ViewportInteraction::MouseEvent::Down &&
+            return clickOutcome == AzFramework::ClickDetector::ClickOutcome::Click &&
                 mouseInteraction.m_mouseInteraction.m_keyboardModifiers.Ctrl() &&
                 !mouseInteraction.m_mouseInteraction.m_keyboardModifiers.Alt();
         }
@@ -316,14 +318,14 @@ namespace AzToolsFramework
 
     template<typename EntitySelectFuncType, typename EntityIdContainer, typename Compare>
     static void BoxSelectAddRemoveToEntitySelection(
-        const AZStd::optional<QRect>& boxSelect, const QPoint& screenPosition, const AZ::EntityId visibleEntityId,
+        const AZStd::optional<QRect>& boxSelect, const AzFramework::ScreenPoint& screenPosition, const AZ::EntityId visibleEntityId,
         const EntityIdContainer& incomingEntityIds, EntityIdContainer& outgoingEntityIds,
         EditorTransformComponentSelection& entityTransformComponentSelection,
         EntitySelectFuncType selectFunc1, EntitySelectFuncType selectFunc2, Compare outgoingCheck)
     {
         AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
 
-        if (boxSelect->contains(screenPosition))
+        if (boxSelect->contains(ViewportInteraction::QPointFromScreenPoint(screenPosition)))
         {
             const auto entityIt = incomingEntityIds.find(visibleEntityId);
 
@@ -389,7 +391,7 @@ namespace AzToolsFramework
                 const AZ::EntityId entityId = entityDataCache.GetVisibleEntityId(entityCacheIndex);
                 const AZ::Vector3& entityPosition = entityDataCache.GetVisibleEntityPosition(entityCacheIndex);
 
-                const QPoint screenPosition = GetScreenPosition(viewportId, entityPosition);
+                const AzFramework::ScreenPoint screenPosition = GetScreenPosition(viewportId, entityPosition);
 
                 if (currentKeyboardModifiers.Ctrl())
                 {
@@ -421,19 +423,18 @@ namespace AzToolsFramework
         }
     }
 
-    static void InitializeTranslationLookup(
-        EntityIdManipulators& entityIdManipulators, const AZ::Vector3& snapOffset)
+    static void InitializeTranslationLookup(EntityIdManipulators& entityIdManipulators)
     {
         AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
 
         for (auto& entityIdLookup : entityIdManipulators.m_lookups)
         {
             entityIdLookup.second.m_initial =
-                AZ::Transform::CreateTranslation(GetWorldTranslation(entityIdLookup.first) + snapOffset);
+                AZ::Transform::CreateTranslation(GetWorldTranslation(entityIdLookup.first));
         }
     }
 
-    static void DestroyTransformModeSelectionCluster(const ViewportUi::ClusterId clusterId)
+    static void DestroyCluster(const ViewportUi::ClusterId clusterId)
     {
         ViewportUi::ViewportUiRequestBus::Event(
             ViewportUi::DefaultViewportId,
@@ -441,7 +442,7 @@ namespace AzToolsFramework
             clusterId);
     }
 
-    static void SetViewportUiClusterVisible(ViewportUi::ClusterId clusterId, bool visible)
+    static void SetViewportUiClusterVisible(const ViewportUi::ClusterId clusterId, const bool visible)
     {
         ViewportUi::ViewportUiRequestBus::Event(
             ViewportUi::DefaultViewportId,
@@ -449,7 +450,7 @@ namespace AzToolsFramework
             clusterId, visible);
     }
 
-    static void SetViewportUiClusterActiveButton(ViewportUi::ClusterId clusterId, ViewportUi::ButtonId buttonId)
+    static void SetViewportUiClusterActiveButton(const ViewportUi::ClusterId clusterId, const ViewportUi::ButtonId buttonId)
     {
         ViewportUi::ViewportUiRequestBus::Event(
             ViewportUi::DefaultViewportId,
@@ -457,7 +458,7 @@ namespace AzToolsFramework
             clusterId, buttonId);
     }
 
-    static ViewportUi::ButtonId RegisterClusterButton(ViewportUi::ClusterId clusterId, const char* iconName)
+    static ViewportUi::ButtonId RegisterClusterButton(const ViewportUi::ClusterId clusterId, const char* iconName)
     {
         ViewportUi::ButtonId buttonId;
         ViewportUi::ViewportUiRequestBus::EventResult(
@@ -479,6 +480,26 @@ namespace AzToolsFramework
             worldFromLocal, entityId, &AZ::TransformBus::Events::GetWorldTM);
 
         return worldFromLocal.TransformPoint(CalculateCenterOffset(entityId, pivot));
+    }
+
+    void EditorTransformComponentSelection::UpdateSpaceCluster(const ReferenceFrame referenceFrame)
+    {
+        auto buttonIdFromFrameFn = [this](const ReferenceFrame referenceFrame) {         
+            switch (referenceFrame)
+            {
+            case ReferenceFrame::Local:
+                return m_spaceCluster.m_localButtonId;
+            case ReferenceFrame::Parent:
+                return m_spaceCluster.m_parentButtonId;
+            case ReferenceFrame::World:
+                return m_spaceCluster.m_worldButtonId;
+            }
+            return m_spaceCluster.m_parentButtonId;
+        };
+
+        ViewportUi::ViewportUiRequestBus::Event(
+            ViewportUi::DefaultViewportId, &ViewportUi::ViewportUiRequestBus::Events::SetClusterActiveButton, m_spaceCluster.m_spaceClusterId,
+            buttonIdFromFrameFn(referenceFrame));
     }
 
     namespace ETCS
@@ -787,23 +808,23 @@ namespace AzToolsFramework
         EntityIdManipulators& entityIdManipulators,
         OptionalFrame& pivotOverrideFrame,
         ViewportInteraction::KeyboardModifiers& prevModifiers,
-        bool& transformChangedInternally)
+        bool& transformChangedInternally, const AZStd::optional<ReferenceFrame> spaceLock)
     {
         AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
 
         entityIdManipulators.m_manipulators->SetLocalPosition(action.LocalPosition());
-
-        const ReferenceFrame referenceFrame = ReferenceFrameFromModifiers(action.m_modifiers);
 
         if (action.m_modifiers.Ctrl())
         {
             // moving with ctrl - setting override
             pivotOverrideFrame.m_translationOverride =
                 entityIdManipulators.m_manipulators->GetLocalTransform().GetTranslation();
-            InitializeTranslationLookup(entityIdManipulators, -action.LocalPositionOffset());
+            InitializeTranslationLookup(entityIdManipulators);
         }
         else
         {
+            const ReferenceFrame referenceFrame = spaceLock.value_or(ReferenceFrameFromModifiers(action.m_modifiers));
+
             // note: used for parent and world depending on the current reference frame
             const auto pivotOrientation =
                 ETCS::CalculateSelectionPivotOrientation(
@@ -927,7 +948,7 @@ namespace AzToolsFramework
         ViewportInteraction::MainEditorViewportInteractionRequestBus::EventResult(
             worldSurfacePosition, viewportId,
             &ViewportInteraction::MainEditorViewportInteractionRequestBus::Events::PickTerrain,
-            ViewportInteraction::QPointFromScreenPoint(mouseInteraction.m_mousePick.m_screenCoordinates));
+            mouseInteraction.m_mousePick.m_screenCoordinates);
 
         // convert to local space - snap if enabled
         const GridSnapParameters gridSnapParams = GridSnapSettings(viewportId);
@@ -1025,6 +1046,7 @@ namespace AzToolsFramework
         EditorManipulatorCommandUndoRedoRequestBus::Handler::BusConnect(entityContextId);
 
         CreateTransformModeSelectionCluster();
+        CreateSpaceSelectionCluster();
         RegisterActions();
         SetupBoxSelect();
         RefreshSelectedEntityIdsAndRegenerateManipulators();
@@ -1035,7 +1057,9 @@ namespace AzToolsFramework
         m_selectedEntityIds.clear();
         DestroyManipulators(m_entityIdManipulators);
 
-        DestroyTransformModeSelectionCluster(m_transformModeClusterId);
+        DestroyCluster(m_transformModeClusterId);
+        DestroyCluster(m_spaceCluster.m_spaceClusterId);
+
         UnregisterActions();
 
         m_pivotOverrideFrame.Reset();
@@ -1252,12 +1276,12 @@ namespace AzToolsFramework
 
         // linear
         translationManipulators->InstallLinearManipulatorMouseDownCallback(
-            [this, manipulatorEntityIds](const LinearManipulator::Action& action) mutable
+            [this, manipulatorEntityIds]([[maybe_unused]] const LinearManipulator::Action& action) mutable
         {
             // important to sort entityIds based on hierarchy order when updating transforms
             BuildSortedEntityIdVectorFromEntityIdMap(m_entityIdManipulators.m_lookups, manipulatorEntityIds->m_entityIds);
 
-            InitializeTranslationLookup(m_entityIdManipulators, action.m_start.m_positionSnapOffset);
+            InitializeTranslationLookup(m_entityIdManipulators);
 
             m_axisPreview.m_translation = m_entityIdManipulators.m_manipulators->GetLocalTransform().GetTranslation();
             m_axisPreview.m_orientation = QuaternionFromTransformNoScaling(
@@ -1272,24 +1296,24 @@ namespace AzToolsFramework
             [this, prevModifiers, manipulatorEntityIds](const LinearManipulator::Action& action) mutable -> void
         {
             UpdateTranslationManipulator(
-                action, manipulatorEntityIds->m_entityIds, m_entityIdManipulators,
-                m_pivotOverrideFrame, prevModifiers, m_transformChangedInternally);
+                action, manipulatorEntityIds->m_entityIds, m_entityIdManipulators, m_pivotOverrideFrame, prevModifiers,
+                    m_transformChangedInternally, m_spaceCluster.m_spaceLock);
         });
 
         translationManipulators->InstallLinearManipulatorMouseUpCallback(
-            [this](const LinearManipulator::Action& /*action*/) mutable
+            [this]([[maybe_unused]] const LinearManipulator::Action& action) mutable
         {
             EndRecordManipulatorCommand();
         });
 
         // planar
         translationManipulators->InstallPlanarManipulatorMouseDownCallback(
-            [this, manipulatorEntityIds](const PlanarManipulator::Action& action)
+            [this, manipulatorEntityIds]([[maybe_unused]] const PlanarManipulator::Action& action)
         {
             // important to sort entityIds based on hierarchy order when updating transforms
             BuildSortedEntityIdVectorFromEntityIdMap(m_entityIdManipulators.m_lookups, manipulatorEntityIds->m_entityIds);
 
-            InitializeTranslationLookup(m_entityIdManipulators, action.m_start.m_snapOffset);
+            InitializeTranslationLookup(m_entityIdManipulators);
 
             m_axisPreview.m_translation = m_entityIdManipulators.m_manipulators->GetLocalTransform().GetTranslation();
             m_axisPreview.m_orientation = QuaternionFromTransformNoScaling(
@@ -1303,8 +1327,8 @@ namespace AzToolsFramework
             [this, prevModifiers, manipulatorEntityIds](const PlanarManipulator::Action& action) mutable -> void
         {
             UpdateTranslationManipulator(
-                action, manipulatorEntityIds->m_entityIds, m_entityIdManipulators,
-                m_pivotOverrideFrame, prevModifiers, m_transformChangedInternally);
+                action, manipulatorEntityIds->m_entityIds, m_entityIdManipulators, m_pivotOverrideFrame, prevModifiers,
+                    m_transformChangedInternally, m_spaceCluster.m_spaceLock);
         });
 
         translationManipulators->InstallPlanarManipulatorMouseUpCallback(
@@ -1315,11 +1339,11 @@ namespace AzToolsFramework
 
         // surface
         translationManipulators->InstallSurfaceManipulatorMouseDownCallback(
-            [this, manipulatorEntityIds](const SurfaceManipulator::Action& action)
+            [this, manipulatorEntityIds]([[maybe_unused]] const SurfaceManipulator::Action& action)
         {
             BuildSortedEntityIdVectorFromEntityIdMap(m_entityIdManipulators.m_lookups, manipulatorEntityIds->m_entityIds);
 
-            InitializeTranslationLookup(m_entityIdManipulators, action.m_start.m_snapOffset);
+            InitializeTranslationLookup(m_entityIdManipulators);
 
             m_axisPreview.m_translation = m_entityIdManipulators.m_manipulators->GetLocalTransform().GetTranslation();
             m_axisPreview.m_orientation = QuaternionFromTransformNoScaling(
@@ -1333,8 +1357,8 @@ namespace AzToolsFramework
             [this, prevModifiers, manipulatorEntityIds](const SurfaceManipulator::Action& action) mutable -> void
         {
             UpdateTranslationManipulator(
-                action, manipulatorEntityIds->m_entityIds, m_entityIdManipulators,
-                m_pivotOverrideFrame, prevModifiers, m_transformChangedInternally);
+                action, manipulatorEntityIds->m_entityIds, m_entityIdManipulators, m_pivotOverrideFrame, prevModifiers,
+                    m_transformChangedInternally, m_spaceCluster.m_spaceLock);
         });
 
         translationManipulators->InstallSurfaceManipulatorMouseUpCallback(
@@ -1412,8 +1436,7 @@ namespace AzToolsFramework
             [this, prevModifiers, sharedRotationState]
             (const AngularManipulator::Action& action) mutable -> void
         {
-            const ReferenceFrame referenceFrame = ReferenceFrameFromModifiers(action.m_modifiers);
-
+            const ReferenceFrame referenceFrame = m_spaceCluster.m_spaceLock.value_or(ReferenceFrameFromModifiers(action.m_modifiers));
             const AZ::Quaternion manipulatorOrientation = action.m_start.m_rotation * action.m_current.m_delta;
             // store the pivot override frame when positioning the manipulator manually (ctrl)
             // so we don't lose the orientation when adding/removing entities from the selection
@@ -1472,7 +1495,7 @@ namespace AzToolsFramework
                         {
                             const AZ::Quaternion rotation = entityIdLookupIt->second.m_initial.GetRotation().GetNormalized();
                             const AZ::Vector3 position = entityIdLookupIt->second.m_initial.GetTranslation();
-                            const AZ::Vector3 scale = entityIdLookupIt->second.m_initial.GetScale();
+                            const float scale = entityIdLookupIt->second.m_initial.GetUniformScale();
 
                             const AZ::Vector3 centerOffset = CalculateCenterOffset(entityId, m_pivotMode);
 
@@ -1483,7 +1506,7 @@ namespace AzToolsFramework
                                     AZ::Transform::CreateFromQuaternion(rotation) *
                                     AZ::Transform::CreateTranslation(centerOffset) * offsetRotation *
                                     AZ::Transform::CreateTranslation(-centerOffset) *
-                                    AZ::Transform::CreateScale(scale));
+                                    AZ::Transform::CreateUniformScale(scale));
                         }
                         break;
                     case ReferenceFrame::Parent:
@@ -1595,16 +1618,15 @@ namespace AzToolsFramework
                 }
 
                 const AZ::Transform initial = entityIdLookupIt->second.m_initial;
-                const AZ::Vector3 initialScale = initial.GetScale();
+                const float initialScale = initial.GetUniformScale();
 
                 const auto sumVectorElements = [](const AZ::Vector3& vec) {
                     return vec.GetX() + vec.GetY() + vec.GetZ();
                 };
 
-                const AZ::Vector3 uniformScale = AZ::Vector3(action.m_start.m_sign * sumVectorElements(action.LocalScaleOffset()));
-                const AZ::Vector3 scale = (AZ::Vector3::CreateOne() +
-                    (uniformScale / initialScale)).GetClamp(AZ::Vector3(AZ::MinTransformScale), AZ::Vector3(AZ::MaxTransformScale));
-                const AZ::Transform scaleTransform = AZ::Transform::CreateScale(scale);
+                const float uniformScale = action.m_start.m_sign * sumVectorElements(action.LocalScaleOffset());
+                const float scale = AZ::GetClamp(1.0f + uniformScale / initialScale, AZ::MinTransformScale, AZ::MaxTransformScale);
+                const AZ::Transform scaleTransform = AZ::Transform::CreateUniformScale(scale);
 
                 if (action.m_modifiers.Alt())
                 {
@@ -1780,6 +1802,10 @@ namespace AzToolsFramework
 
         m_cachedEntityIdUnderCursor = m_editorHelpers->HandleMouseInteraction(cameraState, mouseInteraction);
 
+        const auto selectClickEvent = ClickDetectorEventFromViewportInteraction(mouseInteraction);
+        m_cursorState.SetCurrentPosition(mouseInteraction.m_mouseInteraction.m_mousePick.m_screenCoordinates);
+        const auto clickOutcome = m_clickDetector.DetectClick(selectClickEvent, m_cursorState.CursorDelta());
+
         // for entities selected with no bounds of their own (just TransformComponent)
         // check selection against the selection indicator aabb
         for (AZ::EntityId entityId : m_selectedEntityIds)
@@ -1838,7 +1864,7 @@ namespace AzToolsFramework
         if (!m_selectedEntityIds.empty())
         {
             // select/deselect (add/remove) entities with ctrl held
-            if (Input::AdditiveIndividualSelect(mouseInteraction))
+            if (Input::AdditiveIndividualSelect(clickOutcome, mouseInteraction))
             {
                 if (SelectDeselect(entityIdUnderCursor))
                 {
@@ -1866,7 +1892,7 @@ namespace AzToolsFramework
                         CopyOrientationToSelectedEntitiesGroup(QuaternionFromTransformNoScaling(worldFromLocal));
                         break;
                     case Mode::Scale:
-                        CopyScaleToSelectedEntitiesIndividualWorld(worldFromLocal.GetScale());
+                        CopyScaleToSelectedEntitiesIndividualWorld(worldFromLocal.GetUniformScale());
                         break;
                     case Mode::Translation:
                         CopyTranslationToSelectedEntitiesGroup(worldFromLocal.GetTranslation());
@@ -1895,7 +1921,7 @@ namespace AzToolsFramework
                         CopyOrientationToSelectedEntitiesIndividual(QuaternionFromTransformNoScaling(worldFromLocal));
                         break;
                     case Mode::Scale:
-                        CopyScaleToSelectedEntitiesIndividualWorld(worldFromLocal.GetScale());
+                        CopyScaleToSelectedEntitiesIndividualWorld(worldFromLocal.GetUniformScale());
                         break;
                     case Mode::Translation:
                         CopyTranslationToSelectedEntitiesIndividual(worldFromLocal.GetTranslation());
@@ -2020,7 +2046,7 @@ namespace AzToolsFramework
         }
 
         // standard toggle selection
-        if (Input::IndividualSelect(mouseInteraction))
+        if (Input::IndividualSelect(clickOutcome))
         {
             SelectDeselect(entityIdUnderCursor);
         }
@@ -2388,7 +2414,7 @@ namespace AzToolsFramework
                 ResetOrientationForSelectedEntitiesLocal();
                 break;
             case Mode::Scale:
-                CopyScaleToSelectedEntitiesIndividualLocal(AZ::Vector3::CreateOne());
+                CopyScaleToSelectedEntitiesIndividualLocal(1.0f);
                 break;
             case Mode::Translation:
                 ResetTranslationForSelectedEntitiesLocal();
@@ -2414,7 +2440,7 @@ namespace AzToolsFramework
                 ResetOrientationForSelectedEntitiesLocal();
                 break;
             case Mode::Scale:
-                CopyScaleToSelectedEntitiesIndividualWorld(AZ::Vector3::CreateOne());
+                CopyScaleToSelectedEntitiesIndividualWorld(1.0f);
                 break;
             case Mode::Translation:
                 // do nothing
@@ -2444,7 +2470,17 @@ namespace AzToolsFramework
                 break;
             }
         });
-
+        
+        AddAction(
+            m_actions, { QKeySequence(Qt::Key_U) },
+            /*ID_VIEWPORTUI_VISIBLE=*/50040, "Toggle ViewportUI", "Hide/Unhide Viewport UI",
+           [this]()
+        {
+                SetViewportUiClusterVisible(m_transformModeClusterId, !m_viewportUiVisible);
+                SetViewportUiClusterVisible(m_spaceCluster.m_spaceClusterId, !m_viewportUiVisible);
+                m_viewportUiVisible = !m_viewportUiVisible;
+        });
+       
         EditorMenuRequestBus::Broadcast(&EditorMenuRequests::RestoreEditMenuToDefault);
     }
 
@@ -2523,7 +2559,7 @@ namespace AzToolsFramework
         // create the cluster for changing transform mode
         ViewportUi::ViewportUiRequestBus::EventResult(
             m_transformModeClusterId, ViewportUi::DefaultViewportId,
-            &ViewportUi::ViewportUiRequestBus::Events::CreateCluster);
+            &ViewportUi::ViewportUiRequestBus::Events::CreateCluster, ViewportUi::Alignment::TopLeft);
 
         // create and register the buttons (strings correspond to icons even if the values appear different)
         m_translateButtonId = RegisterClusterButton(m_transformModeClusterId, "Move");
@@ -2559,6 +2595,64 @@ namespace AzToolsFramework
             &ViewportUi::ViewportUiRequestBus::Events::RegisterClusterEventHandler,
             m_transformModeClusterId,
             m_transformModeSelectionHandler);
+    }
+
+    void EditorTransformComponentSelection::CreateSpaceSelectionCluster()
+    {
+        // create the cluster for switching spaces/reference frames
+        ViewportUi::ViewportUiRequestBus::EventResult(
+            m_spaceCluster.m_spaceClusterId, ViewportUi::DefaultViewportId, &ViewportUi::ViewportUiRequestBus::Events::CreateCluster,
+            ViewportUi::Alignment::TopRight);
+
+        // create and register the buttons (strings correspond to icons even if the values appear different)
+        m_spaceCluster.m_worldButtonId = RegisterClusterButton(m_spaceCluster.m_spaceClusterId, "World");
+        m_spaceCluster.m_parentButtonId = RegisterClusterButton(m_spaceCluster.m_spaceClusterId, "Parent");
+        m_spaceCluster.m_localButtonId = RegisterClusterButton(m_spaceCluster.m_spaceClusterId, "Local");
+
+        auto onButtonClicked = [this](ViewportUi::ButtonId buttonId) {
+            if (buttonId == m_spaceCluster.m_localButtonId)
+            {
+                // Unlock
+                if (m_spaceCluster.m_spaceLock.has_value() && m_spaceCluster.m_spaceLock.value() == ReferenceFrame::Local)
+                {
+                    m_spaceCluster.m_spaceLock = AZStd::nullopt;
+                }
+                else
+                {
+                    m_spaceCluster.m_spaceLock = ReferenceFrame::Local;
+                }
+            }
+            else if (buttonId == m_spaceCluster.m_parentButtonId)
+            {
+                // Unlock
+                if (m_spaceCluster.m_spaceLock.has_value() && m_spaceCluster.m_spaceLock.value() == ReferenceFrame::Parent)
+                {
+                    m_spaceCluster.m_spaceLock = AZStd::nullopt;
+                }
+                else
+                {
+                    m_spaceCluster.m_spaceLock = ReferenceFrame::Parent;
+                }
+            }
+            else if (buttonId == m_spaceCluster.m_worldButtonId)
+            {
+                // Unlock
+                if (m_spaceCluster.m_spaceLock.has_value() && m_spaceCluster.m_spaceLock.value() == ReferenceFrame::World)
+                {
+                    m_spaceCluster.m_spaceLock = AZStd::nullopt;
+                }
+                else
+                {
+                    m_spaceCluster.m_spaceLock = ReferenceFrame::World;
+                }
+            }
+        };
+
+        m_spaceCluster.m_spaceSelectionHandler = AZ::Event<ViewportUi::ButtonId>::Handler(onButtonClicked);
+
+        ViewportUi::ViewportUiRequestBus::Event(
+            ViewportUi::DefaultViewportId, &ViewportUi::ViewportUiRequestBus::Events::RegisterClusterEventHandler,
+            m_spaceCluster.m_spaceClusterId, m_spaceCluster.m_spaceSelectionHandler);
     }
 
     EditorTransformComponentSelectionRequests::Mode EditorTransformComponentSelection::GetTransformMode()
@@ -2934,7 +3028,7 @@ namespace AzToolsFramework
         }
     }
 
-    void EditorTransformComponentSelection::CopyScaleToSelectedEntitiesIndividualWorld(const AZ::Vector3& scale)
+    void EditorTransformComponentSelection::CopyScaleToSelectedEntitiesIndividualWorld(float scale)
     {
         AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
 
@@ -2949,7 +3043,7 @@ namespace AzToolsFramework
         const auto transformsBefore = RecordTransformsBefore(manipulatorEntityIds.m_entityIds);
 
         // update scale relative to initial
-        const AZ::Transform scaleTransform = AZ::Transform::CreateScale(scale);
+        const AZ::Transform scaleTransform = AZ::Transform::CreateUniformScale(scale);
         for (AZ::EntityId entityId : manipulatorEntityIds.m_entityIds)
         {
             ScopedUndoBatch::MarkEntityDirty(entityId);
@@ -2958,7 +3052,7 @@ namespace AzToolsFramework
             if (transformIt != transformsBefore.end())
             {
                 AZ::Transform transformBefore = transformIt->second;
-                transformBefore.ExtractScale();
+                transformBefore.ExtractUniformScale();
                 AZ::Transform newWorldFromLocal = transformBefore * scaleTransform;
 
                 SetEntityWorldTransform(entityId, newWorldFromLocal);
@@ -2968,7 +3062,7 @@ namespace AzToolsFramework
         RefreshUiAfterChange(manipulatorEntityIds.m_entityIds);
     }
 
-    void EditorTransformComponentSelection::CopyScaleToSelectedEntitiesIndividualLocal(const AZ::Vector3& scale)
+    void EditorTransformComponentSelection::CopyScaleToSelectedEntitiesIndividualLocal(float scale)
     {
         AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
 
@@ -3014,9 +3108,9 @@ namespace AzToolsFramework
                 if (transformIt != transformsBefore.end())
                 {
                     AZ::Transform newWorldFromLocal = transformIt->second;
-                    const AZ::Vector3 scale = newWorldFromLocal.GetScale();
+                    const float scale = newWorldFromLocal.GetUniformScale();
                     newWorldFromLocal.SetRotation(orientation);
-                    newWorldFromLocal *= AZ::Transform::CreateScale(scale);
+                    newWorldFromLocal *= AZ::Transform::CreateUniformScale(scale);
 
                     SetEntityWorldTransform(entityId, newWorldFromLocal);
                 }
@@ -3231,26 +3325,16 @@ namespace AzToolsFramework
     }
 
     static void DrawManipulatorGrid(
-        AzFramework::DebugDisplayRequests& debugDisplay, const EntityIdManipulators& entityIdManipulators,
-        const float gridSize, const float localSnapping)
+        AzFramework::DebugDisplayRequests& debugDisplay, const EntityIdManipulators& entityIdManipulators, const float gridSize)
     {
         const AZ::Matrix3x3 orientation =
             AZ::Matrix3x3::CreateFromTransform(entityIdManipulators.m_manipulators->GetLocalTransform());
 
-        const AZ::Vector3 unsnappedTranslation =
+        const AZ::Vector3 translation =
             entityIdManipulators.m_manipulators->GetLocalTransform().GetTranslation();
 
-        // calculate the offset to snap by to align the manipulator to the grid
-        // note: only perform this if we are not snapping in local space
-        const AZ::Vector3 snappedOffset = !localSnapping
-            ? CalculateSnappedOffset(unsnappedTranslation, orientation.GetBasisX(), gridSize) +
-              CalculateSnappedOffset(unsnappedTranslation, orientation.GetBasisY(), gridSize)
-            : AZ::Vector3::CreateZero();
-
-        const AZ::Vector3 snappedTranslation = unsnappedTranslation + snappedOffset;
-
         DrawSnappingGrid(
-            debugDisplay, AZ::Transform::CreateFromMatrix3x3AndTranslation(orientation, snappedTranslation),
+            debugDisplay, AZ::Transform::CreateFromMatrix3x3AndTranslation(orientation, translation),
             gridSize);
     }
 
@@ -3264,13 +3348,17 @@ namespace AzToolsFramework
         const auto modifiers = ViewportInteraction::KeyboardModifiers(
             ViewportInteraction::TranslateKeyboardModifiers(QApplication::queryKeyboardModifiers()));
 
+        m_cursorState.Update();
+
         HandleAccents(
             !m_selectedEntityIds.empty(), m_cachedEntityIdUnderCursor,
             modifiers.Ctrl(), m_hoveredEntityId,
             ViewportInteraction::BuildMouseButtons(
                 QGuiApplication::mouseButtons()), m_boxSelect.Active());
 
-        const ReferenceFrame referenceFrame = ReferenceFrameFromModifiers(modifiers);
+        const ReferenceFrame referenceFrame = m_spaceCluster.m_spaceLock.value_or(ReferenceFrameFromModifiers(modifiers));
+
+        UpdateSpaceCluster(referenceFrame);
 
         bool refresh = false;
         if (referenceFrame != m_referenceFrame)
@@ -3385,7 +3473,7 @@ namespace AzToolsFramework
                 const GridSnapParameters gridSnapParams = GridSnapSettings(viewportInfo.m_viewportId);
                 if (gridSnapParams.m_gridSnap && m_entityIdManipulators.m_manipulators)
                 {
-                    DrawManipulatorGrid(debugDisplay, m_entityIdManipulators, gridSnapParams.m_gridSize, modifiers.Alt());
+                    DrawManipulatorGrid(debugDisplay, m_entityIdManipulators, gridSnapParams.m_gridSize);
                 }
             }
         }
@@ -3434,19 +3522,22 @@ namespace AzToolsFramework
         const auto cameraProjection = AzFramework::CameraProjection(gizmoCameraState);
 
         // screen space offset to move the 2d gizmo around
-        const AZ::Vector3 screenPosition =
-            (AZ::Vector2ToVector3(cl_viewportGizmoAxisScreenPosition) - AZ::Vector3(0.5f, 0.5f, 0.0f)) *
-            AZ::Vector2ToVector3(gizmoCameraState.m_viewportSize);
+        const AZ::Vector2 screenOffset = AZ::Vector2(cl_viewportGizmoAxisScreenPosition) - AZ::Vector2(0.5f, 0.5f);
 
         // map from a position in world space (relative to the the gizmo camera near the origin) to a position in
         // screen space
         const auto calculateGizmoAxis =
-            [&cameraView, &cameraProjection, &gizmoCameraState, &screenPosition]
-            (const AZ::Vector3& position)
+            [&cameraView, &cameraProjection, &screenOffset]
+            (const AZ::Vector3& axis)
         {
-            return AZ::Vector2ToVector3(AzFramework::Vector2FromScreenPoint(
-                AzFramework::WorldToScreen(
-                    position, cameraView, cameraProjection, gizmoCameraState.m_viewportSize))) + screenPosition;
+            auto result = AZ::Vector2(
+                AzFramework::WorldToScreenNDC(
+                    axis,
+                    cameraView,
+                    cameraProjection)
+            );
+            result.SetY(1.0f - result.GetY());
+            return result + screenOffset;
         };
 
         // get all important axis positions in screen space
@@ -3456,31 +3547,32 @@ namespace AzToolsFramework
         const auto gizmoEndAxisY = calculateGizmoAxis(-AZ::Vector3::CreateAxisY() * lineLength);
         const auto gizmoEndAxisZ = calculateGizmoAxis(-AZ::Vector3::CreateAxisZ() * lineLength);
 
-        const AZ::Vector3 gizmoAxisX = gizmoEndAxisX - gizmoStart;
-        const AZ::Vector3 gizmoAxisY = gizmoEndAxisY - gizmoStart;
-        const AZ::Vector3 gizmoAxisZ = gizmoEndAxisZ - gizmoStart;
+        const AZ::Vector2 gizmoAxisX = gizmoEndAxisX - gizmoStart;
+        const AZ::Vector2 gizmoAxisY = gizmoEndAxisY - gizmoStart;
+        const AZ::Vector2 gizmoAxisZ = gizmoEndAxisZ - gizmoStart;                                          
 
         // draw the axes of the gizmo
         debugDisplay.SetLineWidth(cl_viewportGizmoAxisLineWidth);
         debugDisplay.SetColor(AZ::Colors::Red);
-        debugDisplay.DrawLine(gizmoStart, gizmoEndAxisX);
+        debugDisplay.DrawLine2d(gizmoStart, gizmoEndAxisX, 1.0f);
         debugDisplay.SetColor(AZ::Colors::Lime);
-        debugDisplay.DrawLine(gizmoStart, gizmoEndAxisY);
+        debugDisplay.DrawLine2d(gizmoStart, gizmoEndAxisY, 1.0f);
         debugDisplay.SetColor(AZ::Colors::Blue);
-        debugDisplay.DrawLine(gizmoStart, gizmoEndAxisZ);
+        debugDisplay.DrawLine2d(gizmoStart, gizmoEndAxisZ, 1.0f);
         debugDisplay.SetLineWidth(1.0f);
 
         const float labelOffset = cl_viewportGizmoAxisLabelOffset;
-        const auto labelOffsetX = gizmoStart + gizmoAxisX * labelOffset;
-        const auto labelOffsetY = gizmoStart + gizmoAxisY * labelOffset;
-        const auto labelOffsetZ = gizmoStart + gizmoAxisZ * labelOffset;
+        const float screenScale = GetScreenDisplayScaling(viewportId);
+        const auto labelXScreenPosition = (gizmoStart + (gizmoAxisX * labelOffset)) * editorCameraState.m_viewportSize * screenScale;
+        const auto labelYScreenPosition = (gizmoStart + (gizmoAxisY * labelOffset)) * editorCameraState.m_viewportSize * screenScale;
+        const auto labelZScreenPosition = (gizmoStart + (gizmoAxisZ * labelOffset)) * editorCameraState.m_viewportSize * screenScale;
 
         // draw the label of of each axis for the gizmo
         const float labelSize = cl_viewportGizmoAxisLabelSize;
         debugDisplay.SetColor(AZ::Colors::White);
-        debugDisplay.Draw2dTextLabel(labelOffsetX.GetX(), labelOffsetX.GetY(), labelSize, "X", true);
-        debugDisplay.Draw2dTextLabel(labelOffsetY.GetX(), labelOffsetY.GetY(), labelSize, "Y", true);
-        debugDisplay.Draw2dTextLabel(labelOffsetZ.GetX(), labelOffsetZ.GetY(), labelSize, "Z", true);
+        debugDisplay.Draw2dTextLabel(labelXScreenPosition.GetX(), labelXScreenPosition.GetY(), labelSize, "X", true);
+        debugDisplay.Draw2dTextLabel(labelYScreenPosition.GetX(), labelYScreenPosition.GetY(), labelSize, "Y", true);
+        debugDisplay.Draw2dTextLabel(labelZScreenPosition.GetX(), labelZScreenPosition.GetY(), labelSize, "Z", true);
     }
 
     void EditorTransformComponentSelection::DisplayViewportSelection2d(
@@ -3491,7 +3583,7 @@ namespace AzToolsFramework
 
         DrawAxisGizmo(viewportInfo, debugDisplay);
 
-        m_boxSelect.Display2d(debugDisplay);
+        m_boxSelect.Display2d(viewportInfo, debugDisplay);
     }
 
     void EditorTransformComponentSelection::RefreshSelectedEntityIds()
@@ -3658,7 +3750,7 @@ namespace AzToolsFramework
     }
 
     void EditorTransformComponentSelection::SetEntityLocalScale(
-        const AZ::EntityId entityId, const AZ::Vector3& localScale)
+        const AZ::EntityId entityId, const float localScale)
     {
         ETCS::SetEntityLocalScale(entityId, localScale, m_transformChangedInternally);
     }
@@ -3711,11 +3803,11 @@ namespace AzToolsFramework
                 entityId, &AZ::TransformBus::Events::SetWorldTM, worldTransform);
         }
 
-        void SetEntityLocalScale(AZ::EntityId entityId, const AZ::Vector3& localScale, bool& internal)
+        void SetEntityLocalScale(AZ::EntityId entityId, float localScale, bool& internal)
         {
             ScopeSwitch sw(internal);
             AZ::TransformBus::Event(
-                entityId, &AZ::TransformBus::Events::SetLocalScale, localScale);
+                entityId, &AZ::TransformBus::Events::SetLocalUniformScale, localScale);
         }
 
         void SetEntityLocalRotation(AZ::EntityId entityId, const AZ::Vector3& localRotation, bool& internal)

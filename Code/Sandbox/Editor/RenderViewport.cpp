@@ -42,7 +42,6 @@
 #   include <AzFramework/Input/Buses/Notifications/RawInputNotificationBus_Platform.h>
 #endif // defined(AZ_PLATFORM_WINDOWS)
 #include <AzFramework/Input/Devices/Mouse/InputDeviceMouse.h>                   // for AzFramework::InputDeviceMouse
-#include <AzFramework/API/AtomActiveInterface.h>
 
 // AzQtComponents
 #include <AzQtComponents/Utilities/QtWindowUtilities.h>
@@ -56,7 +55,6 @@
 
 
 // CryCommon
-#include <CryCommon/I3DEngine.h>
 #include <CryCommon/HMDBus.h>
 
 // AzFramework
@@ -66,7 +64,6 @@
 #include "Util/fastlib.h"
 #include "CryEditDoc.h"
 #include "GameEngine.h"
-#include "EditTool.h"
 #include "ViewManager.h"
 #include "Objects/DisplayContext.h"
 #include "DisplaySettings.h"
@@ -92,6 +89,10 @@
 #include <LmbrCentral/Rendering/EditorCameraCorrectionBus.h>
 
 #include <QtGui/private/qhighdpiscaling_p.h>
+
+#include <IEntityRenderState.h>
+#include <IPhysics.h>
+#include <IStatObj.h>
 
 AZ_CVAR(
     bool, ed_visibility_use, true, nullptr, AZ::ConsoleFunctorFlags::Null,
@@ -253,10 +254,6 @@ CRenderViewport::~CRenderViewport()
 //////////////////////////////////////////////////////////////////////////
 int CRenderViewport::OnCreate()
 {
-    m_renderer = GetIEditor()->GetRenderer();
-    m_engine = GetIEditor()->Get3DEngine();
-    assert(m_engine);
-
     CreateRenderContext();
 
     return 0;
@@ -278,15 +275,10 @@ void CRenderViewport::resizeEvent(QResizeEvent* event)
 
     gEnv->pSystem->GetISystemEventDispatcher()->OnSystemEvent(ESYSTEM_EVENT_RESIZE, width(), height());
 
-    gEnv->pRenderer->EF_DisableTemporalEffects();
-
-    if (AZ::Interface<AzFramework::AtomActiveInterface>::Get())
-    {
-        // We queue the window resize event because the render overlay may be hidden.
-        // If the render overlay is not visible, the native window that is backing it will
-        // also be hidden, and it will not resize until it becomes visible.
-        m_windowResizedEvent = true;
-    }
+    // We queue the window resize event because the render overlay may be hidden.
+    // If the render overlay is not visible, the native window that is backing it will
+    // also be hidden, and it will not resize until it becomes visible.
+    m_windowResizedEvent = true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -475,61 +467,40 @@ void CRenderViewport::OnLButtonDown(Qt::KeyboardModifiers modifiers, const QPoin
         BuildKeyboardModifiers(modifiers),
         BuildMousePick(scaledPoint));
 
-    if (GetIEditor()->IsNewViewportInteractionModelEnabled())
+    bool manipulatorInteraction = false;
+    EditorInteractionSystemViewportSelectionRequestBus::EventResult(
+        manipulatorInteraction, AzToolsFramework::GetEntityContextId(),
+        &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleMouseManipulatorInteraction,
+        MouseInteractionEvent(mouseInteraction, MouseEvent::Down));
+
+    if (!manipulatorInteraction)
     {
-        bool manipulatorInteraction = false;
-        EditorInteractionSystemViewportSelectionRequestBus::EventResult(
-            manipulatorInteraction, AzToolsFramework::GetEntityContextId(),
-            &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleMouseManipulatorInteraction,
+        if (RenderViewportUtil::AllowOrbit(modifiers))
+        {
+            m_bInOrbitMode = true;
+            m_orbitTarget =
+                GetViewTM().GetTranslation() + GetViewTM().TransformVector(FORWARD_DIRECTION) * m_orbitDistance;
+
+            // mouse buttons are treated as keys as well
+            if (m_pressedKeyState == KeyPressedState::AllUp)
+            {
+                m_pressedKeyState = KeyPressedState::PressedThisFrame;
+            }
+
+            m_mousePos = scaledPoint;
+            m_prevMousePos = scaledPoint;
+
+            HideCursor();
+            CaptureMouse();
+
+            // no further handling of left mouse button down
+            return;
+        }
+
+        EditorInteractionSystemViewportSelectionRequestBus::Event(
+            AzToolsFramework::GetEntityContextId(),
+            &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleMouseViewportInteraction,
             MouseInteractionEvent(mouseInteraction, MouseEvent::Down));
-
-        if (!manipulatorInteraction)
-        {
-            if (RenderViewportUtil::AllowOrbit(modifiers))
-            {
-                m_bInOrbitMode = true;
-                m_orbitTarget =
-                    GetViewTM().GetTranslation() + GetViewTM().TransformVector(FORWARD_DIRECTION) * m_orbitDistance;
-
-                // mouse buttons are treated as keys as well
-                if (m_pressedKeyState == KeyPressedState::AllUp)
-                {
-                    m_pressedKeyState = KeyPressedState::PressedThisFrame;
-                }
-
-                m_mousePos = scaledPoint;
-                m_prevMousePos = scaledPoint;
-
-                HideCursor();
-                CaptureMouse();
-
-                // no further handling of left mouse button down
-                return;
-            }
-
-            EditorInteractionSystemViewportSelectionRequestBus::Event(
-                AzToolsFramework::GetEntityContextId(),
-                &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleMouseViewportInteraction,
-                MouseInteractionEvent(mouseInteraction, MouseEvent::Down));
-        }
-    }
-    else
-    {
-        // first try interaction with manipulator
-        if (m_manipulatorManager == nullptr || !m_manipulatorManager->ConsumeViewportMousePress(mouseInteraction))
-        {
-            if (AzToolsFramework::ComponentModeFramework::InComponentMode())
-            {
-                EditorInteractionSystemViewportSelectionRequestBus::Event(
-                    AzToolsFramework::GetEntityContextId(),
-                    &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleMouseViewportInteraction,
-                    MouseInteractionEvent(mouseInteraction, MouseEvent::Down));
-            }
-            else
-            {
-                QtViewport::OnLButtonDown(modifiers, scaledPoint);
-            }
-        }
     }
 }
 
@@ -560,39 +531,18 @@ void CRenderViewport::OnLButtonUp(Qt::KeyboardModifiers modifiers, const QPoint&
         BuildKeyboardModifiers(modifiers),
         BuildMousePick(scaledPoint));
 
-    if (GetIEditor()->IsNewViewportInteractionModelEnabled())
+    if (m_bInOrbitMode)
     {
-        if (m_bInOrbitMode)
-        {
-            m_bInOrbitMode = false;
+        m_bInOrbitMode = false;
 
-            ReleaseMouse();
-            ShowCursor();
-        }
+        ReleaseMouse();
+        ShowCursor();
+    }
 
-        AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
-            AzToolsFramework::GetEntityContextId(),
-            &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
-            MouseInteractionEvent(mouseInteraction, MouseEvent::Up));
-    }
-    else
-    {
-        if (m_manipulatorManager == nullptr
-            || !m_manipulatorManager->ConsumeViewportMouseRelease(mouseInteraction))
-        {
-            if (AzToolsFramework::ComponentModeFramework::InComponentMode())
-            {
-                AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
-                    AzToolsFramework::GetEntityContextId(),
-                    &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleMouseViewportInteraction,
-                    MouseInteractionEvent(mouseInteraction, MouseEvent::Up));
-            }
-            else
-            {
-                QtViewport::OnLButtonUp(modifiers, scaledPoint);
-            }
-        }
-    }
+    AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
+        AzToolsFramework::GetEntityContextId(),
+        &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
+        MouseInteractionEvent(mouseInteraction, MouseEvent::Up));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -612,27 +562,10 @@ void CRenderViewport::OnLButtonDblClk(Qt::KeyboardModifiers modifiers, const QPo
         BuildKeyboardModifiers(modifiers),
         BuildMousePick(scaledPoint));
 
-    if (GetIEditor()->IsNewViewportInteractionModelEnabled())
-    {
-        AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
-            AzToolsFramework::GetEntityContextId(),
-            &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
-            MouseInteractionEvent(mouseInteraction, MouseEvent::DoubleClick));
-    }
-    else
-    {
-        if (AzToolsFramework::ComponentModeFramework::InComponentMode())
-        {
-            AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
-                AzToolsFramework::GetEntityContextId(),
-                &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleMouseViewportInteraction,
-                MouseInteractionEvent(mouseInteraction, MouseEvent::DoubleClick));
-        }
-        else
-        {
-            QtViewport::OnLButtonDblClk(modifiers, scaledPoint);
-        }
-    }
+    AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
+        AzToolsFramework::GetEntityContextId(),
+        &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
+        MouseInteractionEvent(mouseInteraction, MouseEvent::DoubleClick));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -654,48 +587,18 @@ void CRenderViewport::OnRButtonDown(Qt::KeyboardModifiers modifiers, const QPoin
         BuildKeyboardModifiers(modifiers),
         BuildMousePick(scaledPoint));
 
-    if (GetIEditor()->IsNewViewportInteractionModelEnabled())
-    {
-        AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
-            AzToolsFramework::GetEntityContextId(),
-            &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
-            MouseInteractionEvent(mouseInteraction, MouseEvent::Down));
+    AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
+        AzToolsFramework::GetEntityContextId(),
+        &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
+        MouseInteractionEvent(mouseInteraction, MouseEvent::Down));
 
-        if (RenderViewportUtil::AllowDolly(modifiers))
-        {
-            m_bInZoomMode = true;
-        }
-        else
-        {
-            m_bInRotateMode = true;
-        }
+    if (RenderViewportUtil::AllowDolly(modifiers))
+    {
+        m_bInZoomMode = true;
     }
     else
     {
-        if (m_manipulatorManager == nullptr
-            || !m_manipulatorManager->ConsumeViewportMousePress(mouseInteraction))
-        {
-            if (AzToolsFramework::ComponentModeFramework::InComponentMode())
-            {
-                AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
-                    AzToolsFramework::GetEntityContextId(),
-                    &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleMouseViewportInteraction,
-                    MouseInteractionEvent(mouseInteraction, MouseEvent::Down));
-            }
-            else
-            {
-                QtViewport::OnRButtonDown(modifiers, scaledPoint);
-            }
-        }
-
-        if (Qt::AltModifier & QApplication::queryKeyboardModifiers())
-        {
-            m_bInZoomMode = true;
-        }
-        else
-        {
-            m_bInRotateMode = true;
-        }
+        m_bInRotateMode = true;
     }
 
     // mouse buttons are treated as keys as well
@@ -730,31 +633,10 @@ void CRenderViewport::OnRButtonUp(Qt::KeyboardModifiers modifiers, const QPoint&
         BuildKeyboardModifiers(modifiers),
         BuildMousePick(scaledPoint));
 
-    if (GetIEditor()->IsNewViewportInteractionModelEnabled())
-    {
-        AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
-            AzToolsFramework::GetEntityContextId(),
-            &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
-            MouseInteractionEvent(mouseInteraction, MouseEvent::Up));
-    }
-    else
-    {
-        if (m_manipulatorManager == nullptr
-            || !m_manipulatorManager->ConsumeViewportMouseRelease(mouseInteraction))
-        {
-            if (AzToolsFramework::ComponentModeFramework::InComponentMode())
-            {
-                AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
-                    AzToolsFramework::GetEntityContextId(),
-                    &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleMouseViewportInteraction,
-                    MouseInteractionEvent(mouseInteraction, MouseEvent::Up));
-            }
-            else
-            {
-                QtViewport::OnRButtonUp(modifiers, scaledPoint);
-            }
-        }
-    }
+    AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
+        AzToolsFramework::GetEntityContextId(),
+        &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
+        MouseInteractionEvent(mouseInteraction, MouseEvent::Up));
 
     m_bInRotateMode = false;
     m_bInZoomMode = false;
@@ -784,73 +666,27 @@ void CRenderViewport::OnMButtonDown(Qt::KeyboardModifiers modifiers, const QPoin
         BuildKeyboardModifiers(modifiers),
         BuildMousePick(scaledPoint));
 
-    if (GetIEditor()->IsNewViewportInteractionModelEnabled())
+    if (RenderViewportUtil::AllowPan(modifiers))
     {
-        if (RenderViewportUtil::AllowPan(modifiers))
+        m_bInMoveMode = true;
+
+        // mouse buttons are treated as keys as well
+        if (m_pressedKeyState == KeyPressedState::AllUp)
         {
-            m_bInMoveMode = true;
-
-            // mouse buttons are treated as keys as well
-            if (m_pressedKeyState == KeyPressedState::AllUp)
-            {
-                m_pressedKeyState = KeyPressedState::PressedThisFrame;
-            }
-
-            m_mousePos = scaledPoint;
-            m_prevMousePos = scaledPoint;
-
-            HideCursor();
-            CaptureMouse();
+            m_pressedKeyState = KeyPressedState::PressedThisFrame;
         }
 
-        AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
-            AzToolsFramework::GetEntityContextId(),
-            &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
-            MouseInteractionEvent(mouseInteraction, MouseEvent::Down));
+        m_mousePos = scaledPoint;
+        m_prevMousePos = scaledPoint;
+
+        HideCursor();
+        CaptureMouse();
     }
-    else
-    {
-        if (!(modifiers & Qt::ControlModifier) && !(modifiers & Qt::ShiftModifier))
-        {
-            if (modifiers & Qt::AltModifier)
-            {
-                m_bInOrbitMode = true;
-                m_orbitTarget = GetViewTM().GetTranslation() + GetViewTM().TransformVector(FORWARD_DIRECTION) * m_orbitDistance;
-            }
-            else
-            {
-                m_bInMoveMode = true;
-            }
 
-            // mouse buttons are treated as keys as well
-            if (m_pressedKeyState == KeyPressedState::AllUp)
-            {
-                m_pressedKeyState = KeyPressedState::PressedThisFrame;
-            }
-
-            m_mousePos = scaledPoint;
-            m_prevMousePos = scaledPoint;
-
-            HideCursor();
-            CaptureMouse();
-        }
-
-        if (m_manipulatorManager == nullptr
-            || !m_manipulatorManager->ConsumeViewportMousePress(mouseInteraction))
-        {
-            if (AzToolsFramework::ComponentModeFramework::InComponentMode())
-            {
-                AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
-                    AzToolsFramework::GetEntityContextId(),
-                    &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
-                    MouseInteractionEvent(mouseInteraction, MouseEvent::Down));
-            }
-            else
-            {
-                QtViewport::OnMButtonDown(modifiers, scaledPoint);
-            }
-        }
-    }
+    AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
+        AzToolsFramework::GetEntityContextId(),
+        &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
+        MouseInteractionEvent(mouseInteraction, MouseEvent::Down));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -878,18 +714,9 @@ void CRenderViewport::OnMButtonUp(Qt::KeyboardModifiers modifiers, const QPoint&
         }
     };
 
-    if (GetIEditor()->IsNewViewportInteractionModelEnabled())
-    {
-        if (m_bInMoveMode)
-        {
-            m_bInMoveMode = false;
-            tryRestoreMouse();
-        }
-    }
-    else
+    if (m_bInMoveMode)
     {
         m_bInMoveMode = false;
-        m_bInOrbitMode = false;
         tryRestoreMouse();
     }
 
@@ -898,31 +725,10 @@ void CRenderViewport::OnMButtonUp(Qt::KeyboardModifiers modifiers, const QPoint&
         BuildKeyboardModifiers(modifiers),
         BuildMousePick(scaledPoint));
 
-    if (GetIEditor()->IsNewViewportInteractionModelEnabled())
-    {
-        AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
-            AzToolsFramework::GetEntityContextId(),
-            &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
-            MouseInteractionEvent(mouseInteraction, MouseEvent::Up));
-    }
-    else
-    {
-        if (m_manipulatorManager == nullptr
-            || !m_manipulatorManager->ConsumeViewportMouseRelease(mouseInteraction))
-        {
-            if (AzToolsFramework::ComponentModeFramework::InComponentMode())
-            {
-                AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
-                    AzToolsFramework::GetEntityContextId(),
-                    &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleMouseViewportInteraction,
-                    MouseInteractionEvent(mouseInteraction, MouseEvent::Up));
-            }
-            else
-            {
-                QtViewport::OnMButtonUp(modifiers, scaledPoint);
-            }
-        }
-    }
+    AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
+        AzToolsFramework::GetEntityContextId(),
+        &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
+        MouseInteractionEvent(mouseInteraction, MouseEvent::Up));
 }
 
 void CRenderViewport::OnMouseMove(Qt::KeyboardModifiers modifiers, Qt::MouseButtons buttons, const QPoint& point)
@@ -937,43 +743,15 @@ void CRenderViewport::OnMouseMove(Qt::KeyboardModifiers modifiers, Qt::MouseButt
 
     const auto scaledPoint = WidgetToViewport(point);
 
-    AzToolsFramework::ManipulatorManager::ConsumeMouseMoveResult mouseMoveResult =
-        AzToolsFramework::ManipulatorManager::ConsumeMouseMoveResult::None;
-
     const auto mouseInteraction = BuildMouseInteractionInternal(
         BuildMouseButtons(buttons),
         BuildKeyboardModifiers(modifiers),
         BuildMousePick(scaledPoint));
 
-    if (GetIEditor()->IsNewViewportInteractionModelEnabled())
-    {
-        AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
-            AzToolsFramework::GetEntityContextId(),
-            &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
-            MouseInteractionEvent(mouseInteraction, MouseEvent::Move));
-    }
-    else
-    {
-        if (m_manipulatorManager)
-        {
-            mouseMoveResult = m_manipulatorManager->ConsumeViewportMouseMove(mouseInteraction);
-        }
-
-        if (mouseMoveResult != AzToolsFramework::ManipulatorManager::ConsumeMouseMoveResult::Interacting)
-        {
-            if (AzToolsFramework::ComponentModeFramework::InComponentMode())
-            {
-                AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
-                    AzToolsFramework::GetEntityContextId(),
-                    &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleMouseViewportInteraction,
-                    MouseInteractionEvent(mouseInteraction, MouseEvent::Move));
-            }
-            else
-            {
-                QtViewport::OnMouseMove(modifiers, buttons, scaledPoint);
-            }
-        }
-    }
+    AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::Event(
+        AzToolsFramework::GetEntityContextId(),
+        &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
+        MouseInteractionEvent(mouseInteraction, MouseEvent::Move));
 }
 
 void CRenderViewport::InjectFakeMouseMove(int deltaX, int deltaY, Qt::MouseButtons buttons)
@@ -1086,22 +864,11 @@ void CRenderViewport::ProcessMouse()
         Vec3 xdir = m.GetColumn0().GetNormalized();
         Vec3 zdir = m.GetColumn2().GetNormalized();
 
-        if (GetIEditor()->IsNewViewportInteractionModelEnabled())
+        const auto modifiers = QGuiApplication::queryKeyboardModifiers();
+        if (RenderViewportUtil::InvertPan(modifiers))
         {
-            const auto modifiers = QGuiApplication::queryKeyboardModifiers();
-            if (RenderViewportUtil::InvertPan(modifiers))
-            {
-                xdir = -xdir;
-                zdir = -zdir;
-            }
-        }
-        else
-        {
-            if (GetCameraInvertPan())
-            {
-                xdir = -xdir;
-                zdir = -zdir;
-            }
+            xdir = -xdir;
+            zdir = -zdir;
         }
 
         Vec3 pos = m.GetTranslation();
@@ -1180,20 +947,10 @@ bool  CRenderViewport::event(QEvent* event)
 
         auto keyEvent = static_cast<QKeyEvent*>(event);
         bool manipulatorInteracting = false;
-        if (GetIEditor()->IsNewViewportInteractionModelEnabled())
-        {
-            AzToolsFramework::ManipulatorManagerRequestBus::EventResult(
-                manipulatorInteracting,
-                AzToolsFramework::g_mainManipulatorManagerId,
-                &AzToolsFramework::ManipulatorManagerRequestBus::Events::Interacting);
-        }
-        else
-        {
-            if (m_manipulatorManager != nullptr)
-            {
-                manipulatorInteracting = m_manipulatorManager->Interacting();
-            }
-        }
+        AzToolsFramework::ManipulatorManagerRequestBus::EventResult(
+            manipulatorInteracting,
+            AzToolsFramework::g_mainManipulatorManagerId,
+            &AzToolsFramework::ManipulatorManagerRequestBus::Events::Interacting);
 
         // If a manipulator is active, stop all shortcuts from working, except for the escape key, which cancels in some cases
         if ((keyEvent->key() != Qt::Key_Escape) &&  manipulatorInteracting)
@@ -1277,7 +1034,7 @@ void CRenderViewport::Update()
         return;
     }
 
-    if (!m_renderer || !m_engine || m_rcClient.isEmpty() || GetIEditor()->IsInMatEditMode())
+    if (!m_renderer || m_rcClient.isEmpty() || GetIEditor()->IsInMatEditMode())
     {
         return;
     }
@@ -1345,7 +1102,7 @@ void CRenderViewport::Update()
 
                 AzFramework::DebugDisplayRequestBus::BusPtr debugDisplayBus;
                 AzFramework::DebugDisplayRequestBus::Bind(
-                    debugDisplayBus, AzToolsFramework::ViewportInteraction::g_mainViewportEntityDebugDisplayId);
+                    debugDisplayBus, AzFramework::g_defaultSceneEntityDebugDisplayId);
                 AZ_Assert(debugDisplayBus, "Invalid DebugDisplayRequestBus.");
 
                 AzFramework::DebugDisplayRequests* debugDisplay =
@@ -1400,9 +1157,6 @@ void CRenderViewport::Update()
 
         m_renderer->SetClearColor(Vec3(0.4f, 0.4f, 0.4f));
 
-        // 3D engine stats
-        GetIEditor()->GetSystem()->RenderBegin();
-
         InitDisplayContext();
 
         OnRender();
@@ -1427,8 +1181,6 @@ void CRenderViewport::Update()
                 (*itr)->OnPostRender();
             }
         }
-
-        GetIEditor()->GetSystem()->RenderEnd(m_bRenderStats);
 
         gEnv->pSystem->SetViewCamera(CurCamera);
     }
@@ -1509,9 +1261,6 @@ CBaseObject* CRenderViewport::GetCameraObject() const
 //////////////////////////////////////////////////////////////////////////
 void CRenderViewport::OnEditorNotifyEvent(EEditorNotifyEvent event)
 {
-    static ICVar* outputToHMD = gEnv->pConsole->GetCVar("output_to_hmd");
-    AZ_Assert(outputToHMD, "cvar output_to_hmd is undeclared");
-
     switch (event)
     {
     case eNotify_OnBeginGameMode:
@@ -1532,7 +1281,6 @@ void CRenderViewport::OnEditorNotifyEvent(EEditorNotifyEvent event)
 
                 if (deviceInfo)
                 {
-                    outputToHMD->Set(1);
                     m_previousContext = SetCurrentContext(deviceInfo->renderWidth, deviceInfo->renderHeight);
                     if (m_renderer->GetIStereoRenderer())
                     {
@@ -1569,10 +1317,6 @@ void CRenderViewport::OnEditorNotifyEvent(EEditorNotifyEvent event)
                 // called SetCurrentContext(...) on the renderer, probably did some rendering, but then either
                 // failed to set the context back when done, or set it back to the wrong one.
                 CryWarning(VALIDATOR_MODULE_3DENGINE, VALIDATOR_WARNING, "RenderViewport render context was not correctly restored by someone else.");
-            }
-            if (gSettings.bEnableGameModeVR)
-            {
-                outputToHMD->Set(0);
             }
 
             if (m_inFullscreenPreview)
@@ -1674,8 +1418,6 @@ void CRenderViewport::OnRender()
         // This is necessary so that automated editor tests using the null renderer to test systems like dynamic vegetation
         // are still able to manipulate the current logical camera position, even if nothing is rendered.
         GetIEditor()->GetSystem()->SetViewCamera(m_Camera);
-        GetIEditor()->GetRenderer()->SetCamera(gEnv->pSystem->GetViewCamera());
-        m_engine->RenderWorld(0, SRenderingPassInfo::CreateGeneralPassRenderingInfo(m_Camera), __FUNCTION__);
         return;
     }
 
@@ -1748,7 +1490,7 @@ void CRenderViewport::OnRender()
             }
         }
 
-        m_Camera.SetFrustum(w, h, fov, fNearZ, gEnv->p3DEngine->GetMaxViewDistance());
+        m_Camera.SetFrustum(w, h, fov, fNearZ);
     }
 
     GetIEditor()->GetSystem()->SetViewCamera(m_Camera);
@@ -1765,12 +1507,6 @@ void CRenderViewport::OnRender()
         PreWidgetRendering();
 
         RenderAll();
-
-        // Draw Axis arrow in lower left corner.
-        if (levelIsDisplayable && !GetIEditor()->IsNewViewportInteractionModelEnabled())
-        {
-            DrawAxis();
-        }
 
         // Draw 2D helpers.
         TransformationMatrices backupSceneMatrices;
@@ -1790,7 +1526,7 @@ void CRenderViewport::OnRender()
 
         AzFramework::DebugDisplayRequestBus::BusPtr debugDisplayBus;
         AzFramework::DebugDisplayRequestBus::Bind(
-            debugDisplayBus, AzToolsFramework::ViewportInteraction::g_mainViewportEntityDebugDisplayId);
+            debugDisplayBus, AzFramework::g_defaultSceneEntityDebugDisplayId);
         AZ_Assert(debugDisplayBus, "Invalid DebugDisplayRequestBus.");
 
         AzFramework::DebugDisplayRequests* debugDisplay =
@@ -1800,11 +1536,6 @@ void CRenderViewport::OnRender()
             AzToolsFramework::GetEntityContextId(), &AzFramework::ViewportDebugDisplayEvents::DisplayViewport2d,
             AzFramework::ViewportInfo{ GetViewportId() }, *debugDisplay);
 
-        if (!GetIEditor()->IsNewViewportInteractionModelEnabled())
-        {
-            RenderSelectionRectangle();
-        }
-
         m_renderer->Unset2DMode(backupSceneMatrices);
 
         PostWidgetRendering();
@@ -1813,25 +1544,12 @@ void CRenderViewport::OnRender()
     if (levelIsDisplayable)
     {
         m_renderer->SetViewport(0, 0, m_renderer->GetWidth(), m_renderer->GetHeight(), m_nCurViewportID);
-
-        if (!AZ::Interface<AzFramework::AtomActiveInterface>::Get())
-        {
-            m_engine->Tick();
-            m_engine->Update();
-
-            m_engine->RenderWorld(SHDF_ALLOW_AO | SHDF_ALLOWPOSTPROCESS | SHDF_ALLOW_WATER | SHDF_ALLOWHDR | SHDF_ZPASS, SRenderingPassInfo::CreateGeneralPassRenderingInfo(m_Camera), __FUNCTION__);
-        }
     }
     else
     {
         ColorF viewportBackgroundColor(pow(71.0f / 255.0f, 2.2f), pow(71.0f / 255.0f, 2.2f), pow(71.0f / 255.0f, 2.2f));
         m_renderer->ClearTargetsLater(FRT_CLEAR_COLOR, viewportBackgroundColor);
         DrawBackground();
-    }
-
-    if (!m_renderer->IsStereoEnabled())
-    {
-        GetIEditor()->GetSystem()->RenderStatistics();
     }
 }
 
@@ -1862,7 +1580,6 @@ void CRenderViewport::InitDisplayContext()
     displayContext.settings = GetIEditor()->GetDisplaySettings();
     displayContext.view = this;
     displayContext.renderer = m_renderer;
-    displayContext.engine = m_engine;
     displayContext.box.min = Vec3(-100000.0f, -100000.0f, -100000.0f);
     displayContext.box.max = Vec3(100000.0f, 100000.0f, 100000.0f);
     displayContext.camera = &m_Camera;
@@ -1892,11 +1609,6 @@ void CRenderViewport::InitDisplayContext()
     {
         displayContext.flags |= DISPLAY_TRACKS;
         displayContext.flags |= DISPLAY_TRACKTICKS;
-    }
-
-    if (m_bAdvancedSelectMode && !GetIEditor()->IsNewViewportInteractionModelEnabled())
-    {
-        displayContext.flags |= DISPLAY_SELECTION_HELPERS;
     }
 
     if (GetIEditor()->GetReferenceCoordSys() == COORDS_WORLD)
@@ -1946,7 +1658,7 @@ void CRenderViewport::RenderAll()
 
         AzFramework::DebugDisplayRequestBus::BusPtr debugDisplayBus;
         AzFramework::DebugDisplayRequestBus::Bind(
-            debugDisplayBus, AzToolsFramework::ViewportInteraction::g_mainViewportEntityDebugDisplayId);
+            debugDisplayBus, AzFramework::g_defaultSceneEntityDebugDisplayId);
         AZ_Assert(debugDisplayBus, "Invalid DebugDisplayRequestBus.");
 
         AzFramework::DebugDisplayRequests* debugDisplay =
@@ -1958,12 +1670,6 @@ void CRenderViewport::RenderAll()
             AzFramework::ViewportInfo{ GetViewportId() }, *debugDisplay);
 
         m_entityVisibilityQuery.DisplayVisibility(*debugDisplay);
-
-        if (GetEditTool())
-        {
-            // display editing tool
-            GetEditTool()->Display(displayContext);
-        }
 
         if (m_manipulatorManager != nullptr)
         {
@@ -2290,38 +1996,37 @@ AzFramework::CameraState CRenderViewport::GetCameraState()
 
 bool CRenderViewport::GridSnappingEnabled()
 {
-    return GetViewManager()->GetGrid()->IsEnabled();
+    return false;
 }
 
 float CRenderViewport::GridSize()
 {
-    const CGrid* grid = GetViewManager()->GetGrid();
-    return grid->scale * grid->size;
+    return 0.0f;
 }
 
 bool CRenderViewport::ShowGrid()
 {
-    return gSettings.viewports.bShowGridGuide;
+    return false;
 }
 
 bool CRenderViewport::AngleSnappingEnabled()
 {
-    return GetViewManager()->GetGrid()->IsAngleSnapEnabled();
+    return false;
 }
 
 float CRenderViewport::AngleStep()
 {
-    return GetViewManager()->GetGrid()->GetAngleSnap();
+    return 0.0f;
 }
 
-AZ::Vector3 CRenderViewport::PickTerrain(const QPoint& point)
+AZ::Vector3 CRenderViewport::PickTerrain(const AzFramework::ScreenPoint& point)
 {
     FUNCTION_PROFILER(GetIEditor()->GetSystem(), PROFILE_EDITOR);
 
-    return LYVec3ToAZVec3(ViewToWorld(point, nullptr, true));
+    return LYVec3ToAZVec3(ViewToWorld(AzToolsFramework::ViewportInteraction::QPointFromScreenPoint(point), nullptr, true));
 }
 
-AZ::EntityId CRenderViewport::PickEntity(const QPoint& point)
+AZ::EntityId CRenderViewport::PickEntity(const AzFramework::ScreenPoint& point)
 {
     FUNCTION_PROFILER(GetIEditor()->GetSystem(), PROFILE_EDITOR);
 
@@ -2330,7 +2035,7 @@ AZ::EntityId CRenderViewport::PickEntity(const QPoint& point)
     AZ::EntityId entityId;
     HitContext hitInfo;
     hitInfo.view = this;
-    if (HitTest(point, hitInfo))
+    if (HitTest(AzToolsFramework::ViewportInteraction::QPointFromScreenPoint(point), hitInfo))
     {
         if (hitInfo.object && (hitInfo.object->GetType() == OBJTYPE_AZENTITY))
         {
@@ -2371,12 +2076,13 @@ void CRenderViewport::FindVisibleEntities(AZStd::vector<AZ::EntityId>& visibleEn
     }
 }
 
-QPoint CRenderViewport::ViewportWorldToScreen(const AZ::Vector3& worldPosition)
+AzFramework::ScreenPoint CRenderViewport::ViewportWorldToScreen(const AZ::Vector3& worldPosition)
 {
     FUNCTION_PROFILER(GetIEditor()->GetSystem(), PROFILE_EDITOR);
 
     PreWidgetRendering();
-    const QPoint screenPosition = WorldToView(AZVec3ToLYVec3(worldPosition));
+    const AzFramework::ScreenPoint screenPosition =
+        AzToolsFramework::ViewportInteraction::ScreenPointFromQPoint(WorldToView(AZVec3ToLYVec3(worldPosition)));
     PostWidgetRendering();
 
     return screenPosition;
@@ -2749,7 +2455,6 @@ void CRenderViewport::ToggleCameraObject()
 {
     if (m_viewSourceType == ViewSourceType::SequenceCamera)
     {
-        gEnv->p3DEngine->GetPostEffectBaseGroup()->SetParam("Dof_Active", 0.0f);
         ResetToViewSourceType(ViewSourceType::LegacyCamera);
     }
     else
@@ -2777,45 +2482,13 @@ void CRenderViewport::OnMouseWheel(Qt::KeyboardModifiers modifiers, short zDelta
         BuildMousePick(scaledPoint));
 
     bool handled = false;
-    if (GetIEditor()->IsNewViewportInteractionModelEnabled())
-    {
-        MouseInteractionResult result = MouseInteractionResult::None;
-        AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::EventResult(
-            result, AzToolsFramework::GetEntityContextId(),
-            &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
-            MouseInteractionEvent(mouseInteraction, zDelta));
+    MouseInteractionResult result = MouseInteractionResult::None;
+    AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::EventResult(
+        result, AzToolsFramework::GetEntityContextId(),
+        &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleAllMouseInteractions,
+        MouseInteractionEvent(mouseInteraction, zDelta));
 
-        handled = result != MouseInteractionResult::None;
-    }
-    else
-    {
-        if (m_manipulatorManager == nullptr || m_manipulatorManager->ConsumeViewportMouseWheel(mouseInteraction))
-        {
-            return;
-        }
-
-        if (AzToolsFramework::ComponentModeFramework::InComponentMode())
-        {
-            AzToolsFramework::EditorInteractionSystemViewportSelectionRequestBus::EventResult(
-                handled, AzToolsFramework::GetEntityContextId(),
-                &EditorInteractionSystemViewportSelectionRequestBus::Events::InternalHandleMouseViewportInteraction,
-                MouseInteractionEvent(mouseInteraction, zDelta));
-        }
-        else
-        {
-            //////////////////////////////////////////////////////////////////////////
-            // Asks current edit tool to handle mouse callback.
-            CEditTool* pEditTool = GetEditTool();
-            if (pEditTool && (modifiers & Qt::ControlModifier))
-            {
-                QPoint tempPoint(scaledPoint.x(), scaledPoint.y());
-                if (pEditTool->MouseCallback(this, eMouseWheel, tempPoint, zDelta))
-                {
-                    handled = true;
-                }
-            }
-        }
-    }
+    handled = result != MouseInteractionResult::None;
 
     if (!handled)
     {
@@ -3103,11 +2776,6 @@ void CRenderViewport::SetViewTM(const Matrix34& viewTM, bool bMoveOnly)
 //////////////////////////////////////////////////////////////////////////
 void CRenderViewport::RenderSelectedRegion()
 {
-    if (!m_engine)
-    {
-        return;
-    }
-
     AABB box;
     GetIEditor()->GetSelectedRegion(box);
     if (box.IsEmpty())
@@ -3699,19 +3367,9 @@ bool CRenderViewport::AdjustObjectPosition(const ray_hit& hit, Vec3& outNormal, 
 }
 
 //////////////////////////////////////////////////////////////////////////
-bool CRenderViewport::RayRenderMeshIntersection(IRenderMesh* pRenderMesh, const Vec3& vInPos, const Vec3& vInDir, Vec3& vOutPos, Vec3& vOutNormal) const
+bool CRenderViewport::RayRenderMeshIntersection(IRenderMesh*, const Vec3&, const Vec3&, Vec3&, Vec3&) const
 {
-    SRayHitInfo hitInfo;
-    hitInfo.bUseCache = false;
-    hitInfo.bInFirstHit = false;
-    hitInfo.inRay.origin = vInPos;
-    hitInfo.inRay.direction = vInDir.GetNormalized();
-    hitInfo.inReferencePoint = vInPos;
-    hitInfo.fMaxHitDistance = 0;
-    bool bRes = GetIEditor()->Get3DEngine()->RenderMeshRayIntersection(pRenderMesh, hitInfo, nullptr);
-    vOutPos = hitInfo.vHitPos;
-    vOutNormal = hitInfo.vHitNormal;
-    return bRes;
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3962,11 +3620,8 @@ bool CRenderViewport::CreateRenderContext()
     {
         m_bRenderContextCreated = true;
 
-        if (AZ::Interface<AzFramework::AtomActiveInterface>::Get())
-        {
-            AzFramework::WindowRequestBus::Handler::BusConnect(renderOverlayHWND());
-            AzFramework::WindowSystemNotificationBus::Broadcast(&AzFramework::WindowSystemNotificationBus::Handler::OnWindowCreated, renderOverlayHWND());
-        }
+        AzFramework::WindowRequestBus::Handler::BusConnect(renderOverlayHWND());
+        AzFramework::WindowSystemNotificationBus::Broadcast(&AzFramework::WindowSystemNotificationBus::Handler::OnWindowCreated, renderOverlayHWND());
 
         WIN_HWND oldContext = m_renderer->GetCurrentContextHWND();
         m_renderer->CreateContext(renderOverlayHWND());
@@ -3999,7 +3654,6 @@ void CRenderViewport::SetDefaultCamera()
         return;
     }
     ResetToViewSourceType(ViewSourceType::None);
-    gEnv->p3DEngine->GetPostEffectBaseGroup()->SetParam("Dof_Active", 0.0f);
     GetViewManager()->SetCameraObjectId(m_cameraObjectId);
     SetName(m_defaultViewName);
     SetViewTM(m_defaultViewTM);
@@ -4178,23 +3832,8 @@ void CRenderViewport::SetViewAndMovementLockFromEntityPerspective(const AZ::Enti
 
 bool CRenderViewport::GetActiveCameraPosition(AZ::Vector3& cameraPos)
 {
-    if (m_pPrimaryViewport == this)
-    {
-        if (GetIEditor()->IsInGameMode())
-        {
-            const Vec3 camPos = m_engine->GetRenderingCamera().GetPosition();
-            cameraPos = LYVec3ToAZVec3(camPos);
-        }
-        else
-        {
-            // Use viewTM, which is synced with the camera and guaranteed to be up-to-date
-            cameraPos = LYVec3ToAZVec3(m_viewTM.GetTranslation());
-        }
-
-        return true;
-    }
-
-    return false;
+    cameraPos = LYVec3ToAZVec3(m_viewTM.GetTranslation());
+    return true;
 }
 
 bool CRenderViewport::GetActiveCameraState(AzFramework::CameraState& cameraState)
@@ -4203,9 +3842,7 @@ bool CRenderViewport::GetActiveCameraState(AzFramework::CameraState& cameraState
     {
         if (GetIEditor()->IsInGameMode())
         {
-            const auto& renderingCamera = m_engine->GetRenderingCamera();
-            cameraState = CameraStateFromCCamera(
-                renderingCamera, renderingCamera.GetFov(), m_rcClient.width(), m_rcClient.height());
+            return false;
         }
         else
         {
@@ -4255,190 +3892,13 @@ void CRenderViewport::ActivateWindowAndSetFocus()
 //////////////////////////////////////////////////////////////////////////
 void CRenderViewport::RenderConstructionPlane()
 {
-    DisplayContext& dc = m_displayContext;
-
-    int prevState = dc.GetState();
-    dc.DepthWriteOff();
-    // Draw Construction plane.
-
-    CGrid* pGrid = GetViewManager()->GetGrid();
-
-    RefCoordSys coordSys = COORDS_WORLD;
-
-    Vec3 p = m_constructionMatrix[coordSys].GetTranslation();
-    Vec3 n = m_constructionPlane.n;
-
-    Vec3 u = Vec3(1, 0, 0);
-    Vec3 v = Vec3(0, 1, 0);
-
-
-    if (gSettings.snap.bGridUserDefined)
-    {
-        Ang3 angles = Ang3(pGrid->rotationAngles.x * gf_PI / 180.0, pGrid->rotationAngles.y * gf_PI / 180.0, pGrid->rotationAngles.z * gf_PI / 180.0);
-        Matrix34 tm = Matrix33::CreateRotationXYZ(angles);
-
-        if (gSettings.snap.bGridGetFromSelected)
-        {
-            CSelectionGroup* sel = GetIEditor()->GetSelection();
-            if (sel->GetCount() > 0)
-            {
-                CBaseObject* obj = sel->GetObject(0);
-                tm = obj->GetWorldTM();
-                tm.OrthonormalizeFast();
-                tm.SetTranslation(Vec3(0, 0, 0));
-            }
-        }
-
-        u = tm * u;
-        v = tm * v;
-    }
-
-    float step = pGrid->scale * pGrid->size;
-    float size = gSettings.snap.constructPlaneSize;
-
-    dc.SetColor(0, 0, 1, 0.1f);
-
-    float s = size;
-
-    dc.DrawQuad(p - u * s - v * s, p + u * s - v * s, p + u * s + v * s, p - u * s + v * s);
-
-    int nSteps = int(size / step);
-    int i;
-    // Draw X lines.
-    dc.SetColor(1, 0, 0.2f, 0.3f);
-
-    for (i = -nSteps; i <= nSteps; i++)
-    {
-        dc.DrawLine(p - u * size + v * (step * i), p + u * size + v * (step * i));
-    }
-    // Draw Y lines.
-    dc.SetColor(0.2f, 1.0f, 0, 0.3f);
-    for (i = -nSteps; i <= nSteps; i++)
-    {
-        dc.DrawLine(p - v * size + u * (step * i), p + v * size + u * (step * i));
-    }
-
-    // Draw origin lines.
-
-    dc.SetLineWidth(2);
-
-    //X
-    dc.SetColor(1, 0, 0);
-    dc.DrawLine(p - u * s, p + u * s);
-
-    //Y
-    dc.SetColor(0, 1, 0);
-    dc.DrawLine(p - v * s, p + v * s);
-
-    //Z
-    dc.SetColor(0, 0, 1);
-    dc.DrawLine(p - n * s, p + n * s);
-
-    dc.SetLineWidth(0);
-
-    dc.SetState(prevState);
+    // noop
 }
 
 //////////////////////////////////////////////////////////////////////////
 void CRenderViewport::RenderSnappingGrid()
 {
-    // First, Check whether we should draw the grid or not.
-    CSelectionGroup* pSelGroup = GetIEditor()->GetSelection();
-    if (pSelGroup == nullptr || pSelGroup->GetCount() != 1)
-    {
-        return;
-    }
-    if (GetIEditor()->GetEditMode() != eEditModeMove
-        && GetIEditor()->GetEditMode() != eEditModeRotate)
-    {
-        return;
-    }
-    CGrid* pGrid = GetViewManager()->GetGrid();
-    if (pGrid->IsEnabled() == false && pGrid->IsAngleSnapEnabled() == false)
-    {
-        return;
-    }
-    if (GetIEditor()->GetEditTool() && !GetIEditor()->GetEditTool()->IsDisplayGrid())
-    {
-        return;
-    }
-
-    DisplayContext& dc = m_displayContext;
-
-    int prevState = dc.GetState();
-    dc.DepthWriteOff();
-
-    Vec3 p = pSelGroup->GetObject(0)->GetWorldPos();
-
-    AABB bbox;
-    pSelGroup->GetObject(0)->GetBoundBox(bbox);
-    float size = 2 * bbox.GetRadius();
-    float alphaMax = 1.0f, alphaMin = 0.2f;
-    dc.SetLineWidth(3);
-
-    if (GetIEditor()->GetEditMode() == eEditModeMove && pGrid->IsEnabled())
-    // Draw the translation grid.
-    {
-        Vec3 u = m_constructionPlaneAxisX;
-        Vec3 v = m_constructionPlaneAxisY;
-        float step = pGrid->scale * pGrid->size;
-        const int MIN_STEP_COUNT = 5;
-        const int MAX_STEP_COUNT = 300;
-        int nSteps = std::min(std::max(FloatToIntRet(size / step), MIN_STEP_COUNT), MAX_STEP_COUNT);
-        size = nSteps * step;
-        for (int i = -nSteps; i <= nSteps; ++i)
-        {
-            // Draw u lines.
-            float alphaCur = alphaMax - fabsf(float(i) / float(nSteps)) * (alphaMax - alphaMin);
-            dc.DrawLine(p + v * (step * i), p + u * size + v * (step * i),
-                ColorF(0, 0, 0, alphaCur), ColorF(0, 0, 0, alphaMin));
-            dc.DrawLine(p + v * (step * i), p - u * size + v * (step * i),
-                ColorF(0, 0, 0, alphaCur), ColorF(0, 0, 0, alphaMin));
-            // Draw v lines.
-            dc.DrawLine(p + u * (step * i), p + v * size + u * (step * i),
-                ColorF(0, 0, 0, alphaCur), ColorF(0, 0, 0, alphaMin));
-            dc.DrawLine(p + u * (step * i), p - v * size + u * (step * i),
-                ColorF(0, 0, 0, alphaCur), ColorF(0, 0, 0, alphaMin));
-        }
-    }
-    else if (GetIEditor()->GetEditMode() == eEditModeRotate && pGrid->IsAngleSnapEnabled())
-    // Draw the rotation grid.
-    {
-        int nAxis(GetAxisConstrain());
-        if (nAxis == AXIS_X || nAxis == AXIS_Y || nAxis == AXIS_Z)
-        {
-            RefCoordSys coordSys = GetIEditor()->GetReferenceCoordSys();
-            Vec3 xAxis(1, 0, 0);
-            Vec3 yAxis(0, 1, 0);
-            Vec3 zAxis(0, 0, 1);
-            Vec3 rotAxis;
-            if (nAxis == AXIS_X)
-            {
-                rotAxis = m_constructionMatrix[coordSys].TransformVector(xAxis);
-            }
-            else if (nAxis == AXIS_Y)
-            {
-                rotAxis = m_constructionMatrix[coordSys].TransformVector(yAxis);
-            }
-            else if (nAxis == AXIS_Z)
-            {
-                rotAxis = m_constructionMatrix[coordSys].TransformVector(zAxis);
-            }
-            Vec3 anotherAxis = m_constructionPlane.n * size;
-            float step = pGrid->angleSnap;
-            int nSteps = FloatToIntRet(180.0f / step);
-            for (int i = 0; i < nSteps; ++i)
-            {
-                AngleAxis rot(i* step* gf_PI / 180.0, rotAxis);
-                Vec3 dir = rot * anotherAxis;
-                dc.DrawLine(p, p + dir,
-                    ColorF(0, 0, 0, alphaMax), ColorF(0, 0, 0, alphaMin));
-                dc.DrawLine(p, p - dir,
-                    ColorF(0, 0, 0, alphaMax), ColorF(0, 0, 0, alphaMin));
-            }
-        }
-    }
-    dc.SetState(prevState);
+    // noop
 }
 
 //////////////////////////////////////////////////////////////////////////

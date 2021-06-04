@@ -1054,12 +1054,12 @@ namespace ScriptCanvas
                     if (azrtti_istypeof<ScriptCanvas::Nodes::NodeableNodeOverloaded*>(&node))
                     {
                         // todo Add node to these errors
-                        AddError(nullptr, ValidationConstPtr(aznew Internal::ParseError(node.GetEntityId(), AZStd::string::format("NodeableNodeOverloaded doesn't have enough data connected to select a valid overload: %s", node.GetDebugName().data()))));
+                        AddError(nullptr, ValidationConstPtr(aznew Internal::ParseError(node.GetEntityId(), AZStd::string::format("%s: %s", ParseErrors::NodeableNodeOverloadAmbiguous, node.GetDebugName().data()))));
                     }
                     else
                     {
                         // todo Add node to these errors
-                        AddError(nullptr, ValidationConstPtr(aznew Internal::ParseError(node.GetEntityId(), AZStd::string::format("NodeableNode did not construct its internal node: %s", node.GetDebugName().data()))));
+                        AddError(nullptr, ValidationConstPtr(aznew Internal::ParseError(node.GetEntityId(), AZStd::string::format("%s: %s", ParseErrors::NodeableNodeDidNotConstructInternalNodeable, node.GetDebugName().data()))));
                     }
                 }
             }
@@ -2709,7 +2709,9 @@ namespace ScriptCanvas
             AZStd::vector<VariableId> inputVariableIds;
             AZStd::unordered_map<VariableId, Grammar::VariableConstPtr> inputVariablesById;
 
+            // ApcExt BEGIN
             GenerateArtificialVariableIDs();
+            // ApcExt END
 
             auto& variables = GetVariables();
             for (auto variable : variables)
@@ -2750,8 +2752,9 @@ namespace ScriptCanvas
 
                 case VariableConstructionRequirement::InputVariable:
                 {
-                    inputVariableIds.push_back(variable->m_sourceVariableId);
-                    inputVariablesById.insert({ variable->m_sourceVariableId, variable });
+                    auto variableID = variable->m_sourceVariableId.IsValid() ? variable->m_sourceVariableId : VariableId::MakeVariableId();
+                    inputVariableIds.push_back(variableID);
+                    inputVariablesById.insert({ variableID, variable });
                     // sort revealed a datum copy issue: type is not preserved, workaround below
                     // m_runtimeInputs.m_variables.emplace_back(variable->m_sourceVariableId, variable->m_datum);
                 }
@@ -3199,7 +3202,7 @@ namespace ScriptCanvas
             /// NOTE: after basic iteration works correctly
             /// \todo when subsequent input (from nodes connected to the break slot) looks up the slot from the node with key or the value,
             /// it is going to have to find the output of the get/key value functions in BOTH the child outs of break and loop
-            /// https://jira.agscollab.com/browse/LY-109862 may be required for this
+            /// LY-109862 may be required for this
 
             ExecutionTreePtr lastExecution = forEachLoopBody;
 

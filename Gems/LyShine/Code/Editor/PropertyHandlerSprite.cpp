@@ -28,8 +28,6 @@
 
 #include "SpriteBorderEditorCommon.h"
 
-#include <IResourceCompilerHelper.h>
-
 #include <LmbrCentral/Rendering/MaterialAsset.h>
 
 #include <Atom/RPI.Edit/Common/AssetUtils.h>
@@ -69,7 +67,7 @@ PropertySpriteCtrl::PropertySpriteCtrl(QWidget* parent)
 
         slicerButton->setFocusPolicy(Qt::StrongFocus);
 
-        slicerButton->setIcon(QIcon("Editor/Icons/PropertyEditor/open_in.png"));
+        slicerButton->setIcon(QIcon("Icons/PropertyEditor/open_in.png"));
 
         // The icon size needs to be smaller than the fixed size to make sure it visually aligns properly.
         QSize iconSize = QSize(fixedSize.width() - 2, fixedSize.height() - 2);

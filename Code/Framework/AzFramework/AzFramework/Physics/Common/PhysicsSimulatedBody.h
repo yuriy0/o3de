@@ -18,6 +18,7 @@
 #include <AzCore/RTTI/RTTI.h>
 #include <AzCore/std/containers/variant.h>
 #include <AzCore/std/containers/vector.h>
+#include <AzCore/std/limits.h>
 #include <AzFramework/Physics/Common/PhysicsSimulatedBodyEvents.h>
 #include <AzFramework/Physics/Common/PhysicsSceneQueries.h>
 #include <AzFramework/Physics/Common/PhysicsTypes.h>
@@ -55,7 +56,7 @@ namespace AzPhysics
 
         //! Flag to determine if the body is part of the simulation.
         //! When true the body will be affected by any forces, collisions, and found with scene queries.
-        bool m_simulating = true;
+        bool m_simulating = false;
 
         //! Helper functions for setting user data.
         //! @param userData Can be a pointer to any type as internally will be cast to a void*. Object lifetime not managed by the SimulatedBody.
@@ -67,6 +68,22 @@ namespace AzPhysics
         {
             return m_customUserData;
         }
+
+        //! Helper functions for setting frame ID.
+        //! @param frameId Optionally set frame ID for the systems moving the actors back in time.
+        void SetFrameId(uint32_t frameId)
+        {
+            m_frameId = frameId;
+        }
+
+        //! Helper functions for getting the set frame ID.
+        //! @return Will return the frame ID.
+        uint32_t GetFrameId() const
+        {
+            return m_frameId;
+        }
+
+        static constexpr uint32_t UndefinedFrameId = AZStd::numeric_limits<uint32_t>::max();
 
         //! Perform a ray cast on this Simulated Body.
         //! @param request The request to make.
@@ -126,6 +143,7 @@ namespace AzPhysics
         SimulatedBodyEvents::OnTriggerExit m_triggerExitEvent;
 
         void* m_customUserData = nullptr;
+        uint32_t m_frameId = UndefinedFrameId;
 
         // helpers for reflecting to behavior context
         SimulatedBodyEvents::OnCollisionBegin* GetOnCollisionBeginEvent();

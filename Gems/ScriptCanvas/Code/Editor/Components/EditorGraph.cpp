@@ -91,7 +91,8 @@ AZ_POP_DISABLE_WARNING
 #include <ScriptCanvas/Variable/VariableBus.h>
 #include <ScriptCanvas/Libraries/UnitTesting/UnitTestingLibrary.h>
 
-////
+    AZ_CVAR(bool, g_disableDeprecatedNodeUpdates, false, {}, AZ::ConsoleFunctorFlags::Null,
+        "Disables automatic update attempts of deprecated nodes, so that graphs that require and update can be viewed in their original form");
 
 namespace EditorGraphCpp
 {
@@ -3645,27 +3646,27 @@ namespace ScriptCanvasEditor
 
                 if (scriptCanvasNode)
                 {
-                     if (scriptCanvasNode->IsDeprecated() && !g_disableDeprecatedNodeUpdates
+                    if (scriptCanvasNode->IsDeprecated() && !g_disableDeprecatedNodeUpdates
                      // ApcExt begin
                          && !azrtti_istypeof<ScriptCanvas::PureData>(scriptCanvasNode)
                      // ApcExt end
                      )
-                     {
-                         ScriptCanvas::NodeConfiguration nodeConfig = scriptCanvasNode->GetReplacementNodeConfiguration();
-                         if (nodeConfig.IsValid())
-                         {
-                             ScriptCanvas::NodeUpdateSlotReport nodeUpdateSlotReport;
-                             auto nodeOutcome = ReplaceNodeByConfig(scriptCanvasNode, nodeConfig, nodeUpdateSlotReport);
- 
-                             if (nodeOutcome.IsSuccess())
-                             {
-                                 graphNeedsDirtying = true;
-                                 scriptCanvasNode = nodeOutcome.GetValue();
-                                 m_updateStrings.insert(AZStd::string::format("Replaced node (%s)", scriptCanvasNode->GetNodeName().c_str()));
-                                 ScriptCanvas::MergeUpdateSlotReport(scriptCanvasNodeId, graphUpdateSlotReport, nodeUpdateSlotReport);
-                             }
-                         }
-                     }
+                    {
+                        ScriptCanvas::NodeConfiguration nodeConfig = scriptCanvasNode->GetReplacementNodeConfiguration();
+                        if (nodeConfig.IsValid())
+                        {
+                            ScriptCanvas::NodeUpdateSlotReport nodeUpdateSlotReport;
+                            auto nodeOutcome = ReplaceNodeByConfig(scriptCanvasNode, nodeConfig, nodeUpdateSlotReport);
+
+                            if (nodeOutcome.IsSuccess())
+                            {
+                                graphNeedsDirtying = true;
+                                scriptCanvasNode = nodeOutcome.GetValue();
+                                m_updateStrings.insert(AZStd::string::format("Replaced node (%s)", scriptCanvasNode->GetNodeName().c_str()));
+                                ScriptCanvas::MergeUpdateSlotReport(scriptCanvasNodeId, graphUpdateSlotReport, nodeUpdateSlotReport);
+                            }
+                        }
+                    }
 
                     AZ::EntityId graphCanvasNodeId = Nodes::DisplayScriptCanvasNode(graphCanvasGraphId, scriptCanvasNode);
                     scriptCanvasToGraphCanvasMapping[scriptCanvasNodeId] = graphCanvasNodeId;

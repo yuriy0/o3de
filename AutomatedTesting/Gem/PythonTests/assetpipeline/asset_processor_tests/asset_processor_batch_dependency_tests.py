@@ -67,13 +67,25 @@ class TestsAssetProcessorBatch_DependenycyTests(object):
                 libs/materialeffects/surfacetypes.xml is listed as an entry engine_dependencies.xml
                 libs/materialeffects/surfacetypes.xml is not listed as a missing dependency
                     in the 'assetprocessorbatch' console output
+
+        Test Steps:
+        1. Assets are pre-processed
+        2. Verify that engine_dependencies.xml exists
+        3. Verify engine_dependencies.xml has surfacetypes.xml present
+        4. Run Missing Dependency scanner against the engine_dependenciese.xml
+        5. Verify that Surfacetypes.xml is NOT in the missing depdencies output
+        6. Add the schema file which allows our xml parser to understand dependencies for our engine_dependencies file
+        7. Process assets
+        8. Run Missing Dependency scanner against the engine_dependenciese.xml
+        9. Verify that surfacetypes.xml is in the missing dependencies out
         """
+
         env = ap_setup_fixture
         BATCH_LOG_PATH = env["ap_batch_log_file"]
         asset_processor.create_temp_asset_root()
-        asset_processor.add_relative_source_asset(os.path.join("Engine", "engine_dependencies.xml"))
-        asset_processor.add_scan_folder("Engine")
-        asset_processor.add_relative_source_asset(os.path.join("Engine", "Libs", "MaterialEffects", "surfacetypes.xml"))
+        asset_processor.add_relative_source_asset(os.path.join("Assets", "Engine", "engine_dependencies.xml"))
+        asset_processor.add_scan_folder(os.path.join("Assets", "Engine"))
+        asset_processor.add_relative_source_asset(os.path.join("Assets", "Engine", "Libs", "MaterialEffects", "surfacetypes.xml"))
 
         # Precondition: Assets are all processed
         asset_processor.batch_process()
@@ -103,7 +115,7 @@ class TestsAssetProcessorBatch_DependenycyTests(object):
         assert surfacetypes_missing_logline, "Surfacetypes.xml not seen in the batch log as missing."
 
         # Add the schema file which allows our xml parser to understand dependencies for our engine_dependencies file
-        asset_processor.add_relative_source_asset(os.path.join("Engine", "Schema", "enginedependency.xmlschema"))
+        asset_processor.add_relative_source_asset(os.path.join("Assets", "Engine", "Schema", "enginedependency.xmlschema"))
         asset_processor.batch_process()
 
         _, output = asset_processor.batch_process(capture_output=True,
@@ -137,6 +149,11 @@ class TestsAssetProcessorBatch_DependenycyTests(object):
     def test_WindowsMacPlatforms_BatchCheckSchema_ValidateErrorChecking(self, workspace, asset_processor,
                                                                         ap_setup_fixture, folder, schema):
         # fmt:on
+        """
+        Test Steps:
+        1. Run the Missing Dependency Scanner against everything
+        2. Verify that there are no missing dependencies.
+        """
         env = ap_setup_fixture
 
         def missing_dependency_log_lines(log) -> [str]:

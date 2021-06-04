@@ -12,10 +12,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 import boto3
 from botocore.paginate import (PageIterator, Paginator)
 from botocore.client import BaseClient
-from botocore.exceptions import ClientError
+from botocore.exceptions import (ClientError, ConfigNotFound, NoCredentialsError, ProfileNotFound)
 from typing import Dict, List
 
-from model import (constants, error_messages)
+from model import error_messages
 from model.basic_resource_attributes import (BasicResourceAttributes, BasicResourceAttributesBuilder)
 
 """
@@ -25,6 +25,8 @@ aws account, region, resources, etc.
 
 _PAGINATION_MAX_ITEMS: int = 10
 _PAGINATION_PAGE_SIZE: int = 10
+
+default_session: boto3.session.Session = None
 
 
 class AWSConstants(object):
@@ -44,28 +46,49 @@ class AWSConstants(object):
     S3_SERVICE_NAME: str = "s3"
 
 
+def _close_client_connection(client: BaseClient) -> None:
+    session: boto3.session.Session = client._endpoint.http_session
+    managers: List[object] = [session._manager, *session._proxy_managers.values()]
+    for manager in managers:
+        manager.clear()
+
+
 def _initialize_boto3_aws_client(service: str, region: str = "") -> BaseClient:
     if region:
-        return boto3.client(service, region_name=region)
+        boto3_client: BaseClient = default_session.client(service, region_name=region)
     else:
-        return boto3.client(service)
+        boto3_client: BaseClient = default_session.client(service)
+    boto3_client.meta.events.register(
+        f"after-call.{service}.*", lambda **kwargs: _close_client_connection(boto3_client)
+    )
+    return boto3_client
+
+
+def setup_default_session(profile: str) -> None:
+    try:
+        global default_session
+        default_session = boto3.session.Session(profile_name=profile)
+    except (ConfigNotFound, ProfileNotFound) as error:
+        raise RuntimeError(error)
 
 
 def get_default_account_id() -> str:
-    sts_client: BaseClient = boto3.client(AWSConstants.STS_SERVICE_NAME)
+    sts_client: BaseClient = _initialize_boto3_aws_client(AWSConstants.STS_SERVICE_NAME)
     try:
         return sts_client.get_caller_identity()["Account"]
     except ClientError as error:
         raise RuntimeError(error_messages.AWS_SERVICE_REQUEST_CLIENT_ERROR_MESSAGE.format(
             "get_caller_identity", error.response['Error']['Code'], error.response['Error']['Message']))
+    except NoCredentialsError as error:
+        raise RuntimeError(error)
 
 
 def get_default_region() -> str:
-    region: str = boto3.session.Session().region_name
+    region: str = default_session.region_name
     if region:
         return region
     
-    sts_client: BaseClient = boto3.client(AWSConstants.STS_SERVICE_NAME)
+    sts_client: BaseClient = _initialize_boto3_aws_client(AWSConstants.STS_SERVICE_NAME)
     region = sts_client.meta.region_name
     if region:
         return region

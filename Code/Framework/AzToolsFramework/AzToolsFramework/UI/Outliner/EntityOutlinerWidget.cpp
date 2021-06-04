@@ -30,6 +30,7 @@
 #include <AzToolsFramework/Entity/EditorEntityHelpers.h>
 #include <AzToolsFramework/Entity/EditorEntityInfoBus.h>
 #include <AzToolsFramework/UI/ComponentPalette/ComponentPaletteUtil.hxx>
+#include <AzToolsFramework/UI/EditorEntityUi/EditorEntityUiHandlerBase.h>
 #include <AzToolsFramework/UI/Outliner/EntityOutlinerDisplayOptionsMenu.h>
 #include <AzToolsFramework/UI/Outliner/EntityOutlinerListModel.hxx>
 #include <AzToolsFramework/UI/Outliner/EntityOutlinerSortFilterProxyModel.hxx>
@@ -171,7 +172,7 @@ namespace AzToolsFramework
 
         const int autoExpandDelayMilliseconds = 2500;
         m_gui->m_objectTree->setSelectionMode(QAbstractItemView::ExtendedSelection);
-        m_gui->m_objectTree->setEditTriggers(QAbstractItemView::EditKeyPressed);
+        SetDefaultTreeViewEditTriggers();
         m_gui->m_objectTree->setAutoExpandDelay(autoExpandDelayMilliseconds);
         m_gui->m_objectTree->setDragEnabled(true);
         m_gui->m_objectTree->setDropIndicatorShown(true);
@@ -270,6 +271,12 @@ namespace AzToolsFramework
         m_clearIcon = QIcon(":/AssetBrowser/Resources/close.png");
 
         m_listModel->Initialize();
+
+        m_editorEntityUiInterface = AZ::Interface<AzToolsFramework::EditorEntityUiInterface>::Get();
+
+        AZ_Assert(
+            m_editorEntityUiInterface != nullptr,
+            "EntityOutlinerWidget requires a EditorEntityUiInterface instance on Initialize.");
 
         EditorPickModeNotificationBus::Handler::BusConnect(GetEntityContextId());
         EntityHighlightMessages::Bus::Handler::BusConnect();
@@ -562,7 +569,13 @@ namespace AzToolsFramework
 
             if (m_selectedEntityIds.size() == 1)
             {
-                contextMenu->addAction(m_actionToRenameSelection);
+                auto entityId = m_selectedEntityIds.front();
+                auto entityUiHandler = m_editorEntityUiInterface->GetHandler(entityId);
+
+                if (!entityUiHandler || entityUiHandler->CanRename(entityId))
+                {
+                    contextMenu->addAction(m_actionToRenameSelection);
+                }
             }
 
             if (m_selectedEntityIds.size() == 1)
@@ -688,11 +701,17 @@ namespace AzToolsFramework
 
         if (m_selectedEntityIds.size() == 1)
         {
-            const QModelIndex proxyIndex = GetIndexFromEntityId(m_selectedEntityIds.front());
-            if (proxyIndex.isValid())
+            auto entityId = m_selectedEntityIds.front();
+            auto entityUiHandler = m_editorEntityUiInterface->GetHandler(entityId);
+
+            if (!entityUiHandler || entityUiHandler->CanRename(entityId))
             {
-                m_gui->m_objectTree->setCurrentIndex(proxyIndex);
-                m_gui->m_objectTree->QTreeView::edit(proxyIndex);
+                const QModelIndex proxyIndex = GetIndexFromEntityId(entityId);
+                if (proxyIndex.isValid())
+                {
+                    m_gui->m_objectTree->setCurrentIndex(proxyIndex);
+                    m_gui->m_objectTree->QTreeView::edit(proxyIndex);
+                }
             }
         }
     }
@@ -831,6 +850,11 @@ namespace AzToolsFramework
         addAction(m_actionGoToEntitiesInViewport);
     }
 
+    void EntityOutlinerWidget::SetDefaultTreeViewEditTriggers()
+    {
+        m_gui->m_objectTree->setEditTriggers(QAbstractItemView::SelectedClicked | QAbstractItemView::EditKeyPressed);
+    }
+
     void EntityOutlinerWidget::OnEntityPickModeStarted()
     {
         m_gui->m_objectTree->setDragEnabled(false);
@@ -843,7 +867,7 @@ namespace AzToolsFramework
     {
         m_gui->m_objectTree->setDragEnabled(true);
         m_gui->m_objectTree->setSelectionMode(QAbstractItemView::ExtendedSelection);
-        m_gui->m_objectTree->setEditTriggers(QAbstractItemView::SelectedClicked | QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
+        SetDefaultTreeViewEditTriggers();
         m_inObjectPickMode = false;
     }
 

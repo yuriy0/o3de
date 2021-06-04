@@ -25,12 +25,13 @@ call python.cmd --version > NUL
 IF !ERRORLEVEL!==0 (
     echo get_python.bat: Python is already installed:
     call python.cmd --version
-    call "%CMD_DIR%\pip.cmd" install -r "%CMD_DIR%/requirements.txt" --quiet --disable-pip-version-check
+    call "%CMD_DIR%\pip.cmd" install -r "%CMD_DIR%/requirements.txt" --quiet --disable-pip-version-check --no-warn-script-location
+    call "%CMD_DIR%\pip.cmd" install -e "%CMD_DIR%/../scripts/o3de" --quiet --disable-pip-version-check --no-warn-script-location --no-deps
     exit /B 0
 )
 
 cd /D %CMD_DIR%\..
-REM IF you update this logic, update it in Tools/build/JenkinsScripts/build/Platform/Windows/env_windows.cmd
+REM IF you update this logic, update it in scripts/build/Platform/Windows/env_windows.cmd
 REM If cmake is not found on path, try a known location, using LY_CMAKE_PATH as the first fallback
 where /Q cmake
 IF NOT !ERRORLEVEL!==0 (
@@ -65,6 +66,7 @@ if ERRORLEVEL 1 (
 )
 
 echo calling PIP to install requirements...
-call "%CMD_DIR%\pip.cmd" install -r "%CMD_DIR%/requirements.txt" --disable-pip-version-check
+call "%CMD_DIR%\pip.cmd" install -r "%CMD_DIR%/requirements.txt" --disable-pip-version-check --no-warn-script-location
+call "%CMD_DIR%\pip.cmd" install -e "%CMD_DIR%/../scripts/o3de" --disable-pip-version-check --no-warn-script-location --no-deps
 exit /B %ERRORLEVEL%
 

@@ -78,11 +78,9 @@ namespace AZ
             if (AZ::SerializeContext* serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
             {
                 serializeContext->Class<EditorMaterialComponentSlot>()
-                    ->Version(4, &EditorMaterialComponentSlot::ConvertVersion)
+                    ->Version(5, &EditorMaterialComponentSlot::ConvertVersion)
                     ->Field("id", &EditorMaterialComponentSlot::m_id)
                     ->Field("materialAsset", &EditorMaterialComponentSlot::m_materialAsset)
-                    ->Field("propertyOverrides", &EditorMaterialComponentSlot::m_propertyOverrides)
-                    ->Field("matModUvOverrides", &EditorMaterialComponentSlot::m_matModUvOverrides)
                     ;
 
                 if (AZ::EditContext* editContext = serializeContext->GetEditContext())
@@ -98,7 +96,7 @@ namespace AZ
                             ->Attribute(AZ::Edit::Attributes::DefaultAsset, &EditorMaterialComponentSlot::GetDefaultAssetId)
                             ->Attribute(AZ::Edit::Attributes::NameLabelOverride, &EditorMaterialComponentSlot::GetLabel)
                             ->Attribute(AZ::Edit::Attributes::ShowProductAssetFileName, true)
-                            ->Attribute("ThumbnailWithDropDown", &EditorMaterialComponentSlot::OpenPopupMenu)
+                            ->Attribute("ThumbnailCallback", &EditorMaterialComponentSlot::OpenPopupMenu)
                         ;
                 }
             }
@@ -268,6 +266,9 @@ namespace AZ
             QMenu menu;
 
             QAction* action = nullptr;
+
+            action = menu.addAction("Open Material Editor...", [this]() { EditorMaterialSystemComponentRequestBus::Broadcast(&EditorMaterialSystemComponentRequestBus::Events::OpenInMaterialEditor, ""); });
+            action->setVisible(!m_materialAsset.GetId().IsValid());
 
             action = menu.addAction("Clear", [this]() { Clear(); });
             action->setEnabled(m_materialAsset.GetId().IsValid() || !m_propertyOverrides.empty() || !m_matModUvOverrides.empty());

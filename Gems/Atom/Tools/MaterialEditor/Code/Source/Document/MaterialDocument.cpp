@@ -784,6 +784,8 @@ namespace MaterialEditor
         // in the hierarchy are applied
         m_materialTypeSourceData.EnumerateProperties([this, &parentPropertyValues](const AZStd::string& groupNameId, const AZStd::string& propertyNameId, const auto& propertyDefinition) {
             AtomToolsFramework::DynamicPropertyConfig propertyConfig;
+
+            // Assign id before conversion so it can be used in dynamic description
             propertyConfig.m_id = MaterialPropertyId(groupNameId, propertyNameId).GetCStr();
 
             const auto& propertyIndex = m_materialAsset->GetMaterialPropertiesLayout()->FindPropertyIndex(propertyConfig.m_id);
@@ -793,8 +795,11 @@ namespace MaterialEditor
             if (propertyIndexInBounds)
             {
                 AtomToolsFramework::ConvertToPropertyConfig(propertyConfig, propertyDefinition);
+                propertyConfig.m_showThumbnail = true;
                 propertyConfig.m_originalValue = AtomToolsFramework::ConvertToEditableType(m_materialAsset->GetPropertyValues()[propertyIndex.GetIndex()]);
                 propertyConfig.m_parentValue = AtomToolsFramework::ConvertToEditableType(parentPropertyValues[propertyIndex.GetIndex()]);
+                auto groupDefinition = m_materialTypeSourceData.FindGroup(groupNameId);
+                propertyConfig.m_groupName = groupDefinition ? groupDefinition->m_displayName : groupNameId;
                 m_properties[propertyConfig.m_id] = AtomToolsFramework::DynamicProperty(propertyConfig);
             }
             return true;
@@ -814,10 +819,12 @@ namespace MaterialEditor
         // is implemented.
         AtomToolsFramework::DynamicPropertyConfig propertyConfig;
         propertyConfig.m_dataType = AtomToolsFramework::DynamicPropertyType::Asset;
-        propertyConfig.m_id = "details.materialType";
+        propertyConfig.m_id = "overview.materialType";
         propertyConfig.m_nameId = "materialType";
         propertyConfig.m_displayName = "Material Type";
-        propertyConfig.m_description = propertyConfig.m_displayName;
+        propertyConfig.m_groupName = "Overview";
+        propertyConfig.m_description = "The material type defines the layout, properties, default values, shader connections, and other "
+                                       "data needed to create and edit a derived material.";
         propertyConfig.m_defaultValue = AZStd::any(materialTypeAsset);
         propertyConfig.m_originalValue = propertyConfig.m_defaultValue;
         propertyConfig.m_parentValue = propertyConfig.m_defaultValue;
@@ -827,14 +834,17 @@ namespace MaterialEditor
 
         propertyConfig = {};
         propertyConfig.m_dataType = AtomToolsFramework::DynamicPropertyType::Asset;
-        propertyConfig.m_id = "details.parentMaterial";
+        propertyConfig.m_id = "overview.parentMaterial";
         propertyConfig.m_nameId = "parentMaterial";
         propertyConfig.m_displayName = "Parent Material";
-        propertyConfig.m_description = propertyConfig.m_displayName;
+        propertyConfig.m_groupName = "Overview";
+        propertyConfig.m_description =
+            "The parent material provides an initial configuration whose properties are inherited and overriden by a derived material.";
         propertyConfig.m_defaultValue = AZStd::any(parentMaterialAsset);
         propertyConfig.m_originalValue = propertyConfig.m_defaultValue;
         propertyConfig.m_parentValue = propertyConfig.m_defaultValue;
         propertyConfig.m_readOnly = true;
+        propertyConfig.m_showThumbnail = true;
 
         m_properties[propertyConfig.m_id] = AtomToolsFramework::DynamicProperty(propertyConfig);
 
@@ -850,6 +860,7 @@ namespace MaterialEditor
             propertyConfig.m_id = MaterialPropertyId(UvGroupName, shaderInput).GetCStr();
             propertyConfig.m_nameId = shaderInput;
             propertyConfig.m_displayName = shaderInput;
+            propertyConfig.m_groupName = "UV Sets";
             propertyConfig.m_description = shaderInput;
             propertyConfig.m_defaultValue = uvName;
             propertyConfig.m_originalValue = uvName;
