@@ -550,6 +550,28 @@
             {
                 "Name": "DistortionAccumulationPassTemplate",
                 "Path": "Passes/DistortionAccumulation.pass"
+            },
+            
+            
+            {
+                "Name": "ForwardSubsurfaceMSAAPassTemplate",
+                "Path": "Passes/ForwardSubsurfaceMSAA.pass"
+            },
+            {
+                "Name": "SkyBoxTwoOutputsTemplate",
+                "Path": "Passes/SkyBox_TwoOutputs.pass"
+            },
+            {
+                "Name": "TaaTemplate",
+                "Path": "Passes/Taa.pass"
+            },
+            {
+                "Name": "LightAdaptationParentTemplate",
+                "Path": "Passes/LightAdaptationParent.pass"
+            },
+            {
+                "Name": "ContrastAdaptiveSharpeningTemplate",
+                "Path": "Passes/ContrastAdaptiveSharpening.pass"
             }
         ]
     }

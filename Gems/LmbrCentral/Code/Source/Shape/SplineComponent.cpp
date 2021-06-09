@@ -375,16 +375,9 @@ namespace LmbrCentral
         EntityDebugDisplayComponent::Deactivate();
     }
 
-    static AZ::Transform TransformUniformScale(const AZ::Transform& transform)
-    {
-        AZ::Transform transformUniformScale = transform;
-        const float maxScale = transformUniformScale.ExtractScale().GetMaxElement();
-        return transformUniformScale * AZ::Transform::CreateScale(AZ::Vector3(maxScale));
-    }
-
     void SplineDebugDisplayComponent::Draw(AzFramework::DebugDisplayRequests& displayContext) {
         displayContext.SetColor(AzFramework::ViewportColors::SelectedColor);
-        m_display.Draw(*m_spline.get(), TransformUniformScale(GetCurrentTransform()), displayContext, true);
+        m_display.Draw(*m_spline.get(), GetCurrentTransform(), displayContext, true);
     }
 
     ///////////////////////////////////////////////////

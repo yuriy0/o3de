@@ -15,9 +15,6 @@
 function GetMaterialPropertyDependencies()
     return {"opacity.doubleSided"}
 end
- 
-ForwardPassIndex = 0
-ForwardPassEdsIndex = 1
 
 function Process(context)
     local doubleSided = context:GetMaterialPropertyValue_bool("opacity.doubleSided")

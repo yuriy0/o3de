@@ -37,6 +37,20 @@
         "nptitle_dat": "",
         "param_sfo": "../Resources/param.sfo",
         "trophy_trp": "../Resources/trophies.trp"
-    }
+    },
+    
+    "origin": "The primary repo for Samples goes here: i.e. http://www.mydomain.com",
+    "license": "What license Samples uses goes here: i.e. https://opensource.org/licenses/MIT",
+    "display_name": "Deadhaus_Sonata",
+    "summary": "Deadhaus_Sonata",
+    "canonical_tags": [
+        "Project"
+    ],
+    "user_tags": [
+        "Deadhaus_Sonata"
+    ],
+    "icon_path": "preview.png",
+    "engine": "o3de",
+    "restricted_name": "Deadhaus_Sonata"
 
 }

@@ -56,10 +56,10 @@ COMMON_OPTIONS_DETAIL_MAPS()
 #include "MaterialInputs_Apc/AlphaInput.azsli"
 
 // Subsurface
-#include "MaterialInputs_Apc/SubsurfaceInput.azsli"
+#include "../../../Gems/Atom/Feature/Common/Assets/Materials/Types/MaterialInputs/SubsurfaceInput.azsli"
 
 // Transmission
-#include "MaterialInputs_Apc/TransmissionInput.azsli"
+#include "../../../Gems/Atom/Feature/Common/Assets/Materials/Types/MaterialInputs/TransmissionInput.azsli"
 
 // OIT
 option enum class OrderIndependentWeightFunction

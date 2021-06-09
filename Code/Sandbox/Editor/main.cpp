@@ -15,11 +15,17 @@
 
 int main(int argc, char* argv[])
 {
+    // APC BEGIN
+    // This check is disabled because it doesn't allow the project path to be set in bootstrap.setreg
+    // and the new project manager simply crashes on startup.
+    // 
     // Verify a project path can be found, launch the project manager and shut down otherwise
-    if (AzFramework::ProjectManager::CheckProjectPathProvided(argc, argv) == AzFramework::ProjectManager::ProjectPathCheckResult::ProjectManagerLaunched)
-    {
-        return 2;
-    }
+    //if (AzFramework::ProjectManager::CheckProjectPathProvided(argc, argv) == AzFramework::ProjectManager::ProjectPathCheckResult::ProjectManagerLaunched)
+    //{
+    //    return 2;
+    //}
+    // APC END
+
     using CryEditMain = int (*)(int, char*[]);
     constexpr const char CryEditMainName[] = "CryEditMain";
 

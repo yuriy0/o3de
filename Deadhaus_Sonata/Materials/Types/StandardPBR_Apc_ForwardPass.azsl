@@ -15,7 +15,7 @@
 #include "StandardPBR_Apc_Common.azsli"
 #include <Atom/Features/PBR/DefaultObjectSrg.azsli>
 #include <Atom/Features/ScreenSpace/ScreenSpaceUtil.azsli>
-#include <Atom/Features/PBR/ForwardPassOutput.azsli>
+#include <Atom/Features/PBR/ForwardSubsurfacePassOutput.azsli>
 
 #include <Atom/Features/ColorManagement/TransformColor.azsli>
 
@@ -35,10 +35,10 @@ COMMON_OPTIONS_DETAIL_MAPS()
 #include "MaterialInputs_Apc/AlphaInput.azsli"
 
 // Subsurface
-#include "MaterialInputs_Apc/SubsurfaceInput.azsli"
+#include "../../../Gems/Atom/Feature/Common/Assets/Materials/Types/MaterialInputs/SubsurfaceInput.azsli"
 
 // Transmission
-#include "MaterialInputs_Apc/TransmissionInput.azsli"
+#include "../../../Gems/Atom/Feature/Common/Assets/Materials/Types/MaterialInputs/TransmissionInput.azsli"
 
 struct VSInput
 {
@@ -108,7 +108,6 @@ ForwardPassOutputWithDepth StandardPbr_ForwardPassPS(VSOutput IN, bool isFrontFa
     OUT.m_specularF0 = lightingOutput.m_specularF0;
     OUT.m_albedo = lightingOutput.m_albedo;
     OUT.m_normal = lightingOutput.m_normal;
-    OUT.m_clearCoatNormal = lightingOutput.m_clearCoatNormal;
     OUT.m_scatterDistance = lightingOutput.m_scatterDistance;
     OUT.m_depth = depth;
     return OUT;
@@ -128,7 +127,6 @@ ForwardPassOutput StandardPbr_ForwardPassPS_EDS(VSOutput IN, bool isFrontFace : 
     OUT.m_specularF0 = lightingOutput.m_specularF0;
     OUT.m_albedo = lightingOutput.m_albedo;
     OUT.m_normal = lightingOutput.m_normal;
-    OUT.m_clearCoatNormal = lightingOutput.m_clearCoatNormal;
     OUT.m_scatterDistance = lightingOutput.m_scatterDistance;
 
     return OUT;
