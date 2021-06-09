@@ -13,8 +13,8 @@
 struct ForwardPassOutput
 {
     // m_diffuseColor.a should be encoded with subsurface scattering's strength factor and quality factor if enabled
-    float4 m_diffuseColor  : SV_Target0;
-    float4 m_specularColor : SV_Target1;
+    float4 m_diffuseColor  : SV_Target1;
+    float4 m_specularColor : SV_Target0;
     float4 m_albedo : SV_Target2;
     float4 m_specularF0 : SV_Target3;
     float4 m_normal : SV_Target4;
@@ -24,8 +24,8 @@ struct ForwardPassOutput
 struct ForwardPassOutputWithDepth
 {
     // m_diffuseColor.a should be encoded with subsurface scattering's strength factor and quality factor if enabled
-    float4 m_diffuseColor  : SV_Target0;
-    float4 m_specularColor : SV_Target1;
+    float4 m_diffuseColor  : SV_Target1;
+    float4 m_specularColor : SV_Target0;
     float4 m_albedo : SV_Target2;
     float4 m_specularF0 : SV_Target3;
     float4 m_normal : SV_Target4;

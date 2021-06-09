@@ -816,8 +816,11 @@ namespace AZ::SettingsRegistryMergeUtils
         }
     }
 
-    void MergeSettingsToRegistry_CommandLine(SettingsRegistryInterface& registry, const AZ::CommandLine& commandLine, bool executeCommands)
+    void MergeSettingsToRegistry_CommandLine(SettingsRegistryInterface& registry, const AZ::CommandLine& commandLine_, bool executeCommands)
     {
+        // Make a copy because `MergeCommandLineArgument' might invoke listeners which change the fixes
+        AZ::CommandLine commandLine = commandLine_;
+
         // Iterate over all the command line options in order to parse the --regset and --regremove
         // arguments in the order they were supplied
         for (const CommandLine::CommandArgument& commandArgument : commandLine)

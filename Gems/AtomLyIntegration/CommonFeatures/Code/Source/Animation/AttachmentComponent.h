@@ -86,6 +86,7 @@ namespace AZ
             const char* GetJointName() override;
             AZ::EntityId GetTargetEntityId() override;
             AZ::Transform GetOffset() override;
+            void SetTargetEntityId(AZ::EntityId) override;
             ////////////////////////////////////////////////////////////////////////
 
         private:
@@ -111,6 +112,7 @@ namespace AZ
             ////////////////////////////////////////////////////////////////////////
 
             void BindTargetBone();
+            void UpdateAttachment();
 
             AZ::Transform QueryBoneTransform() const;
 

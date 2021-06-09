@@ -124,6 +124,29 @@ namespace AZ
             return m_targetOffset;
         }
 
+        void BoneFollower::SetTargetEntityId(AZ::EntityId targetId)
+        {
+            AZ_Assert(m_ownerId.IsValid(), "BoneFollower must be Activated to use.");
+
+            // safe to try and detach, even if we weren't attached
+            Detach();
+
+            if (targetId == m_ownerId)
+            {
+                AZ_Error("Attachment Component", false, "AttachmentComponent cannot target itself");
+                return;
+            }
+
+            if (!targetId.IsValid())
+            {
+                return;
+            }
+
+            m_targetId = targetId;
+
+            UpdateAttachment();
+        }
+
         void BoneFollower::Attach(AZ::EntityId targetId, const char* targetBoneName, const AZ::Transform& offset)
         {
             AZ_Assert(m_ownerId.IsValid(), "BoneFollower must be Activated to use.")
@@ -150,6 +173,11 @@ namespace AZ
             m_targetBoneName = targetBoneName;
             m_targetOffset = offset;
 
+            UpdateAttachment();
+        }
+
+        void BoneFollower::UpdateAttachment()
+        {
             BindTargetBone();
 
             m_targetBoneTransform = AZ::Transform::Identity();

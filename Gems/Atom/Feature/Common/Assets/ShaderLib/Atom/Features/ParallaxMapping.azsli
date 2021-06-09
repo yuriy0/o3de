@@ -76,6 +76,11 @@ DepthResult SampleDepthOrHeightMap(bool isHeightmap, Texture2D map, sampler mapS
     return result;
 }
 
+DepthResult SampleDepthFromHeightmap(Texture2D map, sampler mapSampler, float2 uv, float2 uv_ddx, float2 uv_ddy)
+{
+    return SampleDepthOrHeightMap(true, map, mapSampler, uv, uv_ddx, uv_ddy);
+}
+
 //! Calls GetDepth() and then normalizes the result if it isn't normalized already.
 //! @param startDepth is the high point, which corresponds to a normalized depth value of 0.
 //! @param stopDepth is the low point, which corresponds to a normalized depth value of 1.

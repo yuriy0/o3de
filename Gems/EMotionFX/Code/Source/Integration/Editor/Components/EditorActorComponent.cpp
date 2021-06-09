@@ -531,6 +531,7 @@ namespace EMotionFX
             {
                 CheckActorCreation();
             }
+        }
 
         void EditorActorComponent::InitializeMaterial(ActorAsset& actorAsset)
         {

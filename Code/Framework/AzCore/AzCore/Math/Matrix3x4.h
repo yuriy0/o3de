@@ -258,18 +258,6 @@ namespace AZ
         //! Operator for negating all matrix's elements
         [[nodiscard]] Matrix3x4 operator-() const;
 
-        //! Operator for matrix-matrix addition.
-        [[nodiscard]] Matrix3x4 operator+(const Matrix3x4& rhs) const;
-
-        //! Compound assignment operator for matrix-matrix addition.
-        Matrix3x4& operator+=(const Matrix3x4& rhs);
-
-        //! Operator for multiplying all matrix's elements with a scalar
-        [[nodiscard]] Matrix3x4 operator*(float scalar) const;
-
-        //! Compound assignment operator for multiplying all matrix's elements with a scalar
-        Matrix3x4& operator*=(float scalar);
-
         //! Operator for transforming a Vector3.
         [[nodiscard]] Vector3 operator*(const Vector3& rhs) const;
 

@@ -483,6 +483,9 @@ namespace AZ
         // for the application root.
         CalculateAppRoot();
 
+        // ????
+        MergeSettingsToRegistry(*m_settingsRegistry);
+
         SettingsRegistryMergeUtils::MergeSettingsToRegistry_O3deUserRegistry(*m_settingsRegistry, AZ_TRAIT_OS_PLATFORM_CODENAME, {});
         SettingsRegistryMergeUtils::MergeSettingsToRegistry_CommandLine(*m_settingsRegistry, m_commandLine, executeRegDumpCommands);
         SettingsRegistryMergeUtils::MergeSettingsToRegistry_AddRuntimeFilePaths(*m_settingsRegistry);
