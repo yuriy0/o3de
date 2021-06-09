@@ -3417,22 +3417,26 @@ namespace ScriptCanvas
 
             if (executionIf->GetId().m_node->IsIfBranchPrefacedWithBooleanExpression())
             {
-                auto removeChildOutcome = RemoveChild(executionIf->ModParent(), executionIf);
-                if (!removeChildOutcome.IsSuccess())
+                ExecutionTreePtr booleanExpression;
+
                 {
-                    AddError(executionIf->GetNodeId(), executionIf, ScriptCanvas::ParseErrors::FailedToRemoveChild);
+                    auto removeChildOutcome = RemoveChild(executionIf->ModParent(), executionIf);
+                    if (!removeChildOutcome.IsSuccess())
+                    {
+                        AddError(executionIf->GetNodeId(), executionIf, ScriptCanvas::ParseErrors::FailedToRemoveChild);
+                    }
+
+                    if (!IsErrorFree())
+                    {
+                        return;
+                    }
+
+                    const auto indexAndChild = removeChildOutcome.TakeValue();
+
+                    booleanExpression = CreateChild(executionIf->ModParent(), executionIf->GetId().m_node, executionIf->GetId().m_slot);
+                    executionIf->ModParent()->InsertChild(indexAndChild.first, { indexAndChild.second.m_slot, indexAndChild.second.m_output, booleanExpression });
+                    executionIf->SetParent(booleanExpression);
                 }
-
-                if (!IsErrorFree())
-                {
-                    return;
-                }
-
-                const auto indexAndChild = removeChildOutcome.TakeValue();
-
-                ExecutionTreePtr booleanExpression = CreateChild(executionIf->ModParent(), executionIf->GetId().m_node, executionIf->GetId().m_slot);
-                executionIf->ModParent()->InsertChild(indexAndChild.first, { indexAndChild.second.m_slot, indexAndChild.second.m_output, booleanExpression });
-                executionIf->SetParent(booleanExpression);
 
                 // make a condition here
                 auto symbol = CheckLogicalExpressionSymbol(booleanExpression);
@@ -3463,7 +3467,7 @@ namespace ScriptCanvas
                                 return;
                             }
 
-                            const auto indexAndChild2 = removeChildOutcome.TakeValue();
+                            const auto indexAndChild2 = removeChildOutcome2.TakeValue();
 
                             // parse if statement internal function
                             ExecutionTreePtr internalFunction = CreateChild(booleanExpression->ModParent(), booleanExpression->GetId().m_node, booleanExpression->GetId().m_slot);
@@ -4151,23 +4155,23 @@ namespace ScriptCanvas
                 auto userFunctionIter = m_userInsThatRequireTopology.find(nodeling);
                 if (userFunctionIter != m_userInsThatRequireTopology.end())
                 {
-                    auto& node = *userFunctionIter->first;
-                    auto outSlots = node.GetSlotsByType(CombinedSlotType::ExecutionOut);
+                    auto& userFunctionNode = *userFunctionIter->first;
+                    auto outSlots = userFunctionNode.GetSlotsByType(CombinedSlotType::ExecutionOut);
                     
                     if (outSlots.empty() || !outSlots.front())
                     {
-                        AddError(node.GetEntityId(), nullptr, ScriptCanvas::ParseErrors::NoOutSlotInFunctionDefinitionStart);
+                        AddError(userFunctionNode.GetEntityId(), nullptr, ScriptCanvas::ParseErrors::NoOutSlotInFunctionDefinitionStart);
                         return;
                     }
 
-                    if (!ExecutionContainsCyclesCheck(node, *outSlots.front()))
+                    if (!ExecutionContainsCyclesCheck(userFunctionNode, *outSlots.front()))
                     {
                         auto definition = userFunctionIter->second;
                         auto entrySlot = definition->GetId().m_slot;
                         AZ_Assert(entrySlot, "Bad accounting in user function definition node");
                         AZStd::vector<VariablePtr> returnValues;
                         UserOutCallCollector userOutCallCollector;
-                        TraverseExecutionConnections(node, *entrySlot, userOutCallCollector);
+                        TraverseExecutionConnections(userFunctionNode, *entrySlot, userOutCallCollector);
 
                         const AZStd::unordered_set<const ScriptCanvas::Nodes::Core::FunctionDefinitionNode*>& uniqueNodelingsOut = userOutCallCollector.GetOutCalls();
                         for (const auto& returnCall : uniqueNodelingsOut)
@@ -4868,7 +4872,7 @@ namespace ScriptCanvas
                 {
                     PropertyExtractionPtr extraction = AZStd::make_shared<PropertyExtraction>();
                     extraction->m_slot = slot;
-                    extraction->m_name = propertyField.first;
+                    extraction->m_name = AZ::ReplaceCppArtifacts(propertyField.first);
                     execution->AddPropertyExtractionSource(slot, extraction);
                 }
                 else
