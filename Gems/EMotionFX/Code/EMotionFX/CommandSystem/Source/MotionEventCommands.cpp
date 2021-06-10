@@ -545,11 +545,40 @@ namespace CommandSystem
         }
 
         serializeContext->Class<CommandCreateMotionEvent, MCore::Command, MotionIdCommandMixin>()
+            ->Version(2, [](AZ::SerializeContext& sc, AZ::SerializeContext::DataElementNode& node)
+            {
+                if (node.GetVersion() < 2)
+                {
+                    // Version 1 had `optional<EventDatas>' instead of `EventDatas'
+                    // BUT somebody changes this without increasing the version, so there
+                    // is already serialized data at version 1 which has both optional and non-optional
+                    static const char* eventDatas_name = "eventDatas";
+                    static const AZ::Crc32 eventDatas_crc = AZ::Crc32(eventDatas_name);
+
+                    AZStd::optional<EMotionFX::EventDataSet> optional_eventDatas;
+                    if (node.FindSubElementAndGetData(eventDatas_crc, optional_eventDatas))
+                    {
+                        if (!node.RemoveElementByName(eventDatas_crc)) return false;
+
+                        EMotionFX::EventDataSet eventDatas;
+                        if (optional_eventDatas)
+                        {
+                            eventDatas = AZStd::move(*optional_eventDatas);
+                        }
+
+                        if (node.AddElementWithData(sc, eventDatas_name, eventDatas) == -1) return false;
+                    }
+                }
+
+                return true;
+            })
             ->Field("eventTrackName", &CommandCreateMotionEvent::m_eventTrackName)
             ->Field("startTime", &CommandCreateMotionEvent::m_startTime)
             ->Field("endTime", &CommandCreateMotionEvent::m_endTime)
             ->Field("eventDatas", &CommandCreateMotionEvent::m_eventDatas)
             ;
+
+        serializeContext->RegisterGenericType<AZStd::optional<EMotionFX::EventDataSet>>();
     }
 
     // execute

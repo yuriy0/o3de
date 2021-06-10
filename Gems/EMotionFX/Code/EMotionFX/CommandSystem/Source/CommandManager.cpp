@@ -34,7 +34,6 @@
 #include <EMotionFX/CommandSystem/Source/SelectionCommands.h>
 #include <EMotionFX/CommandSystem/Source/SimulatedObjectCommands.h>
 
-
 namespace CommandSystem
 {
     // the global command manager object
@@ -42,6 +41,16 @@ namespace CommandSystem
 
     CommandManager* GetCommandManager()
     {
+        if (!gCommandManager)
+        {
+            // HACK! This is typically initialized by the EMFX Studio SDK, which requires a Qt application.
+            // However, version converters (and so serialization) rely on the command manager.
+            // In certain builds (for example SerializeContextTools) we need version converters, but don't
+            // have a Qt application.
+            static AZStd::unique_ptr<CommandManager> CommandManagerSingleton = AZStd::make_unique<CommandManager>();
+            gCommandManager = CommandManagerSingleton.get();
+        }
+
         return gCommandManager;
     }
 
@@ -150,13 +159,20 @@ namespace CommandSystem
         // register misc commands
         RegisterCommand(new CommandRecorderClear());
 
+        AZ_Assert(gCommandManager == nullptr, "Command manager should be a singleton");
         gCommandManager     = this;
+
         mLockSelection      = false;
         mWorkspaceDirtyFlag = false;
     }
 
     CommandManager::~CommandManager()
     {
+        AZ_Assert(gCommandManager == this, "Command manager singleton is not this");
+        if (gCommandManager == this)
+        {
+            gCommandManager = nullptr;
+        }
     }
 
     void CommandManager::SetUserOpenedWorkspaceFlag(bool flag)

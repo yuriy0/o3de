@@ -380,7 +380,9 @@ PbrLightingOutput SkinPS_Common(VSOutput IN)
     // Pack factor and quality, drawback: because of precision limit of float16 cannot represent exact 1, maximum representable value is 0.9961
     uint factorAndQuality = dot(round(float2(saturate(surfaceScatteringFactor), MaterialSrg::m_subsurfaceScatteringQuality) * 255), float2(256, 1));
     lightingOutput.m_diffuseColor.w = factorAndQuality * (o_enableSubsurfaceScattering ? 1.0 : -1.0);
-    lightingOutput.m_scatterDistance = MaterialSrg::m_scatterDistance;
+    lightingOutput.m_scatterDistance = MaterialSrg::m_multiplyScatterDistanceByAlbedo
+                                       ? MaterialSrg::m_scatterDistance * surface.albedo
+                                       : MaterialSrg::m_scatterDistance;
 
     return lightingOutput;
 }

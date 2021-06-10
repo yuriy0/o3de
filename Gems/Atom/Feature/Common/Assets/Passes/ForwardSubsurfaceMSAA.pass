@@ -69,12 +69,12 @@
                     "ScopeAttachmentUsage": "DepthStencil"
                 },
                 {
-                    "Name": "DiffuseOutput",
+                    "Name": "SpecularOutput",
                     "SlotType": "InputOutput",
                     "ScopeAttachmentUsage": "RenderTarget"
                 },
                 {
-                    "Name": "SpecularOutput",
+                    "Name": "DiffuseOutput",
                     "SlotType": "InputOutput",
                     "ScopeAttachmentUsage": "RenderTarget"
                 },

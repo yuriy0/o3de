@@ -23,8 +23,9 @@ namespace AZ
     {
         bool EditorAttachmentComponentVersionConverter(AZ::SerializeContext& context, AZ::SerializeContext::DataElementNode& classElement)
         {
-            if (classElement.GetVersion() < 2)
+            if (classElement.GetVersion() < 3)
             {
+                // Handle scale offset -> uniform scale offset
                 float uniformScaleOffset = 1.0f;
 
                 int scaleElementIndex = classElement.FindElement(AZ_CRC_CE("Scale Offset"));
@@ -51,14 +52,16 @@ namespace AZ
             if (serializeContext)
             {
                 serializeContext->Class<EditorAttachmentComponent, EditorComponentBase>()
-                    ->Version(2, &EditorAttachmentComponentVersionConverter)
+                    ->Version(3, &EditorAttachmentComponentVersionConverter)
                     ->Field("Target ID", &EditorAttachmentComponent::m_targetId)
                     ->Field("Target Bone Name", &EditorAttachmentComponent::m_targetBoneName)
                     ->Field("Position Offset", &EditorAttachmentComponent::m_positionOffset)
                     ->Field("Rotation Offset", &EditorAttachmentComponent::m_rotationOffset)
                     ->Field("Uniform Scale Offset", &EditorAttachmentComponent::m_uniformScaleOffset)
                     ->Field("Attached Initially", &EditorAttachmentComponent::m_attachedInitially)
-                    ->Field("Scale Source", &EditorAttachmentComponent::m_scaleSource);
+                    ->Field("Scale Source", &EditorAttachmentComponent::m_scaleSource)
+                    ->Field("m_rotationSource", &EditorAttachmentComponent::m_rotationSource)
+                    ;
 
                 AZ::EditContext* editContext = serializeContext->GetEditContext();
                 if (editContext)
@@ -110,7 +113,15 @@ namespace AZ
                         ->Attribute(AZ::Edit::Attributes::ChangeNotify, &EditorAttachmentComponent::OnScaleSourceChanged)
                         ->EnumAttribute(AttachmentConfiguration::ScaleSource::WorldScale, "Use world scale")
                         ->EnumAttribute(AttachmentConfiguration::ScaleSource::TargetEntityScale, "Use target entity scale")
-                        ->EnumAttribute(AttachmentConfiguration::ScaleSource::TargetBoneScale, "Use target bone scale");
+                        ->EnumAttribute(AttachmentConfiguration::ScaleSource::TargetBoneScale, "Use target bone scale")
+
+                        ->DataElement(AZ::Edit::UIHandlers::ComboBox, &EditorAttachmentComponent::m_rotationSource,
+                            "Rotation", "How object rotation should be determined. "
+                            "(See 'Scaling')")
+                        ->Attribute(AZ::Edit::Attributes::ChangeNotify, &EditorAttachmentComponent::OnScaleSourceChanged)
+                        ->EnumAttribute(AttachmentConfiguration::ScaleSource::TargetEntityScale, "Use target entity rotation")
+                        ->EnumAttribute(AttachmentConfiguration::ScaleSource::TargetBoneScale, "Use target bone rotation")
+                        ;
                 }
             }
         }
@@ -145,6 +156,7 @@ namespace AZ
             configuration.m_targetOffset = GetTargetOffset();
             configuration.m_attachedInitially = m_attachedInitially;
             configuration.m_scaleSource = m_scaleSource;
+            configuration.m_rotationSource = m_rotationSource;
             return configuration;
         }
 

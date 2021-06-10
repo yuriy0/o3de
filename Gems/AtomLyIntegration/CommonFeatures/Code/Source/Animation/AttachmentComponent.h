@@ -56,6 +56,9 @@ namespace AZ
                 TargetBoneScale,    // Adopt scaling of attachment target entity/joint.
             };
             ScaleSource m_scaleSource = ScaleSource::WorldScale;
+
+            // Source from which to retrieve rotation
+            ScaleSource m_rotationSource = ScaleSource::TargetBoneScale;
         };
 
         /*
@@ -140,6 +143,7 @@ namespace AZ
             int             m_targetBoneId; //!< negative when bone not found
 
             AttachmentConfiguration::ScaleSource m_scaleSource;
+            AttachmentConfiguration::ScaleSource m_rotationSource;
         };
 
         /*!

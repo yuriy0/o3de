@@ -421,8 +421,8 @@ namespace ScriptCanvasEditor
 
     void ReplaceDeprecatedConnections::Run()
     {
-//         EditorGraphUpgradeMachine* sm = GetStateMachine<EditorGraphUpgradeMachine>();
-//         auto* graph = sm->m_graph;
+        EditorGraphUpgradeMachine* sm = GetStateMachine<EditorGraphUpgradeMachine>();
+        auto* graph = sm->m_graph;
 
         if (!sm->m_updateReport.IsEmpty())
         {

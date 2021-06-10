@@ -48,12 +48,14 @@ namespace AZ
             if (serializeContext)
             {
                 serializeContext->Class<AttachmentConfiguration>()
-                    ->Version(1)
+                    ->Version(2)
                     ->Field("Target ID", &AttachmentConfiguration::m_targetId)
                     ->Field("Target Bone Name", &AttachmentConfiguration::m_targetBoneName)
                     ->Field("Target Offset", &AttachmentConfiguration::m_targetOffset)
                     ->Field("Attached Initially", &AttachmentConfiguration::m_attachedInitially)
-                    ->Field("Scale Source", &AttachmentConfiguration::m_scaleSource);
+                    ->Field("Scale Source", &AttachmentConfiguration::m_scaleSource)
+                    ->Field("m_rotationSource", &AttachmentConfiguration::m_rotationSource)
+                    ;
             }
             AZ::BehaviorContext* behaviorContext = azrtti_cast<AZ::BehaviorContext*>(context);
             if (behaviorContext)
@@ -61,7 +63,13 @@ namespace AZ
                 behaviorContext->EBus<LmbrCentral::AttachmentComponentRequestBus>("AttachmentComponentRequestBus")
                     ->Event("Attach", &LmbrCentral::AttachmentComponentRequestBus::Events::Attach)
                     ->Event("Detach", &LmbrCentral::AttachmentComponentRequestBus::Events::Detach)
-                    ->Event("SetAttachmentOffset", &LmbrCentral::AttachmentComponentRequestBus::Events::SetAttachmentOffset);
+                    ->Event("Reattach", &LmbrCentral::AttachmentComponentRequestBus::Events::Reattach)
+                    ->Event("SetAttachmentOffset", &LmbrCentral::AttachmentComponentRequestBus::Events::SetAttachmentOffset)
+                    ->Event("GetJointName", &LmbrCentral::AttachmentComponentRequestBus::Events::GetJointName)
+                    ->Event("GetTargetEntityId", &LmbrCentral::AttachmentComponentRequestBus::Events::GetTargetEntityId)
+                    ->Event("SetTargetEntityId", &LmbrCentral::AttachmentComponentRequestBus::Events::SetTargetEntityId)
+                    ->Event("GetOffset", &LmbrCentral::AttachmentComponentRequestBus::Events::GetOffset)
+                    ;
 
                 behaviorContext->EBus<LmbrCentral::AttachmentComponentNotificationBus>("AttachmentComponentNotificationBus")
                     ->Handler<BehaviorAttachmentComponentNotificationBusHandler>();
@@ -93,6 +101,7 @@ namespace AZ
             m_targetCanAnimate = targetCanAnimate;
             m_isUpdatingOwnerTransform = false;
             m_scaleSource = configuration.m_scaleSource;
+            m_rotationSource = configuration.m_rotationSource;
 
             m_cachedOwnerTransform = AZ::Transform::CreateIdentity();
             EBUS_EVENT_ID_RESULT(m_cachedOwnerTransform, m_ownerId, AZ::TransformBus, GetWorldTM);
@@ -266,18 +275,33 @@ namespace AZ
                 m_isTargetEntityTransformKnown = true;
             }
 
+            AZ::Transform targetBoneTransform = m_targetBoneTransform;
+            switch (m_rotationSource)
+            {
+            case AttachmentConfiguration::ScaleSource::TargetEntityScale:
+                // Zero out the rotation (entity rotation is applied seperately)
+                targetBoneTransform.SetRotation(AZ::Quaternion::CreateIdentity());
+                break;
+            case AttachmentConfiguration::ScaleSource::TargetBoneScale:
+                // Do nothing (keep original rotation)
+                break;
+            default:
+                AZ_Warning("BoneFollower", false, "Unexpected 'ScaleSource'");
+                break;
+            }
+
             AZ::Transform finalTransform;
             if (m_scaleSource == AttachmentConfiguration::ScaleSource::WorldScale)
             {
                 // apply offset in world-space
-                finalTransform = m_targetEntityTransform * m_targetBoneTransform;
+                finalTransform = m_targetEntityTransform * targetBoneTransform;
                 finalTransform.SetUniformScale(1.0f);
                 finalTransform *= m_targetOffset;
             }
             else if (m_scaleSource == AttachmentConfiguration::ScaleSource::TargetEntityScale)
             {
                 // apply offset in target-entity-space (ignoring bone scale)
-                AZ::Transform boneNoScale = m_targetBoneTransform;
+                AZ::Transform boneNoScale = targetBoneTransform;
                 boneNoScale.SetUniformScale(1.0f);
 
                 finalTransform = m_targetEntityTransform * boneNoScale * m_targetOffset;
@@ -285,7 +309,7 @@ namespace AZ
             else // AttachmentConfiguration::ScaleSource::TargetEntityScale
             {
                 // apply offset in target-bone-space
-                finalTransform = m_targetEntityTransform * m_targetBoneTransform * m_targetOffset;
+                finalTransform = m_targetEntityTransform * targetBoneTransform * m_targetOffset;
             }
 
             if (m_cachedOwnerTransform != finalTransform)

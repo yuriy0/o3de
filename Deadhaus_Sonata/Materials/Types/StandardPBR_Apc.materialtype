@@ -1797,7 +1797,7 @@
         {
             "type": "Lua",
             "args": {
-                "file": "../../../Feature/Common/Assets/Materials/Types/StandardPBR_SubsurfaceState.lua"
+                "file": "../../../Feature/Common/Assets/Materials/Types/EnhancedPBR_SubsurfaceState.lua"
             }
         },
         {
