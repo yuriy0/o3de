@@ -267,9 +267,9 @@ namespace AZ
 
             using DeferredFogPass_tpl::DeferredFogPass_tpl;
 
-            void Init() override
+            void InitializeInternal() override
             {
-                FullscreenTrianglePass::Init();
+                FullscreenTrianglePass::InitializeInternal();
                 InitDeferredFogPass();
             }
         };
@@ -286,15 +286,10 @@ namespace AZ
 
             using DeferredFogPass_tpl::DeferredFogPass_tpl;
 
-            void FrameBeginInternal(FramePrepareParams params) override
+            void InitializeInternal() override
             {
-                if (!m_flags.m_initialized)
-                {
-                    InitDeferredFogPass();
-                    m_flags.m_initialized = true;
-                }
-
-                RPI::ComputePass::FrameBeginInternal(AZStd::move(params));
+                ComputePass::InitializeInternal();
+                InitDeferredFogPass();
             }
 
             void CompileResources(const RHI::FrameGraphCompileContext& context) override
