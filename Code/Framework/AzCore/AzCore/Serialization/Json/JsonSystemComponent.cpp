@@ -105,12 +105,15 @@ namespace AZ
             jsonContext->Serializer<JsonArraySerializer>()
                 ->HandlesType<AZStd::array>();
 
+            // APC BEGIN: These types are supported in ApcUtilities Gem
+            /*
             jsonContext->Serializer<JsonAnySerializer>()
                 ->HandlesType<AZStd::any>();
             jsonContext->Serializer<JsonVariantSerializer>()
                 ->HandlesType<AZStd::variant>();
             jsonContext->Serializer<JsonOptionalSerializer>()
                 ->HandlesType<AZStd::optional>();
+            */
 
             MathReflect(jsonContext);
         }

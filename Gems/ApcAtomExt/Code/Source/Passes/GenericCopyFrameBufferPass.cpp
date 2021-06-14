@@ -27,10 +27,5 @@ namespace AZ
             : RPI::FullscreenTrianglePass(descriptor)
         {
         }
-
-        void GenericCopyFrameBufferPass::BuildAttachmentsInternal()
-        {
-            FullscreenTrianglePass::BuildAttachmentsInternal();
-        }
     }   // namespace RPI
 }   // namespace AZ

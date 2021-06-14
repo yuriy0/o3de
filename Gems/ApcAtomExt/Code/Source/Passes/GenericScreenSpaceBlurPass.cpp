@@ -113,9 +113,10 @@ namespace AZ
             }
         }
 
-        void GenericScreenSpaceBlurPass::BuildAttachmentsInternal()
+        void GenericScreenSpaceBlurPass::BuildInternal()
         {
             RemoveChildren();
+            m_flags.m_createChildren = true;
             
             // update the image attachment descriptor to sync up size and format
             auto& inputOutputAttachment = GetInputOutputBinding(0).m_attachment;
@@ -149,7 +150,7 @@ namespace AZ
 
             // call ParentPass::BuildAttachmentsInternal() first to configure the slots and auto-add the empty bindings,
             // then we will assign attachments to the bindings
-            ParentPass::BuildAttachmentsInternal();
+            ParentPass::BuildInternal();
 
             // setup attachment bindings on vertical blur child passes
             uint32_t attachmentIndex = 0;

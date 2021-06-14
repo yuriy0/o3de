@@ -29,6 +29,7 @@
 #include <AzCore/Component/EntityId.h>
 #include <AzCore/Interface/Interface.h>
 #include <AzCore/Math/VectorConversions.h>
+#include <AzCore/Interface/Interface.h>
 #include <AzCore/Console/IConsole.h>
 
 // AzFramework
@@ -1381,20 +1382,20 @@ void EditorViewportWidget::SetViewportId(int id)
     CViewport::SetViewportId(id);
 
     // First delete any existing layout
-    // This also deletes any existing render viewport widget (since it will be added to the layout
-    if (QLayout* l = layout())
+    // This also deletes any existing render viewport widget (since it will be added to the layout)
+    if (QLayout* thisLayout = layout())
     {
         QLayoutItem* item;
-        while ((item = l->takeAt(0)) != 0)
+        while ((item = thisLayout->takeAt(0)) != nullptr)
         {
-            if (QWidget* w = item->widget())
+            if (QWidget* widget = item->widget())
             {
-                delete w;
+                delete widget;
             }
-            l->removeItem(item);
+            thisLayout->removeItem(item);
             delete item;
         }
-        delete l;
+        delete thisLayout;
     }
 
     // Now that we have an ID, we can initialize our viewport.
@@ -3058,6 +3059,8 @@ float EditorViewportSettings::AngleStep() const
     return SandboxEditor::AngleSnappingSize();
 }
 
+AZ_CVAR_EXTERNED(bool, ed_previewGameInFullscreen_once);
+
 bool EditorViewportWidget::ShouldPreviewFullscreen()
 {
     CLayoutWnd* layout = GetIEditor()->GetViewManager()->GetLayout();
@@ -3079,23 +3082,10 @@ bool EditorViewportWidget::ShouldPreviewFullscreen()
         if (!ge->IsLevelLoaded()) { return false; }
     }
 
-    // Check 'ed_previewGameInFullscreen_once' and 'ed_previewGameInFullscreen' cvars
-    if (gEnv->pConsole)
+    // Check 'ed_previewGameInFullscreen_once'
+    if (ed_previewGameInFullscreen_once)
     {
-        if (auto v = gEnv->pConsole->GetCVar("ed_previewGameInFullscreen_once"))
-        {
-            if (v->GetIVal() != 0)
-            {
-                v->Set(0);
-                return true;
-            }
-        }
-
-        {
-            auto v = gEnv->pConsole->GetCVar("ed_previewGameInFullscreen");
-            return v && v->GetIVal() != 0; //  if it doesn't exist, assume its value is 0
-        }
-
+        ed_previewGameInFullscreen_once = true;
         return true;
     }
     else
@@ -3109,7 +3099,8 @@ void EditorViewportWidget::StartFullscreenPreview()
     AZ_Assert(!m_inFullscreenPreview, AZ_FUNCTION_SIGNATURE " - called when already in full screen preview");
     m_inFullscreenPreview = true;
 
-    QScreen* screen = QGuiApplication::primaryScreen();
+    // Pick the screen on which the main window lies to use as the screen for the full screen preview
+    QScreen* screen = MainWindow::instance()->screen();
     QRect  screenGeometry = screen->geometry();
 
     // Unparent this and show it, which turns it into a free floating window

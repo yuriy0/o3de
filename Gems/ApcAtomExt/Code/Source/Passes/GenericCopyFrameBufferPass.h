@@ -35,9 +35,6 @@ namespace AZ
 
         private:
             explicit GenericCopyFrameBufferPass(const RPI::PassDescriptor& descriptor);
-
-            // Pass Overrides...
-            void BuildAttachmentsInternal() override;
         };
     }   // namespace RPI
 }   // namespace AZ
