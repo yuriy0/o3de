@@ -86,10 +86,12 @@
         "Gems/Vegetation_Gem_Assets",
         "Gems/VideoPlaybackFramework",
         "Gems/VirtualGamepad",
-        "Gems/WhiteBox"
+        "Gems/WhiteBox",
+        
+        "Gems/ApcAtomExt"
     ],
     "projects": [
-        "AutomatedTesting"
+        "Deadhaus_Sonata"
     ],
     "templates": [
         "Templates/DefaultGem",
