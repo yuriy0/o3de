@@ -2158,3 +2158,8 @@ bool SandboxIntegrationManager::DisplayHelpersVisible()
 {
     return GetIEditor()->GetDisplaySettings()->IsDisplayHelpers();
 }
+
+bool SandboxIntegrationManager::DisplayFrozenObjectsHelpersVisible()
+{
+    return gSettings.viewports.nShowFrozenHelpers;
+}

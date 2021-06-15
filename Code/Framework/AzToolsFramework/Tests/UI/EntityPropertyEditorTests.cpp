@@ -260,6 +260,7 @@ namespace UnitTest
         void BrowseForAssets(AssetBrowser::AssetSelectionModel& /*selection*/) override {}
         int GetIconTextureIdFromEntityIconPath([[maybe_unused]] const AZStd::string& entityIconPath) override { return 0; }
         bool DisplayHelpersVisible() override { return false; }
+        bool DisplayFrozenObjectsHelpersVisible() { return false; }
 
     public:
         EntityPropertyEditor* m_levelEditor;

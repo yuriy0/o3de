@@ -10,7 +10,9 @@
 #
 
 # Cmake version 3.20 is the minimum version needed for all of Open 3D Engine's supported platforms
-cmake_minimum_required(VERSION 3.20)
+# APC BEGIN: Allow 3.19
+cmake_minimum_required(VERSION 3.19)
+# APC END
 
 include(cmake/LySet.cmake)
 include(cmake/Version.cmake)

@@ -891,6 +891,9 @@ namespace AzToolsFramework
 
         /// Returns if the Display Helpers option is toggled on in the Editor.
         virtual bool DisplayHelpersVisible() = 0;
+
+        /// Returns if the "Display Helpers of Frozen Objects" option is toggled on in the Editor.
+        virtual bool DisplayFrozenObjectsHelpersVisible() = 0;
     };
 
     using EditorRequestBus = AZ::EBus<EditorRequests>;

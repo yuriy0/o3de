@@ -15,6 +15,7 @@
 #include <SceneAPI/FbxSceneBuilder/ImportContexts/FbxImportContexts.h>
 #include <SceneAPI/SceneCore/DataTypes/MatrixType.h>
 #include <SceneAPI/SceneCore/Events/CallProcessorBus.h>
+#include <SceneAPI/FbxSceneBuilder/Importers/ImporterUtilities.h>
 
 namespace AZ
 {
@@ -37,16 +38,16 @@ namespace AZ
             using CoreGraphNodeIndex = Containers::SceneGraph::NodeIndex;
             using CoreProcessingResult = Events::ProcessingResult;
 
-            inline bool NodeIsOfType(const CoreSceneGraph& graph, CoreGraphNodeIndex nodeIndex, const AZ::Uuid& uuid);
-            inline bool NodeParentIsOfType(const CoreSceneGraph& graph, CoreGraphNodeIndex nodeIndex, 
-                const AZ::Uuid& uuid);
-            inline bool NodeHasAncestorOfType(const CoreSceneGraph& graph, CoreGraphNodeIndex nodeIndex,
-                const AZ::Uuid& uuid);
+            //inline bool NodeIsOfType(const CoreSceneGraph& graph, CoreGraphNodeIndex nodeIndex, const AZ::Uuid& uuid);
+            //inline bool NodeParentIsOfType(const CoreSceneGraph& graph, CoreGraphNodeIndex nodeIndex, 
+            //    const AZ::Uuid& uuid);
+            //inline bool NodeHasAncestorOfType(const CoreSceneGraph& graph, CoreGraphNodeIndex nodeIndex,
+            //    const AZ::Uuid& uuid);
             inline bool IsSkinnedMesh(const FbxSDKWrapper::FbxNodeWrapper& sourceNode);
             CoreProcessingResult AddDataNodeWithContexts(SceneDataPopulatedContextBase& dataContext);
             CoreProcessingResult AddAttributeDataNodeWithContexts(SceneAttributeDataPopulatedContextBase& dataContext);
             bool AreSceneGraphsEqual(const CoreSceneGraph& lhsGraph, const CoreSceneGraph& rhsGraph);
-            inline bool AreScenesEqual(const CoreScene& lhs, const CoreScene& rhs);
+            //inline bool AreScenesEqual(const CoreScene& lhs, const CoreScene& rhs);
 
             bool IsGraphDataEqual(const AZStd::shared_ptr<const DataTypes::IGraphObject>& lhs,
                 const AZStd::shared_ptr<const DataTypes::IGraphObject>& rhs);

@@ -64,6 +64,13 @@ namespace AzToolsFramework
         return helpersVisible;
     }
 
+    static bool FrozenObjectsHelpersVisible()
+    {
+        bool helpersVisible = false;
+        EditorRequestBus::BroadcastResult(helpersVisible, &EditorRequests::DisplayFrozenObjectsHelpersVisible);
+        return helpersVisible;
+    }
+
     // calculate the icon scale based on how far away it is (distanceSq) from a given point
     // note: this is mostly likely distance from the camera
     static float GetIconScale(const float distSq)
@@ -193,11 +200,18 @@ namespace AzToolsFramework
 
         if (HelpersVisible())
         {
+            const bool showHelpersOfFrozenObjects = FrozenObjectsHelpersVisible();
+
             for (size_t entityCacheIndex = 0; entityCacheIndex < m_entityDataCache->VisibleEntityDataCount(); ++entityCacheIndex)
             {
                 const AZ::EntityId entityId = m_entityDataCache->GetVisibleEntityId(entityCacheIndex);
 
                 if (!m_entityDataCache->IsVisibleEntityVisible(entityCacheIndex))
+                {
+                    continue;
+                }
+
+                if (!showHelpersOfFrozenObjects && m_entityDataCache->IsVisibleEntityLocked(entityCacheIndex))
                 {
                     continue;
                 }

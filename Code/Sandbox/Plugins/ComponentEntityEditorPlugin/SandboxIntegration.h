@@ -173,6 +173,7 @@ private:
     void ClearRedoStack() override;
     int GetIconTextureIdFromEntityIconPath(const AZStd::string& entityIconPath) override;
     bool DisplayHelpersVisible() override;
+    bool DisplayFrozenObjectsHelpersVisible() override;
     //////////////////////////////////////////////////////////////////////////
 
     //////////////////////////////////////////////////////////////////////////
