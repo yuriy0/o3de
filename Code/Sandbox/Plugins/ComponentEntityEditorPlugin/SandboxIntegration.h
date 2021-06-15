@@ -306,7 +306,7 @@ private:
 
     bool m_debugDisplayBusImplementationActive = false;
 
-    AzToolsFramework::Prefab::PrefabIntegrationManager m_prefabIntegrationManager;
+    AzToolsFramework::Prefab::PrefabIntegrationManager* m_prefabIntegrationManager = nullptr;
 
     AzToolsFramework::EditorEntityUiInterface* m_editorEntityUiInterface = nullptr;
     AzToolsFramework::Prefab::PrefabIntegrationInterface* m_prefabIntegrationInterface = nullptr;

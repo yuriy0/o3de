@@ -15,7 +15,7 @@
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzToolsFramework/Debug/TraceContext.h>
 #include <SceneAPI/FbxSceneBuilder/FbxSceneSystem.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxImporterUtilities.h>
+#include <SceneAPI/FbxSceneBuilder/Importers/ImporterUtilities.h>
 #include <SceneAPI/FbxSceneBuilder/Importers/Utilities/RenamedNodesMap.h>
 #include <SceneAPI/SceneCore/Utilities/Reporting.h>
 #include <SceneAPI/SceneData/GraphData/TransformData.h>
@@ -47,22 +47,11 @@ namespace AZ
                 }
             }
 
-            void EnumBonesInNode2(
-                const aiScene* scene, const aiNode* node, AZStd::unordered_map<AZStd::string, const aiNode*>&,
-                AZStd::unordered_map<AZStd::string, const aiBone*>& boneLookup)
+            void GetAllBones(const aiScene* scene, AZStd::unordered_map<AZStd::string, const aiBone*>& boneLookup)
             {
-                /* From AssImp Documentation
-                    a) Create a map or a similar container to store which nodes are necessary for the skeleton. Pre-initialise it for all
-                   nodes with a "no". b) For each bone in the mesh: b1) Find the corresponding node in the scene's hierarchy by comparing
-                   their names. b2) Mark this node as "yes" in the necessityMap. b3) Mark all of its parents the same way until you 1) find
-                   the mesh's node or 2) the parent of the mesh's node. c) Recursively iterate over the node hierarchy c1) If the node is
-                   marked as necessary, copy it into the skeleton and check its children c2) If the node is marked as not necessary, skip it
-                   and do not iterate over its children.
-                 */
-
-                for (unsigned meshIndex = 0; meshIndex < node->mNumMeshes; ++meshIndex)
+                for (unsigned meshIndex = 0; meshIndex < scene->mNumMeshes; ++meshIndex)
                 {
-                    const aiMesh* mesh = scene->mMeshes[node->mMeshes[meshIndex]];
+                    const aiMesh* mesh = scene->mMeshes[meshIndex];
 
                     for (unsigned boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
                     {
@@ -73,53 +62,37 @@ namespace AZ
                 }
             }
 
-            void EnumChildren2(
-                const aiScene* scene, const aiNode* node, AZStd::unordered_map<AZStd::string, const aiNode*>& mainBoneList,
-                AZStd::unordered_map<AZStd::string, const aiBone*>& boneLookup)
-            {
-                EnumBonesInNode2(scene, node, mainBoneList, boneLookup);
-
-                for (unsigned childIndex = 0; childIndex < node->mNumChildren; ++childIndex)
-                {
-                    const aiNode* child = node->mChildren[childIndex];
-
-                    EnumChildren2(scene, child, mainBoneList, boneLookup);
-                }
-            }
-            
             Events::ProcessingResult AssImpTransformImporter::ImportTransform(AssImpSceneNodeAppendedContext& context)
             {
                 AZ_TraceContext("Importer", "transform");
                 const aiNode* currentNode = context.m_sourceNode.GetAssImpNode();
                 const aiScene* scene = context.m_sourceScene.GetAssImpScene();
-                
+
                 if (currentNode == scene->mRootNode || IsPivotNode(currentNode->mName))
                 {
                     return Events::ProcessingResult::Ignored;
                 }
 
-                bool isBone = false;
-                AZStd::unordered_map<AZStd::string, const aiNode*> mainBoneList;
                 AZStd::unordered_map<AZStd::string, const aiBone*> boneLookup;
-                EnumChildren2(scene, scene->mRootNode, mainBoneList, boneLookup);
+                GetAllBones(scene, boneLookup);
 
-                if (boneLookup.find(currentNode->mName.C_Str()) != boneLookup.end())
-                {
-                    isBone = true;
-                }
+                auto boneIterator = boneLookup.find(currentNode->mName.C_Str());
+                const bool isBone = boneIterator != boneLookup.end();
 
-                aiMatrix4x4 combinedTransform = GetConcatenatedLocalTransform(currentNode);
+                aiMatrix4x4 combinedTransform;
 
                 if (isBone)
                 {
                     auto parentNode = currentNode->mParent;
 
-                    aiMatrix4x4 offsetMatrix = boneLookup[currentNode->mName.C_Str()]->mOffsetMatrix;
-                    aiMatrix4x4 parentOffset{};
+                    aiMatrix4x4 offsetMatrix = boneIterator->second->mOffsetMatrix;
+                    aiMatrix4x4 parentOffset {};
 
-                    if (parentNode && boneLookup.count(parentNode->mName.C_Str()))
+                    auto parentBoneIterator = boneLookup.find(parentNode->mName.C_Str());
+
+                    if (parentNode && parentBoneIterator != boneLookup.end())
                     {
-                        auto parentBone = boneLookup[parentNode->mName.C_Str()];
+                        const auto& parentBone = parentBoneIterator->second;
 
                         parentOffset = parentBone->mOffsetMatrix;
                     }
@@ -127,13 +100,15 @@ namespace AZ
                     auto inverseOffset = offsetMatrix;
                     inverseOffset.Inverse();
 
-                    auto optionB = parentOffset * inverseOffset;
-
-                    combinedTransform = optionB;
+                    combinedTransform = parentOffset * inverseOffset;
+                }
+                else
+                {
+                    combinedTransform = GetConcatenatedLocalTransform(currentNode);
                 }
 
                 DataTypes::MatrixType localTransform = AssImpSDKWrapper::AssImpTypeConverter::ToTransform(combinedTransform);
-                
+
                 context.m_sourceSceneSystem.SwapTransformForUpAxis(localTransform);
                 context.m_sourceSceneSystem.ConvertUnit(localTransform);
 
@@ -177,9 +152,7 @@ namespace AZ
                 }
                 else
                 {
-                    bool addedData = context.m_scene.GetGraph().SetContent(
-                        context.m_currentGraphPosition,
-                        transformData);
+                    bool addedData = context.m_scene.GetGraph().SetContent(context.m_currentGraphPosition, transformData);
 
                     AZ_Error(SceneAPI::Utilities::ErrorWindow, addedData, "Failed to add node data");
                     return addedData ? Events::ProcessingResult::Success : Events::ProcessingResult::Failure;
