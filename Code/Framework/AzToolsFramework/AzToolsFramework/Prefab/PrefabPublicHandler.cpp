@@ -802,30 +802,24 @@ namespace AzToolsFramework
 
         bool PrefabPublicHandler::IsLevelInstanceContainerEntity(AZ::EntityId entityId) const
         {
-            // APC BEGIN: currently this method crashes for unknown reasons
-            (void)entityId;
-            return false;
+            // Get owning instance
+            InstanceOptionalReference owningInstance = m_instanceEntityMapperInterface->FindOwningInstance(entityId);
 
-            //// Get owning instance
-            //InstanceOptionalReference owningInstance = m_instanceEntityMapperInterface->FindOwningInstance(entityId);
-
-            //// Get level root instance
-            //auto prefabEditorEntityOwnershipInterface = AZ::Interface<PrefabEditorEntityOwnershipInterface>::Get();
-            //if (!prefabEditorEntityOwnershipInterface)
-            //{
-            //    AZ_Assert(
-            //        false,
-            //        "Could not get owning instance of common root entity :"
-            //        "PrefabEditorEntityOwnershipInterface unavailable.");
-            //}
-            //InstanceOptionalReference levelInstance = prefabEditorEntityOwnershipInterface->GetRootPrefabInstance();
-            //
-            //return owningInstance
-            //    && levelInstance
-            //    && (&owningInstance->get() == &levelInstance->get())
-            //    && (owningInstance->get().GetContainerEntityId() == entityId);
-
-            // APC END
+            // Get level root instance
+            auto prefabEditorEntityOwnershipInterface = AZ::Interface<PrefabEditorEntityOwnershipInterface>::Get();
+            if (!prefabEditorEntityOwnershipInterface)
+            {
+                AZ_Assert(
+                    false,
+                    "Could not get owning instance of common root entity :"
+                    "PrefabEditorEntityOwnershipInterface unavailable.");
+            }
+            InstanceOptionalReference levelInstance = prefabEditorEntityOwnershipInterface->GetRootPrefabInstance();
+            
+            return owningInstance
+                && levelInstance
+                && (&owningInstance->get() == &levelInstance->get())
+                && (owningInstance->get().GetContainerEntityId() == entityId);
         }
 
         AZ::EntityId PrefabPublicHandler::GetInstanceContainerEntityId(AZ::EntityId entityId) const
