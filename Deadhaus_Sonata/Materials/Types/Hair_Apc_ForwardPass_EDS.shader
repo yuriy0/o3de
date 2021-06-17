@@ -6,7 +6,7 @@
         "Depth" :
         {
             "Enable" : true,
-            "CompareFunc" : "GreaterEqual"
+            "CompareFunc" : "Greater"
         },
         "Stencil" :
         {
@@ -42,5 +42,5 @@
       ]
     },
 
-    "DrawList" : "forwardWithSubsurfaceOutput"
+    "DrawList" : "forward"
 }

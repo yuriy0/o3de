@@ -17,36 +17,7 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     // ------- Depth & Parallax -------
 
     depth = IN.m_position.z;
-    
     bool displacementIsClipped = false;
-
-    // Parallax mapping's non uniform uv transformations break screen space subsurface scattering, disable it when subsurface scatteirng is enabled
-    if(ShouldHandleParallax())
-    {
-        // GetParallaxInput applies an tangent offset to the UV. We want to apply the same offset to the detailUv (note: this needs to be tested with content)
-        // The math is:   offset = newUv - oldUv;   detailUv += offset;
-        // This is the same as:   detailUv -= oldUv;   detailUv += newUv;
-        IN.m_detailUv[MaterialSrg::m_parallaxUvIndex] -= IN.m_uv[MaterialSrg::m_parallaxUvIndex];
-        float3x3 uvMatrix = MaterialSrg::m_parallaxUvIndex == 0 ? MaterialSrg::m_uvMatrix : CreateIdentity3x3();
-        float3x3 uvMatrixInverse = MaterialSrg::m_parallaxUvIndex == 0 ? MaterialSrg::m_uvMatrixInverse : CreateIdentity3x3();
-
-        GetParallaxInput(IN.m_normal, tangents[MaterialSrg::m_parallaxUvIndex], bitangents[MaterialSrg::m_parallaxUvIndex], MaterialSrg::m_heightmapScale, MaterialSrg::m_heightmapOffset,
-                         ObjectSrg::GetWorldMatrix(), uvMatrix, uvMatrixInverse,
-                         IN.m_uv[MaterialSrg::m_parallaxUvIndex], IN.m_worldPosition, depth, IN.m_position.w, displacementIsClipped);
-
-        // Apply second part of the offset to the detail UV (see comment above)
-        IN.m_detailUv[MaterialSrg::m_parallaxUvIndex] -= IN.m_uv[MaterialSrg::m_parallaxUvIndex];
-
-        // Adjust directional light shadow coorinates for parallax correction
-        if(o_parallax_enablePixelDepthOffset)
-        {
-            const uint shadowIndex = ViewSrg::m_shadowIndexDirectionalLight;
-            if (o_enableShadows && shadowIndex < SceneSrg::m_directionalLightCount)
-            {
-                DirectionalLightShadow::GetShadowCoords(shadowIndex, IN.m_worldPosition, IN.m_shadowCoords);
-            }
-        }
-    }
 
     Surface surface;
     surface.position = IN.m_worldPosition;
@@ -109,20 +80,12 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
         ApplyParallaxClippingHighlight(baseColor);
     }
 
-    // ------- Metallic -------
-
-    float metallic = 0;
-    if(!o_enableSubsurfaceScattering)   // If subsurface scattering is enabled skip texture lookup for metallic, as this quantity won't be used anyway
-    {
-        float2 metallicUv = IN.m_uv[MaterialSrg::m_metallicMapUvIndex];
-        metallic = GetMetallicInput(MaterialSrg::m_metallicMap, MaterialSrg::m_sampler, metallicUv, MaterialSrg::m_metallicFactor, o_metallic_useTexture);
-    }
-
     // ------- Specular -------
 
     float2 specularUv = IN.m_uv[MaterialSrg::m_specularF0MapUvIndex];
     float specularF0Factor = GetSpecularInput(MaterialSrg::m_specularF0Map, MaterialSrg::m_sampler, specularUv, MaterialSrg::m_specularF0Factor, o_specularF0_useTexture);
 
+    float metallic = 0;
     surface.SetAlbedoAndSpecularF0(baseColor, specularF0Factor, metallic);
 
     // ------- Roughness -------
@@ -131,11 +94,6 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     surface.roughnessLinear = GetRoughnessInput(MaterialSrg::m_roughnessMap, MaterialSrg::m_sampler, roughnessUv, MaterialSrg::m_roughnessFactor,
                                         MaterialSrg::m_roughnessLowerBound, MaterialSrg::m_roughnessUpperBound, o_roughness_useTexture);
     surface.CalculateRoughnessA();
-
-    // ------- Subsurface -------
-
-    float2 subsurfaceUv = IN.m_uv[MaterialSrg::m_subsurfaceScatteringInfluenceMapUvIndex];
-    float surfaceScatteringFactor = GetSubsurfaceInput(MaterialSrg::m_subsurfaceScatteringInfluenceMap, MaterialSrg::m_sampler, subsurfaceUv, MaterialSrg::m_subsurfaceScatteringFactor);
 
     // ------- Transmission -------
 
@@ -166,49 +124,20 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     // Directional light shadow coordinates
     lightingData.shadowCoords = IN.m_shadowCoords;
 
-    // ------- Emissive -------
-
-    float2 emissiveUv = IN.m_uv[MaterialSrg::m_emissiveMapUvIndex];
-    lightingData.emissiveLighting = GetEmissiveInput(MaterialSrg::m_emissiveMap, MaterialSrg::m_sampler, emissiveUv, MaterialSrg::m_emissiveIntensity, MaterialSrg::m_emissiveColor.rgb, o_emissiveEnabled, o_emissive_useTexture);
-
     // ------- Occlusion -------
     
     lightingData.diffuseAmbientOcclusion = GetOcclusionInput(MaterialSrg::m_diffuseOcclusionMap, MaterialSrg::m_sampler, IN.m_uv[MaterialSrg::m_diffuseOcclusionMapUvIndex], MaterialSrg::m_diffuseOcclusionFactor, o_diffuseOcclusion_useTexture);
     lightingData.specularOcclusion = GetOcclusionInput(MaterialSrg::m_specularOcclusionMap, MaterialSrg::m_sampler, IN.m_uv[MaterialSrg::m_specularOcclusionMapUvIndex], MaterialSrg::m_specularOcclusionFactor, o_specularOcclusion_useTexture);
 
-    // ------- Clearcoat -------
+    // ------- Diffuse and Specular -------
     
-    // [GFX TODO][ATOM-14603]: Clean up the double uses of these clear coat flags
-    if(o_clearCoat_feature_enabled)
-    {
-        if(o_clearCoat_enabled)
-        {
-            float3x3 uvMatrix = MaterialSrg::m_clearCoatNormalMapUvIndex == 0 ? MaterialSrg::m_uvMatrix : CreateIdentity3x3();
-            GetClearCoatInputs(MaterialSrg::m_clearCoatInfluenceMap, IN.m_uv[MaterialSrg::m_clearCoatInfluenceMapUvIndex], MaterialSrg::m_clearCoatFactor, o_clearCoat_factor_useTexture,
-                               MaterialSrg::m_clearCoatRoughnessMap, IN.m_uv[MaterialSrg::m_clearCoatRoughnessMapUvIndex], MaterialSrg::m_clearCoatRoughness, o_clearCoat_roughness_useTexture,
-                               MaterialSrg::m_clearCoatNormalMap,    IN.m_uv[MaterialSrg::m_clearCoatNormalMapUvIndex], IN.m_normal, o_clearCoat_normal_useTexture, MaterialSrg::m_clearCoatNormalStrength,
-                               uvMatrix, tangents[MaterialSrg::m_clearCoatNormalMapUvIndex], bitangents[MaterialSrg::m_clearCoatNormalMapUvIndex],
-                               MaterialSrg::m_sampler, isFrontFace,
-                               surface.clearCoat.factor, surface.clearCoat.roughness, surface.clearCoat.normal);
-        }
+    surface.clearCoat.factor = 0.0f;
+    surface.clearCoat.roughness = 0.0f;
+    surface.clearCoat.normal = float3(0.0f, 0.0f, 0.0f);
 
-        // manipulate base layer f0 if clear coat is enabled
-        // modify base layer's normal incidence reflectance
-        // for the derivation of the following equation please refer to:
-        // https://google.github.io/filament/Filament.md.html#materialsystem/clearcoatmodel/baselayermodification
-        float3 f0 = (1.0 - 5.0 * sqrt(surface.specularF0)) / (5.0 - sqrt(surface.specularF0));
-        surface.specularF0 = lerp(surface.specularF0, f0 * f0, surface.clearCoat.factor);
-    }
-    
     // Diffuse and Specular response (used in IBL calculations)
     lightingData.specularResponse = FresnelSchlickWithRoughness(lightingData.NdotV, surface.specularF0, surface.roughnessLinear);
     lightingData.diffuseResponse = 1.0 - lightingData.specularResponse;
-
-    if(o_clearCoat_feature_enabled)
-    {
-        // Clear coat layer has fixed IOR = 1.5 and transparent => F0 = (1.5 - 1)^2 / (1.5 + 1)^2 = 0.04
-        lightingData.diffuseResponse *= 1.0 - (FresnelSchlickWithRoughness(lightingData.NdotV, float3(0.04, 0.04, 0.04), surface.clearCoat.roughness) * surface.clearCoat.factor);
-    }
 
     // ------- Multiscatter -------
 
@@ -246,10 +175,8 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     }
     else
     {
-        // Pack factor and quality, drawback: because of precision limit of float16 cannot represent exact 1, maximum representable value is 0.9961
-        uint factorAndQuality = dot(round(float2(saturate(surfaceScatteringFactor), MaterialSrg::m_subsurfaceScatteringQuality) * 255), float2(256, 1));
-        lightingOutput.m_diffuseColor.w = factorAndQuality * (o_enableSubsurfaceScattering ? 1.0 : -1.0);
-        lightingOutput.m_scatterDistance = MaterialSrg::m_scatterDistance;
+        // Disable Subsurface scattering
+        lightingOutput.m_diffuseColor.w = -1.0;
     }
 
     return lightingOutput;
