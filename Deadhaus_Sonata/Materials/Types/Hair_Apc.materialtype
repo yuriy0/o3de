@@ -9,11 +9,6 @@
                 "description": "Properties for configuring the surface reflected color for dielectrics or reflectance values for metals."
             },
             {
-                "id": "metallic",
-                "displayName": "Metallic",
-                "description": "Properties for configuring whether the surface is metallic or not."
-            },
-            {
                 "id": "roughness",
                 "displayName": "Roughness",
                 "description": "Properties for configuring how rough the surface appears."
@@ -29,16 +24,6 @@
                 "description": "Properties related to configuring surface normal."
             },
             {
-                "id": "detailLayerGroup",
-                "displayName": "Detail Layer",
-                "description": "Properties for Fine Details Layer."
-            },
-            {
-                "id": "detailUV",
-                "displayName": "Detail Layer UV",
-                "description": "Properties for modifying detail layer UV."
-            },
-            {
                 "id": "anisotropy",
                 "displayName": "Anisotropic Material Response",
                 "description": "How much is this material response anisotropic."
@@ -49,34 +34,14 @@
                 "description": "Properties for baked textures that represent geometric occlusion of light."
             },
             {
-                "id": "emissive",
-                "displayName": "Emissive",
-                "description": "Properties to add light emission, independent of other lights in the scene."
-            },
-            {
                 "id": "subsurfaceScattering",
                 "displayName": "Subsurface Scattering",
                 "description": "Properties for configuring subsurface scattering effects."
             },
             {
-                "id": "clearCoat",
-                "displayName": "Clear Coat",
-                "description": "Properties for configuring gloss clear coat"
-            }, 
-            {
-                "id": "parallax",
-                "displayName": "Displacement",
-                "description": "Properties for parallax effect produced by a height map."
-            },
-            {
                 "id": "opacity",
                 "displayName": "Opacity",
                 "description": "Properties for configuring the materials transparency."
-            },
-            {
-                "id": "clothBRDF",
-                "displayName": "Cloth Lighting Model",
-                "description": "Properties for materials which use the cloth lighting model."
             },
             {
                 // Note: this property group is used in the DiffuseGlobalIllumination pass and not by the main forward shader
@@ -249,50 +214,6 @@
                     }
                 }
             ],
-            "metallic": [
-                {
-                    "id": "factor",
-                    "displayName": "Factor",
-                    "description": "This value is linear, black is non-metal and white means raw metal.",
-                    "type": "Float",
-                    "defaultValue": 0.0,
-                    "min": 0.0,
-                    "max": 1.0,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_metallicFactor"
-                    }
-                },
-                {
-                    "id": "textureMap",
-                    "displayName": "Texture",
-                    "description": "",
-                    "type": "Image",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_metallicMap"
-                    }
-                },
-                {
-                    "id": "useTexture",
-                    "displayName": "Use Texture",
-                    "description": "Whether to use the texture, or just default to the Factor value.",
-                    "type": "Bool",
-                    "defaultValue": true
-                },
-                {
-                    "id": "textureMapUv",
-                    "displayName": "UV",
-                    "description": "Metallic map UV set",
-                    "type": "Enum",
-                    "enumIsUv": true,
-                    "defaultValue": "Tiled",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_metallicMapUvIndex"
-                    }
-                }
-            ],
             "roughness": [
                 {
                     "id": "textureMap",
@@ -460,141 +381,6 @@
                     }
                 }
             ],
-            "clearCoat": [
-                {
-                    "id": "enable",
-                    "displayName": "Enable",
-                    "description": "Enable clear coat",
-                    "type": "Bool",
-                    "defaultValue": false
-                },
-                {
-                    "id": "factor",
-                    "displayName": "Factor",
-                    "description": "Strength factor for scaling the percentage of effect applied",
-                    "type": "Float",
-                    "defaultValue": 1.0,
-                    "min": 0.0,
-                    "max": 1.0,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_clearCoatFactor"
-                    }
-                },
-                {
-                    "id": "influenceMap",
-                    "displayName": "    Influence Map",
-                    "description": "Strength factor texture",
-                    "type": "Image",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_clearCoatInfluenceMap"
-                    }
-                },
-                {
-                    "id": "useInfluenceMap",
-                    "displayName": "    Use Texture",
-                    "description": "Whether to use the texture, or just default to the Factor value.",
-                    "type": "Bool",
-                    "defaultValue": true
-                },
-                {
-                    "id": "influenceMapUv",
-                    "displayName": "    UV",
-                    "description": "Strength factor map UV set",
-                    "type": "Enum",
-                    "enumIsUv": true,
-                    "defaultValue": "Tiled",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_clearCoatInfluenceMapUvIndex"
-                    }
-                },
-                {
-                    "id": "roughness",
-                    "displayName": "Roughness",
-                    "description": "Clear coat layer roughness",
-                    "type": "Float",
-                    "defaultValue": 0.0,
-                    "min": 0.0,
-                    "max": 1.0,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_clearCoatRoughness"
-                    }
-                },
-                {
-                    "id": "roughnessMap",
-                    "displayName": "    Roughness Map",
-                    "description": "Texture for defining surface roughness",
-                    "type": "Image",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_clearCoatRoughnessMap"
-                    }
-                },
-                {
-                    "id": "useRoughnessMap",
-                    "displayName": "    Use Texture",
-                    "description": "Whether to use the texture, or just default to the roughness value.",
-                    "type": "Bool",
-                    "defaultValue": true
-                },
-                {
-                    "id": "roughnessMapUv",
-                    "displayName": "    UV",
-                    "description": "Roughness map UV set",
-                    "type": "Enum",
-                    "enumIsUv": true,
-                    "defaultValue": "Tiled",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_clearCoatRoughnessMapUvIndex"
-                    }
-                },
-                {
-                    "id": "normalStrength",
-                    "displayName": "Normal Strength",
-                    "description": "Scales the impact of the clear coat normal map",
-                    "type": "Float",
-                    "defaultValue": 1.0,
-                    "min": 0.0,
-                    "max": 2.0,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_clearCoatNormalStrength"
-                    }
-                },
-                {
-                    "id": "normalMap",
-                    "displayName": "Normal Map",
-                    "description": "Normal map for clear coat layer, as top layer material clear coat doesn't affect by base layer normal map",
-                    "type": "Image",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_clearCoatNormalMap"
-                    }
-                },
-                {
-                    "id": "useNormalMap",
-                    "displayName": "    Use Texture",
-                    "description": "Whether to use the normal map",
-                    "type": "Bool",
-                    "defaultValue": true
-                },
-                {
-                    "id": "normalMapUv",
-                    "displayName": "    UV",
-                    "description": "Normal map UV set",
-                    "type": "Enum",
-                    "enumIsUv": true,
-                    "defaultValue": "Tiled",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_clearCoatNormalMapUvIndex"
-                    }
-                }
-            ],
             "normal": [
                 {
                     "id": "textureMap",
@@ -715,7 +501,7 @@
                     "type": "Float",
                     "min": 0.0,
                     "max": 1.0,
-                    "step" : 0.01,
+                    "step": 0.01,
                     "defaultValue": 0.5,
                     "connection": {
                         "type": "ShaderInput",
@@ -729,7 +515,7 @@
                     "type": "Float",
                     "min": 0.0,
                     "max": 1.0,
-                    "step" : 0.01,
+                    "step": 0.01,
                     "defaultValue": 0.25,
                     "connection": {
                         "type": "ShaderInput",
@@ -790,7 +576,7 @@
                     "connection": {
                         "type": "ShaderOption",
                         "id": "o_oit_weight_function"
-                }
+                    }
                 },
                 {
                     "id": "oitClip",
@@ -951,177 +737,6 @@
                     "connection": {
                         "type": "ShaderInput",
                         "id": "m_specularOcclusionFactor"
-                    }
-                }
-            ],
-            "emissive": [
-                {
-                    "id": "enable",
-                    "displayName": "Enable",
-                    "description": "Enable the emissive group",
-                    "type": "Bool",
-                    "defaultValue": false
-                },
-                {
-                    "id": "unit",
-                    "displayName": "Units",
-                    "description": "The photometric units of the Intensity property.",
-                    "type": "Enum",
-                    "enumValues": ["Ev100"],
-                    "defaultValue": "Ev100"
-                },
-                {
-                    "id": "color",
-                    "displayName": "Color",
-                    "description": "Color is displayed as sRGB but the values are stored as linear color.",
-                    "type": "Color",
-                    "defaultValue": [ 1.0, 1.0, 1.0 ],
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_emissiveColor"
-                    }
-                },
-                {
-                    "id": "intensity",
-                    "displayName": "Intensity",
-                    "description": "The amount of energy emitted.",
-                    "type": "Float",
-                    "defaultValue": 4,
-                    "min": -10,
-                    "max": 20,
-                    "softMin": -6,
-                    "softMax": 16
-                },
-                {
-                    "id": "textureMap",
-                    "displayName": "Texture",
-                    "description": "Texture for defining emissive area.",
-                    "type": "Image",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_emissiveMap"
-                    }
-                },
-                {
-                    "id": "useTexture",
-                    "displayName": "Use Texture",
-                    "description": "Whether to use the texture.",
-                    "type": "Bool",
-                    "defaultValue": true
-                },
-                {
-                    "id": "textureMapUv",
-                    "displayName": "UV",
-                    "description": "Emissive map UV set",
-                    "type": "Enum",
-                    "enumIsUv": true,
-                    "defaultValue": "Tiled",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_emissiveMapUvIndex"
-                    }
-                }
-            ],
-            "parallax": [
-                {
-                    "id": "textureMap",
-                    "displayName": "Height Map",
-                    "description": "Displacement height map to create parallax effect.",
-                    "type": "Image",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_heightmap"
-                    }
-                },
-                {
-                    "id": "useTexture",
-                    "displayName": "Use Texture",
-                    "description": "Whether to use the height map.",
-                    "type": "Bool",
-                    "defaultValue": true
-                },
-                {
-                    "id": "textureMapUv",
-                    "displayName": "UV",
-                    "description": "Height map UV set",
-                    "type": "Enum",
-                    "enumIsUv": true,
-                    "defaultValue": "Tiled",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_parallaxUvIndex"
-                    }
-                },
-                {
-                    "id": "factor",
-                    "displayName": "Height Map Scale",
-                    "description": "The total height of the height map in local model units.",
-                    "type": "Float",
-                    "defaultValue": 0.05,
-                    "min": 0.0,
-                    "softMax": 0.1,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_heightmapScale"
-                    }
-                },
-                {
-                    "id": "offset",
-                    "displayName": "Offset",
-                    "description": "Adjusts the overall displacement amount in local model units.",
-                    "type": "Float",
-                    "defaultValue": 0.0,
-                    "softMin": -0.1,
-                    "softMax": 0.1,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_heightmapOffset"
-                    }
-                },
-                {
-                    "id": "algorithm",
-                    "displayName": "Algorithm",
-                    "description": "Select the algorithm to use for parallax mapping.",
-                    "type": "Enum",
-                    "enumValues": [ "Basic", "Steep", "POM", "Relief", "ContactRefinement" ],
-                    "defaultValue": "POM",
-                    "connection": {
-                        "type": "ShaderOption",
-                        "id": "o_parallax_algorithm"
-                    }
-                },
-                {
-                    "id": "quality",
-                    "displayName": "Quality",
-                    "description": "Quality of parallax mapping.",
-                    "type": "Enum",
-                    "enumValues": [ "Low", "Medium", "High", "Ultra" ],
-                    "defaultValue": "Low",
-                    "connection": {
-                        "type": "ShaderOption",
-                        "id": "o_parallax_quality"
-                    }
-                },
-                {
-                    "id": "pdo",
-                    "displayName": "Pixel Depth Offset",
-                    "description": "Whether to enable the pixel depth offset feature.",
-                    "type": "Bool",
-                    "defaultValue": false,
-                    "connection": {
-                        "type": "ShaderOption",
-                        "id": "o_parallax_enablePixelDepthOffset"
-                    }
-                },
-                {
-                    "id": "showClipping",
-                    "displayName": "Show Clipping",
-                    "description": "Highlight areas where the height map is clipped by the mesh surface.",
-                    "type": "Bool",
-                    "defaultValue": false,
-                    "connection": {
-                        "type": "ShaderOption",
-                        "id": "o_parallax_highlightClipping"
                     }
                 }
             ],
@@ -1302,276 +917,6 @@
                     "softMax": 20.0
                 }
             ],
-            "detailLayerGroup": [
-                {
-                    "id": "enableDetailLayer",
-                    "displayName": "Enable Detail Layer",
-                    "description": "Enable detail layer for fine details and scratches",
-                    "type": "Bool",
-                    "defaultValue": false
-                },
-                {
-                    "id": "blendDetailFactor",
-                    "displayName": "Blend Factor",
-                    "description": "Scales the overall impact of the detail layer.",
-                    "type": "Float",
-                    "defaultValue": 1.0,
-                    "min": 0.0,
-                    "max": 1.0,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_detail_blendFactor"
-                    }
-                },
-                {
-                    "id": "blendDetailMask",
-                    "displayName": "Blend Mask",
-                    "description": "Detailed blend mask for application of the detail maps.",
-                    "type": "Image",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_detail_blendMask_texture"
-                    }
-                },
-                {
-                    "id": "enableDetailMaskTexture",
-                    "displayName": "    Use Texture",
-                    "description": "Enable detail blend mask",
-                    "type": "Bool",
-                    "defaultValue": true
-                },
-                {
-                    "id": "blendDetailMaskUv",
-                    "displayName": "    Blend Mask UV",
-                    "description": "Which UV set to use for sampling the detail blend mask",
-                    "type": "Enum",
-                    "enumIsUv": true,
-                    "defaultValue": "Tiled",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_detail_blendMask_uvIndex"
-                    }
-                },
-                {
-                    "id": "textureMapUv",
-                    "displayName": "Detail Map UVs",
-                    "description": "Which UV set to use for detail map sampling",
-                    "type": "Enum",
-                    "enumIsUv": true,
-                    "defaultValue": "Tiled",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_detail_allMapsUvIndex"
-                    }
-                },
-                {
-                    "id": "enableBaseColor",
-                    "displayName": "Enable Base Color",
-                    "description": "Enable detail blending for base color",
-                    "type": "Bool",
-                    "defaultValue": false
-                },
-                {
-                    "id": "baseColorDetailMap",
-                    "displayName": "    Texture",
-                    "description": "Detailed Base Color Texture",
-                    "type": "Image",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_detail_baseColor_texture"
-                    }
-                },
-                {
-                    "id": "baseColorDetailBlend",
-                    "displayName": "    Blend Factor",
-                    "description": "How much to blend the detail layer into the base color.",
-                    "type": "Float",
-                    "defaultValue": 1.0,
-                    "min": 0.0,
-                    "max": 1.0,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_detail_baseColor_factor"
-                    }
-                },
-                {
-                    "id": "enableNormals",
-                    "displayName": "Enable Normal",
-                    "description": "Enable detail normal map to be used for fine detail normal such as scratches and small dents",
-                    "type": "Bool",
-                    "defaultValue": false
-                },
-                {
-                    "id": "normalDetailStrength",
-                    "displayName": "    Factor",
-                    "description": "Strength factor for scaling the Detail Normal",
-                    "type": "Float",
-                    "defaultValue": 1.0,
-                    "min": 0.0,
-                    "softMax": 2.0,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_detail_normal_factor"
-                    }
-                },
-                {
-                    "id": "normalDetailMap",
-                    "displayName": "    Texture",
-                    "description": "Detailed Normal map",
-                    "type": "Image",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_detail_normal_texture"
-                    }
-                },
-                {
-                    "id": "normalDetailFlipX",
-                    "displayName": "    Flip X Channel",
-                    "description": "Flip Detail tangent direction for this normal map.",
-                    "type": "Bool",
-                    "defaultValue": false,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_detail_normal_flipX"
-                    }
-                },
-                {
-                    "id": "normalDetailFlipY",
-                    "displayName": "    Flip Y Channel",
-                    "description": "Flip Detail bitangent direction for this normal map.",
-                    "type": "Bool",
-                    "defaultValue": false,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_detail_normal_flipY"
-                    }
-                }
-            ],
-            "detailUV": [
-                {
-                    "id": "center",
-                    "displayName": "Center",
-                    "description": "Center point for scaling and rotation transformations.",
-                    "type": "vector2",
-                    "vectorLabels": [ "U", "V" ],
-                    "defaultValue": [ 0.5, 0.5 ]
-                },
-                {
-                    "id": "tileU",
-                    "displayName": "Tile U",
-                    "description": "Scales texture coordinates in V.",
-                    "type": "float",
-                    "defaultValue": 1.0,
-                    "step": 0.1
-                },
-                {
-                    "id": "tileV",
-                    "displayName": "Tile V",
-                    "description": "Scales texture coordinates in V.",
-                    "type": "float",
-                    "defaultValue": 1.0,
-                    "step": 0.1
-                },
-                {
-                    "id": "offsetU",
-                    "displayName": "Offset U",
-                    "description": "Offsets texture coordinates in the U direction.",
-                    "type": "float",
-                    "defaultValue": 0.0,
-                    "min": -1.0,
-                    "max": 1.0
-                },
-                {
-                    "id": "offsetV",
-                    "displayName": "Offset V",
-                    "description": "Offsets texture coordinates in the V direction.",
-                    "type": "float",
-                    "defaultValue": 0.0,
-                    "min": -1.0,
-                    "max": 1.0
-                },
-                {
-                    "id": "rotateDegrees",
-                    "displayName": "Rotate",
-                    "description": "Rotates the texture coordinates (degrees).",
-                    "type": "float",
-                    "defaultValue": 0.0,
-                    "min": -180.0,
-                    "max": 180.0,
-                    "step": 1.0
-                },
-                {
-                    "id": "scale",
-                    "displayName": "Scale",
-                    "description": "Scales texture coordinates in both U and V.",
-                    "type": "float",
-                    "defaultValue": 1.0,
-                    "step": 0.1
-                }
-            ],
-            "clothBRDF": [
-                {
-                    "id": "sheenColor",
-                    "displayName": "Sheen Colour",
-                    "description": "",
-                    "type": "Color",
-                    "defaultValue": [ 0.2, 0.44, 0.76 ],
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_cloth_sheenColor"
-                    }
-                },
-                {
-                    "id": "sheenRoughness",
-                    "displayName": "  Sheen Roughness",
-                    "description": "",
-                    "type": "Float",
-                    "defaultValue": 0.5,
-                    "min" : 0.0,
-                    "max" : 1.0,
-                    "step" : 0.05,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_cloth_sheenRoughness"
-                    }
-                },
-                {
-                    "id": "useSubsurfaceColor",
-                    "displayName": "Enable Subsurface",
-                    "description": "",
-                    "type": "Bool",
-                    "defaultValue": false,
-                    "connection": {
-                        "type": "ShaderOption",
-                        "id": "o_cloth_enableSubsurface"
-                    }
-                },
-                {
-                    "id": "subsurfaceColor",
-                    "displayName": "  Subsurface",
-                    "description": "",
-                    "type": "Color",
-                    "defaultValue": [ 1.0, 1.0, 1.0 ],
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_cloth_subsurface"
-                    }
-                },
-                {
-                    "id": "subsurfaceWrap",
-                    "displayName": "  Subsurface Wrap",
-                    "description": "",
-                    "type": "Float",
-                    "defaultValue": 0.5,
-                    "min" : 0.0,
-                    "max" : 1.0,
-                    "step" : 0.05,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_cloth_subsurfaceWrap"
-                    }
-                }
-            ],
             "irradiance": [
                 // Note: this property group is used in the DiffuseGlobalIllumination pass and not by the main forward shader
                 {
@@ -1655,35 +1000,6 @@
             }
         },
         {
-            // Maps 2D scale, offset, and rotate properties into a float3x3 transform matrix.
-            "type": "Transform2D",
-            "args": {
-                "transformOrder": [ "Rotate", "Translate", "Scale" ],
-                "centerProperty": "detailUV.center",
-                "scaleProperty": "detailUV.scale",
-                "scaleXProperty": "detailUV.tileU",
-                "scaleYProperty": "detailUV.tileV",
-                "translateXProperty": "detailUV.offsetU",
-                "translateYProperty": "detailUV.offsetV",
-                "rotateDegreesProperty": "detailUV.rotateDegrees",
-                "float3x3ShaderInput": "m_detailUvMatrix",
-                "float3x3InverseShaderInput": "m_detailUvMatrixInverse"
-            }
-        },
-        {
-            // Convert emissive unit.
-            "type": "ConvertEmissiveUnit",
-            "args": {
-                "intensityProperty": "emissive.intensity",
-                "lightUnitProperty": "emissive.unit",
-                "shaderInput": "m_emissiveIntensity",
-                "ev100Index": 0,
-                "nitIndex" : 1,
-                "ev100MinMax": [-10, 20],
-                "nitMinMax": [0.001, 100000.0]
-            }
-        },
-        {
             // Preprocess & build parameter set for subsurface scattering and translucency
             "type": "HandleSubsurfaceScatteringParameters",
             "args": {
@@ -1709,15 +1025,6 @@
                 "useTextureProperty": "baseColor.useTexture",
                 "dependentProperties": ["baseColor.textureMapUv", "baseColor.textureBlendMode"],
                 "shaderOption": "o_baseColor_useTexture"
-            }
-        },
-        {
-            "type": "UseTexture",
-            "args": {
-                "textureProperty": "metallic.textureMap",
-                "useTextureProperty": "metallic.useTexture",
-                "dependentProperties": ["metallic.textureMapUv"],
-                "shaderOption": "o_metallic_useTexture"
             }
         },
         {
@@ -1759,30 +1066,6 @@
         {
             "type": "Lua",
             "args": {
-                "file": "../../../Feature/Common/Assets/Materials/Types/StandardPBR_ClearCoatState.lua"
-            }
-        },
-        {
-            "type": "Lua",
-            "args": {
-                "file": "../../../Feature/Common/Assets/Materials/Types/StandardPBR_ClearCoatEnableFeature.lua"
-            }
-        },
-        {
-            "type": "Lua",
-            "args": {
-                "file": "../../../Feature/Common/Assets/Materials/Types/StandardPBR_EmissiveState.lua"
-            }
-        },
-        {
-            "type": "Lua",
-            "args": {
-                "file": "../../../Feature/Common/Assets/Materials/Types/StandardPBR_ParallaxState.lua"
-            }
-        },
-        {
-            "type": "Lua",
-            "args": {
                 "file": "../../../Feature/Common/Assets/Materials/Types/StandardPBR_Roughness.lua"
             }
         },
@@ -1814,12 +1097,6 @@
             "type": "Lua",
             "args": {
                 "file": "Hair_Apc_HandleOpacityMode.lua"
-            }
-        },
-        {
-            "type": "Lua",
-            "args": {
-                "file": "../../../Feature/Common/Assets/Materials/Types/MaterialInputs/DetailMapsCommonFunctor.lua"
             }
         }
     ],

@@ -13,7 +13,7 @@
 ----------------------------------------------------------------------------------------------------
 
 function GetMaterialPropertyDependencies()
-    return {"opacity.mode", "parallax.textureMap", "parallax.useTexture", "parallax.pdo"}
+    return {"opacity.mode"}
 end
 
 OpacityMode_Opaque = 0
@@ -23,10 +23,6 @@ OpacityMode_TintedTransparent = 3
 
 function Process(context)
     local opacityMode = context:GetMaterialPropertyValue_enum("opacity.mode")
-    local displacementMap = context:GetMaterialPropertyValue_Image("parallax.textureMap")
-    local useDisplacementMap = context:GetMaterialPropertyValue_bool("parallax.useTexture")
-    local parallaxEnabled = displacementMap ~= nil and useDisplacementMap
-    local parallaxPdoEnabled = context:GetMaterialPropertyValue_bool("parallax.pdo")
     
     local depthPass = context:GetShaderByTag("DepthPass")
     local shadowMap = context:GetShaderByTag("Shadowmap")
