@@ -244,7 +244,7 @@ float ProjectedShadow::GetVisibilityEsm()
             coefficients);
         const float occluder = shadowmap.SampleLevel(
             PassSrg::LinearSampler, 
-            float3(atlasPosition.xy * invAtlasSize, atlasPosition.z), /*LOD*/=0).r;
+            float3(atlasPosition.xy * invAtlasSize, atlasPosition.z), /*LOD=*/0).r;
    
         const float exponent = -ViewSrg::m_projectedShadows[m_shadowIndex].m_esmExponent * (depth - occluder);        
         const float ratio = exp(exponent);
