@@ -33,6 +33,10 @@
 #include <SceneAPI/SDKWrapper/AssImpSceneWrapper.h>
 #include <SceneAPI/SDKWrapper/AssImpNodeWrapper.h>
 
+// APC BEGIN
+#include <AzCore/Settings/SettingsRegistry.h>
+// APC END
+
 namespace AZ
 {
     namespace SceneAPI
@@ -55,18 +59,25 @@ namespace AZ
             FbxImporter::FbxImporter()
                 : m_sceneSystem(new FbxSceneSystem())
                 // APC BEGIN: Use FBX SDK, not AssImp
-                , m_useAssetImporterSDK(false)
+                //, m_useAssetImporterSDK(false)
                 // APC END
             {
+                // APC BEGIN: allow switching between Assimp/FbxSDK by registry key 
+                if (auto registry = AZ::SettingsRegistry::Get())
+                {
+                    constexpr AZStd::string_view UseAssimpRegistryKey = "/Amazon/AzCore/Bootstrap/UseAssimp";
+                    registry->Get(m_useAssetImporterSDK, UseAssimpRegistryKey);
+                }
+                // APC END
 
-                if (m_useAssetImporterSDK)
-                {
+                //if (m_useAssetImporterSDK)
+                //{
                     m_sceneWrapper = AZStd::make_unique<AssImpSDKWrapper::AssImpSceneWrapper>();
-                }
-                else
-                {
-                    m_sceneWrapper = AZStd::make_unique<FbxSDKWrapper::FbxSceneWrapper>();
-                }
+                //}
+                //else
+                //{
+                //    m_sceneWrapper = AZStd::make_unique<FbxSDKWrapper::FbxSceneWrapper>();
+                //}
 
                 BindToCall(&FbxImporter::ImportProcessing);
             }

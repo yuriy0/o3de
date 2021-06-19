@@ -170,7 +170,7 @@
    <addaction name="menuEdit"/>
    <addaction name="menuView_2"/>
    <addaction name="menuTools_2"/>
-   <addaction name="menuUtilities"/>
+   <!-- <addaction name="menuUtilities"/> -->
    <addaction name="menuSettings_2"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
