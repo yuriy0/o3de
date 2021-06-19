@@ -1,0 +1,42 @@
+set(ENABLED_GEMS
+    ImGui
+    ScriptEvents
+    ExpressionEvaluation
+    DebugDraw
+    SceneProcessing
+    GraphCanvas
+    EditorPythonBindings
+    QtForPython
+    PythonAssetBuilder
+    AudioSystem
+    Camera
+    EMotionFX
+    PhysX
+    CameraFramework
+    StartingPointMovement
+    StartingPointCamera
+    ScriptCanvas
+    ScriptCanvasPhysics
+    StartingPointInput
+    PhysXDebug
+    WhiteBox
+    FastNoise
+    SurfaceData
+    GradientSignal
+    Vegetation
+    GraphModel
+    LandscapeCanvas
+    NvCloth
+    Blast
+    Maestro
+    TextureAtlas
+    LmbrCentral
+    LyShine
+    Atom_AtomBridge
+    AWSCore
+    AWSClientAuth
+    AWSMetrics
+    
+    # Apc Gems
+    ApcAtomExt
+)

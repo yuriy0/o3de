@@ -95,6 +95,16 @@ ly_add_project_dependencies(
 
 )
 
+ly_create_alias(NAME Deadhaus_Sonata.Clients NAMESPACE Gem TARGETS Deadhaus_Sonata)
+ly_create_alias(NAME Deadhaus_Sonata.Servers NAMESPACE Gem TARGETS Deadhaus_Sonata)
+
+ly_enable_gems(
+    PROJECT_NAME Deadhaus_Sonata
+    GEM_FILE enabled_gems.cmake
+    TARGETS Deadhaus_Sonata.GameLauncher
+    VARIANTS Clients
+)
+
 if (PAL_TRAIT_BUILD_HOST_TOOLS)
 
     ly_add_target(
@@ -160,5 +170,36 @@ if (PAL_TRAIT_BUILD_HOST_TOOLS)
             tool_dependencies_${PAL_PLATFORM_NAME_LOWERCASE}.cmake
             ${pal_dir}/tool_dependencies.cmake
     )
+    
+    ly_create_alias(NAME Deadhaus_Sonata.Builders NAMESPACE Gem TARGETS Deadhaus_Sonata.Editor)
+    ly_create_alias(NAME Deadhaus_Sonata.Tools NAMESPACE Gem TARGETS Deadhaus_Sonata.Editor)
 
+    # The Editor uses "Tools" gem variants:
+    ly_enable_gems(
+        PROJECT_NAME Deadhaus_Sonata
+        GEM_FILE enabled_gems.cmake
+        TARGETS Editor
+        VARIANTS Tools
+    )
+
+    # The pipeline tools use "Builders" gem variants:
+    ly_enable_gems(
+        PROJECT_NAME Deadhaus_Sonata
+        GEM_FILE enabled_gems.cmake
+        TARGETS AssetBuilder AssetProcessor AssetProcessorBatch
+        VARIANTS Builders
+    )
+endif()
+
+
+if(PAL_TRAIT_BUILD_SERVER_SUPPORTED)
+    # if we're making a server, then add the "Server" gem variants to it:
+    ly_enable_gems(
+        PROJECT_NAME Deadhaus_Sonata
+        GEM_FILE enabled_gems.cmake
+        TARGETS Deadhaus_Sonata.ServerLauncher
+        VARIANTS Servers
+    )
+
+    set_property(GLOBAL APPEND PROPERTY LY_LAUNCHER_SERVER_PROJECTS Deadhaus_Sonata)
 endif()
