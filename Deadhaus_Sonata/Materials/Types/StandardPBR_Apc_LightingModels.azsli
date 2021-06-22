@@ -20,6 +20,7 @@
 #include <Atom/Features/PBR/LightingUtils.azsli>
 #include <Atom/Features/PBR/Microfacet/Brdf.azsli>
 #include <Atom/Features/PBR/Decals.azsli>
+#include <Atom/Features/PBR/BackLighting.azsli>
 
 option enum class LightingModel
 {

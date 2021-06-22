@@ -1,0 +1,859 @@
+{
+    "description": "Material Type with properties used to define Standard PBR, a metallic-roughness Physically-Based Rendering (PBR) material shading model.",
+    "propertyLayout": {
+        "version": 3,
+        "groups": [
+            {
+                "id": "baseColor",
+                "displayName": "Base Color",
+                "description": "Properties for configuring the surface reflected color for dielectrics or reflectance values for metals."
+            },
+            {
+                "id": "roughness",
+                "displayName": "Roughness",
+                "description": "Properties for configuring how rough the surface appears."
+            },
+            {
+                "id": "specularF0",
+                "displayName": "Specular Reflectance f0",
+                "description": "The constant f0 represents the specular reflectance at normal incidence (Fresnel 0 Angle). Used to adjust reflectance of non-metal surfaces."
+            },
+            {
+                "id": "normal",
+                "displayName": "Normal",
+                "description": "Properties related to configuring surface normal."
+            },
+            {
+                "id": "occlusion",
+                "displayName": "Occlusion",
+                "description": "Properties for baked textures that represent geometric occlusion of light."
+            },
+            {
+                "id": "opacity",
+                "displayName": "Opacity",
+                "description": "Properties for configuring the materials transparency."
+            },
+            {
+                // Note: this property group is used in the DiffuseGlobalIllumination pass and not by the main forward shader
+                "id": "irradiance",
+                "displayName": "Irradiance",
+                "description": "Properties for configuring the irradiance used in global illumination."
+            },
+            {
+                "id": "general",
+                "displayName": "General Settings",
+                "description": "General settings."
+            }
+        ],
+        "properties": {
+            "general": [
+                {
+                    "id": "applySpecularAA",
+                    "displayName": "Apply Specular AA",
+                    "description": "Whether to apply specular anti-aliasing in the shader.",
+                    "type": "Bool",
+                    "defaultValue": false,
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_applySpecularAA"
+                    }
+                },
+                {
+                    "id": "enableShadows",
+                    "displayName": "Enable Shadows",
+                    "description": "Whether to use the shadow maps.",
+                    "type": "Bool",
+                    "defaultValue": true,
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_enableShadows"
+                    }
+                },
+                {
+                    "id": "enableDirectionalLights",
+                    "displayName": "Enable Directional Lights",
+                    "description": "Whether to use directional lights.",
+                    "type": "Bool",
+                    "defaultValue": true,
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_enableDirectionalLights"
+                    }
+                },
+                {
+                    "id": "enablePunctualLights",
+                    "displayName": "Enable Punctual Lights",
+                    "description": "Whether to use punctual lights.",
+                    "type": "Bool",
+                    "defaultValue": true,
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_enablePunctualLights"
+                    }
+                },
+                {
+                    "id": "enableAreaLights",
+                    "displayName": "Enable Area Lights",
+                    "description": "Whether to use area lights.",
+                    "type": "Bool",
+                    "defaultValue": true,
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_enableAreaLights"
+                    }
+                },
+                {
+                    "id": "enableIBL",
+                    "displayName": "Enable IBL",
+                    "description": "Whether to use Image Based Lighting (IBL).",
+                    "type": "Bool",
+                    "defaultValue": true,
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_enableIBL"
+                    }
+                },
+                {
+                    "id": "forwardPassIBLSpecular",
+                    "displayName": "Forward Pass IBL Specular",
+                    "description": "Whether to apply IBL specular in the forward pass.",
+                    "type": "Bool",
+                    "defaultValue": false,
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_materialUseForwardPassIBLSpecular"
+                    }
+                }
+            ],
+            "baseColor": [
+                {
+                    "id": "color",
+                    "displayName": "Color",
+                    "description": "Color is displayed as sRGB but the values are stored as linear color.",
+                    "type": "Color",
+                    "defaultValue": [ 1.0, 1.0, 1.0 ],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_baseColor"
+                    }
+                },
+                {
+                    "id": "factor",
+                    "displayName": "Factor",
+                    "description": "Strength factor for scaling the base color values. Zero (0.0) is black, white (1.0) is full color.",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_baseColorFactor"
+                    }
+                },
+                {
+                    "id": "textureMap",
+                    "displayName": "Texture",
+                    "description": "Base color texture map",
+                    "type": "Image",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_baseColorMap"
+                    }
+                },
+                {
+                    "id": "useTexture",
+                    "displayName": "Use Texture",
+                    "description": "Whether to use the texture.",
+                    "type": "Bool",
+                    "defaultValue": true
+                },
+                {
+                    "id": "textureMapUv",
+                    "displayName": "UV",
+                    "description": "Base color map UV set",
+                    "type": "Enum",
+                    "enumIsUv": true,
+                    "defaultValue": "Tiled",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_baseColorMapUvIndex"
+                    }
+                },
+                {
+                    "id": "textureBlendMode",
+                    "displayName": "Texture Blend Mode",
+                    "description": "Selects the equation to use when combining Color, Factor, and Texture.",
+                    "type": "Enum",
+                    "enumValues": [ "Multiply", "LinearLight", "Lerp", "Overlay" ],
+                    "defaultValue": "Multiply",
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_baseColorTextureBlendMode"
+                    }
+                }
+            ],
+            "roughness": [
+                {
+                    "id": "textureMap",
+                    "displayName": "Texture",
+                    "description": "Texture for defining surface roughness.",
+                    "type": "Image",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_roughnessMap"
+                    }
+                },
+                {
+                    "id": "useTexture",
+                    "displayName": "Use Texture",
+                    "description": "Whether to use the texture, or just default to the Factor value.",
+                    "type": "Bool",
+                    "defaultValue": true
+                },
+                {
+                    "id": "textureMapUv",
+                    "displayName": "UV",
+                    "description": "Roughness map UV set",
+                    "type": "Enum",
+                    "enumIsUv": true,
+                    "defaultValue": "Tiled",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_roughnessMapUvIndex"
+                    }
+                },
+                {
+                    // Note that "factor" is mutually exclusive with "lowerBound"/"upperBound". These are swapped by a lua functor.
+                    "id": "lowerBound",
+                    "displayName": "Lower Bound",
+                    "description": "The roughness value that corresponds to black in the texture.",
+                    "type": "Float",
+                    "defaultValue": 0.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_roughnessLowerBound"
+                    }
+                },
+                {
+                    // Note that "factor" is mutually exclusive with "lowerBound"/"upperBound". These are swapped by a lua functor.
+                    "id": "upperBound",
+                    "displayName": "Upper Bound",
+                    "description": "The roughness value that corresponds to white in the texture.",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_roughnessUpperBound"
+                    }
+                },
+                {
+                    // Note that "factor" is mutually exclusive with "lowerBound"/"upperBound". These are swapped by a lua functor.
+                    "id": "factor",
+                    "displayName": "Factor",
+                    "description": "Controls the roughness value",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_roughnessFactor"
+                    }
+                }
+            ],
+            "specularF0": [
+                {
+                    "id": "factor",
+                    "displayName": "Factor",
+                    "description": "The default IOR is 1.5, which gives you 0.04 (4% of light reflected at 0 degree angle for dielectric materials). F0 values lie in the range 0-0.08, so that is why the default F0 slider is set on 0.5.",
+                    "type": "Float",
+                    "defaultValue": 0.5,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_specularF0Factor"
+                    }
+                },
+                {
+                    "id": "textureMap",
+                    "displayName": "Texture",
+                    "description": "Texture for defining surface reflectance.",
+                    "type": "Image",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_specularF0Map"
+                    }
+                },
+                {
+                    "id": "useTexture",
+                    "displayName": "Use Texture",
+                    "description": "Whether to use the texture, or just default to the Factor value.",
+                    "type": "Bool",
+                    "defaultValue": true
+                },
+                {
+                    "id": "textureMapUv",
+                    "displayName": "UV",
+                    "description": "Specular reflection map UV set",
+                    "type": "Enum",
+                    "enumIsUv": true,
+                    "defaultValue": "Tiled",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_specularF0MapUvIndex"
+                    }
+                },
+                // Consider moving this to the "general" group to be consistent with StandardMultilayerPBR
+                {
+                    "id": "enableMultiScatterCompensation",
+                    "displayName": "Multiscattering Compensation",
+                    "description": "Whether to enable multiple scattering compensation.",
+                    "type": "Bool",
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_specularF0_enableMultiScatterCompensation"
+                    }
+                }
+            ],
+            "normal": [
+                {
+                    "id": "textureMap",
+                    "displayName": "Texture",
+                    "description": "Texture for defining surface normal direction.",
+                    "type": "Image",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_normalMap"
+                    }
+                },
+                {
+                    "id": "useTexture",
+                    "displayName": "Use Texture",
+                    "description": "Whether to use the texture, or just rely on vertex normals.",
+                    "type": "Bool",
+                    "defaultValue": true
+                },
+                {
+                    "id": "textureMapUv",
+                    "displayName": "UV",
+                    "description": "Normal map UV set",
+                    "type": "Enum",
+                    "enumIsUv": true,
+                    "defaultValue": "Tiled",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_normalMapUvIndex"
+                    }
+                },
+                {
+                    "id": "flipX",
+                    "displayName": "Flip X Channel",
+                    "description": "Flip tangent direction for this normal map.",
+                    "type": "Bool",
+                    "defaultValue": false,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_flipNormalX"
+                    }
+                },
+                {
+                    "id": "flipY",
+                    "displayName": "Flip Y Channel",
+                    "description": "Flip bitangent direction for this normal map.",
+                    "type": "Bool",
+                    "defaultValue": false,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_flipNormalY"
+                    }
+                },
+                {
+                    "id": "factor",
+                    "displayName": "Factor",
+                    "description": "Strength factor for scaling the values",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "softMax": 2.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_normalFactor"
+                    }
+                }
+            ],
+            "opacity": [
+                {
+                    "id": "mode",
+                    "displayName": "Opacity Mode",
+                    "description": "Indicates the general approach how transparency is to be applied.",
+                    "type": "Enum",
+                    "enumValues": [ "Opaque", "Cutout", "Blended" ],
+                    "defaultValue": "Opaque",
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_opacity_mode"
+                    }
+                },
+                {
+                    "id": "alphaSource",
+                    "displayName": "Alpha Source",
+                    "description": "Indicates whether to get the opacity texture from the Base Color map (Packed) or from a separate greyscale texture (Split).",
+                    "type": "Enum",
+                    "enumValues": [ "Packed", "Split", "None" ],
+                    "defaultValue": "Packed",
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_opacity_source"
+                    }
+                },
+                {
+                    "id": "textureMap",
+                    "displayName": "Texture",
+                    "description": "Texture for defining surface opacity.",
+                    "type": "Image",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_opacityMap"
+                    }
+                },
+                {
+                    "id": "textureMapUv",
+                    "displayName": "UV",
+                    "description": "Opacity map UV set",
+                    "type": "Enum",
+                    "enumIsUv": true,
+                    "defaultValue": "Tiled",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_opacityMapUvIndex"
+                    }
+                },
+                {
+                    "id": "factor",
+                    "displayName": "Factor",
+                    "description": "Factor for cutout threshold and blending",
+                    "type": "Float",
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01,
+                    "defaultValue": 0.5,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_opacityFactor"
+                    }
+                },
+                {
+                    "id": "alphaClipThreshold",
+                    "displayName": "Alpha Clip Threshold",
+                    "description": "Threshold below which alpha values are clipped in the opaque pass",
+                    "type": "Float",
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01,
+                    "defaultValue": 0.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_alphaClipThreshold"
+                    }
+                },
+                {
+                    "id": "depthClipDistance",
+                    "displayName": "Depth Clip Distance",
+                    "description": "Distance below which pixels are clipped in the opaque pass",
+                    "type": "Float",
+                    "min": 0.0,
+                    "max": 3.0,
+                    "step": 0.001,
+                    "defaultValue": 0.01,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_depthClipDistance"
+                    }
+                },
+                {
+                    "id": "cutoutMipBias",
+                    "displayName": "Cutout Mip Bias",
+                    "description": "",
+                    "type": "Float",
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01,
+                    "defaultValue": 0.25,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_cutoutMipBias"
+                    }
+                },
+                {
+                    "id": "doubleSided",
+                    "displayName": "Double-sided",
+                    "description": "Whether to render back-faces or just front-faces.",
+                    "type": "Bool"
+                },
+                {
+                    "id": "transmittanceTint",
+                    "displayName": "Transmittance Tint",
+                    "description": "Proportion of background light which is transmitted through the surface, or the inverse of the proportion of light which is absorbed and re-radiated as diffuse light. white=all light is transmitted (surface is completely transparent), black=no light is transmitted",
+                    "type": "Color",
+                    "defaultValue": [ 1.0, 1.0, 1.0 ],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_transmittanceTintForTransparent"
+                    }
+                },
+                {
+                    "id": "collimationFactor",
+                    "displayName": "Collimation Factor",
+                    "description": "Determines to which degree the transparent surface diffuses light which passes through it.",
+                    "type": "Float",
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.005,
+                    "defaultValue": 0.5,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_collimationFactor"
+                    }
+                },
+                {
+                    "id": "thicknessToGapSizeRatio",
+                    "displayName": "Thickness to gap size ratio",
+                    "description": "Used to approximate transparency at glancing angles by considering the surface as made of many small columns of alternating opaque and transparent mediums (e.g. woven cloth fibres) where light rays pass through only the transparent columns (called gaps). This parameter is the ratio of the surface thickness to the width of gaps, in units of centimeters over meters. The width of opaque columns in this approximation is based on alpha; e.g. alpha=0.5 means the ratio of opaque column width to gap width is 1:1.",
+                    "type": "Float",
+                    "min": 0.0,
+                    "softMax": 1000.0,
+                    "defaultValue": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_thicknessToGap"
+                    }
+                },
+                {
+                    "id": "oitBlendFunction",
+                    "displayName": "Order-independent blend weight function",
+                    "description": "The depth-based weight function used to determine how much each overlapping transparent surface contributes to the final color. Standard = Weight function from McGuire & Mara: (1-d)^3 where d is linear depth; NearDepthRelativeExponential = exponential relative to minimum transparent surface depth: `exp(-Z)' where Z is the distance from the closest transparent pixel to the transparent pixel being rendered.",
+                    "type": "Enum",
+                    "enumValues": [ "Standard", "NearDepthRelativeExponential" ],
+                    "defaultValue": "Standard",
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_oit_weight_function"
+                    }
+                },
+                {
+                    "id": "oitClip",
+                    "displayName": "Alpha test",
+                    "description": "",
+                    "type": "Float",
+                    "min": 0.0,
+                    "max": 1.0,
+                    "defaultValue": 0.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_oitClip"
+                    }
+                }
+            ],
+            "uv": [
+                {
+                    "id": "center",
+                    "displayName": "Center",
+                    "description": "Center point for scaling and rotation transformations.",
+                    "type": "vector2",
+                    "vectorLabels": [ "U", "V" ],
+                    "defaultValue": [ 0.5, 0.5 ]
+                },
+                {
+                    "id": "tileU",
+                    "displayName": "Tile U",
+                    "description": "Scales texture coordinates in U.",
+                    "type": "float",
+                    "defaultValue": 1.0,
+                    "step": 0.1
+                },
+                {
+                    "id": "tileV",
+                    "displayName": "Tile V",
+                    "description": "Scales texture coordinates in V.",
+                    "type": "float",
+                    "defaultValue": 1.0,
+                    "step": 0.1
+                },
+                {
+                    "id": "offsetU",
+                    "displayName": "Offset U",
+                    "description": "Offsets texture coordinates in the U direction.",
+                    "type": "float",
+                    "defaultValue": 0.0,
+                    "min": -1.0,
+                    "max": 1.0
+                },
+                {
+                    "id": "offsetV",
+                    "displayName": "Offset V",
+                    "description": "Offsets texture coordinates in the V direction.",
+                    "type": "float",
+                    "defaultValue": 0.0,
+                    "min": -1.0,
+                    "max": 1.0
+                },
+                {
+                    "id": "rotateDegrees",
+                    "displayName": "Rotate",
+                    "description": "Rotates the texture coordinates (degrees).",
+                    "type": "float",
+                    "defaultValue": 0.0,
+                    "min": -180.0,
+                    "max": 180.0,
+                    "step": 1.0
+                },
+                {
+                    "id": "scale",
+                    "displayName": "Scale",
+                    "description": "Scales texture coordinates in both U and V.",
+                    "type": "float",
+                    "defaultValue": 1.0,
+                    "step": 0.1
+                }
+            ],
+            "occlusion": [
+                {
+                    "id": "diffuseTextureMap",
+                    "displayName": "Diffuse AO",
+                    "description": "Texture for defining occlusion area for diffuse ambient lighting.",
+                    "type": "Image",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_diffuseOcclusionMap"
+                    }
+                },
+                {
+                    "id": "diffuseUseTexture",
+                    "displayName": "    Use Texture",
+                    "description": "Whether to use the Diffuse AO map.",
+                    "type": "Bool",
+                    "defaultValue": true
+                },
+                {
+                    "id": "diffuseTextureMapUv",
+                    "displayName": "    UV",
+                    "description": "Diffuse AO map UV set.",
+                    "type": "Enum",
+                    "enumIsUv": true,
+                    "defaultValue": "Tiled",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_diffuseOcclusionMapUvIndex"
+                    }
+                },
+                {
+                    "id": "diffuseFactor",
+                    "displayName": "    Factor",
+                    "description": "Strength factor for scaling the values of Diffuse AO",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "softMax": 2.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_diffuseOcclusionFactor"
+                    }
+                },
+                {
+                    "id": "specularTextureMap",
+                    "displayName": "Specular Cavity",
+                    "description": "Texture for defining occlusion area for specular lighting.",
+                    "type": "Image",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_specularOcclusionMap"
+                    }
+                },
+                {
+                    "id": "specularUseTexture",
+                    "displayName": "    Use Texture",
+                    "description": "Whether to use the Specular Cavity map.",
+                    "type": "Bool",
+                    "defaultValue": true
+                },
+                {
+                    "id": "specularTextureMapUv",
+                    "displayName": "    UV",
+                    "description": "Specular Cavity map UV set.",
+                    "type": "Enum",
+                    "enumIsUv": true,
+                    "defaultValue": "Tiled",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_specularOcclusionMapUvIndex"
+                    }
+                },
+                {
+                    "id": "specularFactor",
+                    "displayName": "    Factor",
+                    "description": "Strength factor for scaling the values of Specular Cavity",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "softMax": 2.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_specularOcclusionFactor"
+                    }
+                }
+            ],
+            "irradiance": [
+                // Note: this property group is used in the DiffuseGlobalIllumination pass and not by the main forward shader
+                {
+                    "id": "color",
+                    "displayName": "Color",
+                    "description": "Color is displayed as sRGB but the values are stored as linear color.",
+                    "type": "Color",
+                    "defaultValue": [ 1.0, 1.0, 1.0 ]
+                },
+                {
+                    "id": "factor",
+                    "displayName": "Factor",
+                    "description": "Strength factor for scaling the irradiance color values. Zero (0.0) is black, white (1.0) is full color.",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "max": 1.0
+                }
+            ]
+        }
+    },
+    "shaders": [
+        {
+            "file": "./Hair_ForwardPass.shader", 
+            "tag": "ForwardPass"
+        },
+        {
+            "file": "./Hair_Shadowmap_WithPS.shader",
+            "tag": "Shadowmap_WithPS"
+        },
+        // [GFX TODO][ATOM-4726] Use an "isSkinnedMesh" external material property and a functor that enables/disables the appropriate motion-vector shader
+        {
+            "file": "Shaders/MotionVector/StaticMeshMotionVector.shader",
+            "tag": "StaticMeshMotionVector"
+        },
+        {
+            "file": "Shaders/MotionVector/SkinnedMeshMotionVector.shader",
+            "tag": "SkinnedMeshMotionVector"
+        },
+        // Used by the light culling system to produce accurate depth bounds for this object when it uses blended transparency
+        {
+            "file": "Shaders/Depth/DepthPassTransparentMin.shader",
+            "tag": "DepthPassTransparentMin"
+        },
+        {
+            "file": "Shaders/Depth/DepthPassTransparentMax.shader",
+            "tag": "DepthPassTransparentMax"
+        },
+        {
+            "file": "./Hair_TransparentPass.shader", 
+            "tag": "TransparentPass"
+        },
+        {
+            "file": "./HairMomentGeneration.shader",
+            "tag": "OITMomentGenerationPass"
+        }        
+    ],
+    "functors": [
+        {
+            // Maps 2D scale, offset, and rotate properties into a float3x3 transform matrix.
+            "type": "Transform2D",
+            "args": {
+                "transformOrder": [ "Rotate", "Translate", "Scale" ],
+                "centerProperty": "uv.center",
+                "scaleProperty": "uv.scale",
+                "scaleXProperty": "uv.tileU",
+                "scaleYProperty": "uv.tileV",
+                "translateXProperty": "uv.offsetU",
+                "translateYProperty": "uv.offsetV",
+                "rotateDegreesProperty": "uv.rotateDegrees",
+                "float3x3ShaderInput": "m_uvMatrix",
+                "float3x3InverseShaderInput": "m_uvMatrixInverse"
+            }
+        },
+        {
+            "type": "UseTexture",
+            "args": {
+                "textureProperty": "baseColor.textureMap",
+                "useTextureProperty": "baseColor.useTexture",
+                "dependentProperties": ["baseColor.textureMapUv", "baseColor.textureBlendMode"],
+                "shaderOption": "o_baseColor_useTexture"
+            }
+        },
+        {
+            "type": "UseTexture",
+            "args": {
+                "textureProperty": "specularF0.textureMap",
+                "useTextureProperty": "specularF0.useTexture",
+                "dependentProperties": ["specularF0.textureMapUv"],
+                "shaderOption": "o_specularF0_useTexture"
+            }
+        },
+        {
+            "type": "UseTexture",
+            "args": {
+                "textureProperty": "normal.textureMap",
+                "useTextureProperty": "normal.useTexture",
+                "dependentProperties": ["normal.textureMapUv", "normal.factor", "normal.flipX", "normal.flipY"],
+                "shaderOption": "o_normal_useTexture"    
+            }
+        },
+        {
+            "type": "UseTexture",
+            "args": {
+                "textureProperty": "occlusion.diffuseTextureMap",
+                "useTextureProperty": "occlusion.diffuseUseTexture",
+                "dependentProperties": ["occlusion.diffuseTextureMapUv", "occlusion.diffuseFactor"],
+                "shaderOption": "o_diffuseOcclusion_useTexture"    
+            }
+        },
+        {
+            "type": "UseTexture",
+            "args": {
+                "textureProperty": "occlusion.specularTextureMap",
+                "useTextureProperty": "occlusion.specularUseTexture",
+                "dependentProperties": ["occlusion.specularTextureMapUv", "occlusion.specularFactor"],
+                "shaderOption": "o_specularOcclusion_useTexture"    
+            }
+        },
+        {
+            "type": "Lua",
+            "args": {
+                "file": "StandardPBR_Roughness.lua"
+            }
+        },
+        {
+            "type": "Lua",
+            "args": {
+                "file": "Hair_SetTransparentRefractiveBlendStates.lua"
+            }
+        },
+        {
+            "type": "Lua",
+            "args": {
+                "file": "Hair_ShaderEnable.lua"
+            }
+        },
+        {
+            "type": "Lua",
+            "args": {
+                "file": "Hair_HandleOpacityMode.lua"
+            }
+        }
+    ],
+    "uvNameMap": {
+        "UV0": "Tiled",
+        "UV1": "Unwrapped"
+    }
+}
+

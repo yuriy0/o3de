@@ -1,0 +1,17 @@
+{
+    "Shader" : "Hair_TransparentPass.shader",
+    "Variants": [
+        {
+            "StableId": 1,
+            "Options": {
+                "o_oit_weight_function": "OrderIndependentWeightFunction::Standard"
+            }
+        },
+        {
+            "StableId": 2,
+            "Options": {
+                "o_oit_weight_function": "OrderIndependentWeightFunction::NearDepthRelativeExponential"
+            }
+        }
+    ] 
+}

@@ -131,6 +131,8 @@ float3 GetDiffuseLighting(Surface surface, LightingData lightingData, float3 lig
     return lightIntensity * inscattering;
 }
 
+// Back Lighting
+#include <Atom/Features/PBR/BackLighting.azsli>
 
 Surface CreatePseudoSurfaceForFogVoxel(float3 fogHitPnt, float3 surfaceViewDir)
 {

@@ -62,6 +62,18 @@
                     "ShaderInputName": "m_lightListRemapped",
                     "ScopeAttachmentUsage": "Shader"
                 },
+                {
+                    "Name": "DepthLinear",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_linearDepthTexture",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "SsaoInput",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_ssaoTexture",
+                    "ScopeAttachmentUsage": "Shader"
+                },
                 // Input/Outputs...
                 {
                     "Name": "DepthStencilInputOutput",

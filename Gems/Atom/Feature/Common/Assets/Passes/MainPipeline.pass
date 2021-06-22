@@ -353,13 +353,6 @@
                             }
                         }, 
                         {
-                            "LocalSlot": "InputLinearDepth",
-                            "AttachmentRef": {
-                                "Pass": "DepthPrePass",
-                                "Attachment": "DepthLinear"
-                            }
-                        },
-                        {
                             "LocalSlot": "InputOutput",
                             "AttachmentRef": {
                                 "Pass": "OpaquePass",
