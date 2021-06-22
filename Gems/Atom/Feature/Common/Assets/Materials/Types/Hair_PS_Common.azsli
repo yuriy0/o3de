@@ -24,17 +24,17 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     }
 
     {
-        dirToCamera = normalize(ViewSrg::m_worldPosition.xyz - surface.position);
+        float3 dirToCamera = normalize(ViewSrg::m_worldPosition.xyz - surface.position);
         float3 tangent = tangents[0];
 
         // Handle case where tangent is aligned with camera
-        if(tangent == dirToCamera || tangent == -dirToCamera)
+        if(all(tangent == dirToCamera) || all(tangent == -dirToCamera))
         {
-            tangent += normal * 0.001f;
+            tangent += IN.m_normal * 0.001f;
         }
 
         float3 bitangent = cross(dirToCamera, tangent);
-        In.m_normal = normalize( cross(tangent, bitangent) );
+        IN.m_normal = normalize( cross(tangent, bitangent) );
     }
 
     // ------- Alpha & Depth & Clip -------

@@ -82,8 +82,7 @@ function ProcessEditor(context)
 
     -- Handle properties specific to blended transparency mode
     local blendedOnlyMaterialProperties = {
-       "opacity.transmittanceTint", "opacity.collimationFactor",
-       "opacity.thicknessToGapSizeRatio", "opacity.oitBlendFunction", "opacity.oitClip"
+       "opacity.transmittanceTint", "opacity.oitClip"
     };
     
     local blendedOnlyVisibility = (opacityMode == OpacityMode_Blended or opacityMode == OpacityMode_TintedTransparent);

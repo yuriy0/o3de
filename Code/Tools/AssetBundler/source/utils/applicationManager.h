@@ -161,6 +161,13 @@ namespace AssetBundler
         BundlesParams m_bundleParams;
     };
 
+    struct AssetListToSourcePathParams
+    {
+        AZ_CLASS_ALLOCATOR(AssetListToSourcePathParams, AZ::SystemAllocator, 0);
+
+        AZStd::string m_assetListFilePath;
+    };
+
     class ApplicationManager
         : public QObject
         , public AZ::Debug::TraceMessageBus::Handler
@@ -214,6 +221,7 @@ namespace AssetBundler
         AZ::Outcome<BundleSettingsParams, AZStd::string> ParseBundleSettingsCommandData(const AzFramework::CommandLine* parser);
         AZ::Outcome<BundlesParamsList, AZStd::string> ParseBundlesCommandData(const AzFramework::CommandLine* parser);
         AZ::Outcome<BundleSeedParams, AZStd::string> ParseBundleSeedCommandData(const AzFramework::CommandLine* parser);
+        AZ::Outcome<AssetListToSourcePathParams, AZStd::string> ParseAssetListToSourcePathData(const AzFramework::CommandLine* parser);
 
         AZ::Outcome<void, AZStd::string> ValidateInputArgs(const AzFramework::CommandLine* parser, const AZStd::vector<const char*>& validArgList);
         AZ::Outcome<AZStd::string, AZStd::string> GetFilePathArg(const AzFramework::CommandLine* parser, const char* argName, const char* subCommandName, bool isRequired = false);
@@ -235,6 +243,7 @@ namespace AssetBundler
         bool RunBundleSettingsCommands(const AZ::Outcome<BundleSettingsParams, AZStd::string>& paramsOutcome);
         bool RunBundlesCommands(const AZ::Outcome<BundlesParamsList, AZStd::string>& paramsOutcome);
         bool RunBundleSeedCommands(const AZ::Outcome<BundleSeedParams, AZStd::string>& paramsOutcome);
+        bool RunAssetListToSourcePathCommands(const AZ::Outcome<AssetListToSourcePathParams, AZStd::string>& paramsOutcome);
         ////////////////////////////////////////////////////////////////////////////////////////////
 
         ////////////////////////////////////////////////////////////////////////////////////////////

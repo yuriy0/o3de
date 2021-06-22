@@ -18,6 +18,27 @@
 
 namespace AZ
 {
+    // This is used to allocate objects of type `ClassSelectionParameters', but such objects
+    // use hardcoded AZ::SystemAllocator, which is no longer going to be available when the
+    // per-module generic class info is destroyed, so trying to delete such objects
+    // causes a crash on shutdown. For now, just leak the memory, since this attribute object
+    // should only ever be destroyed on application shutdown.
+    template <typename ContainerType, typename T>
+    AttributePtr CreateModuleAttribute_Leaky(T&& attrValue)
+    {
+        IAllocatorAllocate& moduleAllocator = GetCurrentSerializeContextModule().GetAllocator();
+        void* rawMemory = moduleAllocator.Allocate(sizeof(ContainerType), alignof(ContainerType));
+        new (rawMemory) ContainerType{ AZStd::forward<T>(attrValue) };
+        auto attributeDeleter = [](Attribute* /*attribute*/)
+        {
+            //IAllocatorAllocate& moduleAllocator = GetCurrentSerializeContextModule().GetAllocator();
+            //attribute->~Attribute();
+            //moduleAllocator.DeAllocate(attribute);
+        };
+
+        return AttributePtr{ static_cast<ContainerType*>(rawMemory), AZStd::move(attributeDeleter), AZStdIAllocator(&moduleAllocator) };
+    }
+
     namespace VariantSerializationInternal
     {
         template <class ValueType>
@@ -86,7 +107,7 @@ namespace AZ
                 using ContainerType = AttributeContainerType<ClassSelectionParameters>;
                 m_thisClassElement.m_attributes.emplace_back(
                     Edit::Attributes::ClassSelectionParameters,
-                    AZ::CreateModuleAttribute<ContainerType>(
+                    AZ::CreateModuleAttribute_Leaky<ContainerType>(
                         ClassSelectionParameters( AZStd::vector<AZ::Uuid>(
                             { AZ::SerializeGenericTypeInfo<Types>::GetClassTypeId()... }
                         )))

@@ -83,8 +83,6 @@ ShaderResourceGroup MaterialSrg : SRG_PerMaterial
     
     // Parameters for Order-independant transparency
     float3 m_transmittanceTintForTransparent;
-    float m_collimationFactor;
-    float m_thicknessToGap;
     float m_oitClip;
     Texture2D<float4> m_oitMoments;
     Texture2D<float> m_oitOpticalDepth;

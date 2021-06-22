@@ -605,7 +605,9 @@ namespace AZ
                 dialogLayout->addWidget(inspector);
                 dialogLayout->addWidget(buttonBox);
                 dialog.setLayout(dialogLayout);
-                dialog.setModal(true);
+                // APC BEGIN: material inspector should not be modal! It's very useful to be able to navigate the viewport while editing a material
+                dialog.setModal(false);
+                // APC END
 
                 // Forcing the initial dialog size to accomodate typical content.
                 // Temporarily settng fixed size because dialog.show/exec invokes WindowDecorationWrapper::showEvent.

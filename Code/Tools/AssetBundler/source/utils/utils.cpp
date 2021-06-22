@@ -107,6 +107,9 @@ namespace AssetBundler
     // Bundle Seed
     const char* BundleSeedCommand = "bundleSeed";
 
+    // AssetListToSourcePath
+    const char* AssetListToSourcePathCommand = "assetListToSourcePath";
+
     const char* AssetCatalogFilename = "assetcatalog.xml";
 
 

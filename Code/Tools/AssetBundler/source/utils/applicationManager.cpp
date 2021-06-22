@@ -27,6 +27,7 @@
 #include <AzCore/Utils/Utils.h>
 
 #include <AzFramework/Asset/AssetCatalogComponent.h>
+#include <AzFramework/Asset/AssetSystemComponent.h>
 #include <AzFramework/Driller/RemoteDrillerInterface.h>
 #include <AzFramework/Entity/GameEntityContextComponent.h>
 #include <AzFramework/FileTag/FileTagComponent.h>
@@ -40,6 +41,8 @@
 #include <AzToolsFramework/AssetBundle/AssetBundleComponent.h>
 #include <AzToolsFramework/AssetCatalog/PlatformAddressedAssetCatalogBus.h>
 #include <AzToolsFramework/Prefab/PrefabSystemComponent.h>
+#include <AzToolsFramework/Asset/AssetSystemComponent.h>
+#include <AzToolsFramework/API/EditorAssetSystemAPI.h>
 
 namespace AssetBundler
 {
@@ -155,6 +158,8 @@ namespace AssetBundler
             return RunBundlesCommands(ParseBundlesCommandData(parser));
         case CommandType::BundleSeed:
             return RunBundleSeedCommands(ParseBundleSeedCommandData(parser));
+        case CommandType::AssetListToSourcePath:
+            return RunAssetListToSourcePathCommands(ParseAssetListToSourcePathData(parser));
         }
 
         return false;
@@ -167,6 +172,8 @@ namespace AssetBundler
         components.emplace_back(azrtti_typeid<AzToolsFramework::AssetBundleComponent>());
         components.emplace_back(azrtti_typeid<AzToolsFramework::ArchiveComponent>());
         components.emplace_back(azrtti_typeid<AzToolsFramework::Prefab::PrefabSystemComponent>());
+        components.emplace_back(azrtti_typeid<AzFramework::AssetSystem::AssetSystemComponent>());
+        components.emplace_back(azrtti_typeid<AzToolsFramework::AssetSystem::AssetSystemComponent>());
 
         for (auto iter = components.begin(); iter != components.end();)
         {
@@ -241,6 +248,10 @@ namespace AssetBundler
         else if (!azstricmp(subCommand.c_str(), AssetBundler::BundleSeedCommand))
         {
             return CommandType::BundleSeed;
+        }
+        else if (!azstricmp(subCommand.c_str(), AssetBundler::AssetListToSourcePathCommand))
+        {
+            return CommandType::AssetListToSourcePath;
         }
         else
         {
@@ -1278,6 +1289,20 @@ namespace AssetBundler
         params.m_bundleParams = paramsList[0];
 
         return AZ::Success(params);
+    }
+
+    AZ::Outcome<AssetListToSourcePathParams, AZStd::string> ApplicationManager::ParseAssetListToSourcePathData(const AzFramework::CommandLine* parser)
+    {
+        auto mbassetListFilePath = GetFilePathArg(parser, "assetListFile", AssetListToSourcePathCommand, true);
+        if (!mbassetListFilePath.IsSuccess())
+        {
+            return AZ::Failure(AZStd::move(mbassetListFilePath.GetError()));
+        }
+
+        AssetListToSourcePathParams res;
+        res.m_assetListFilePath = AZStd::move(mbassetListFilePath.GetValue());
+
+        return AZ::Success(res);
     }
 
     AZ::Outcome<void, AZStd::string> ApplicationManager::ValidateInputArgs(const AZ::CommandLine* parser, const AZStd::vector<const char*>& validArgList)
@@ -2341,6 +2366,140 @@ namespace AssetBundler
                 }
                 AZ_TracePrintf(AssetBundler::AppWindowName, "Bundle ( %s ) created successfully!\n", bundleSettings.m_bundleFilePath.c_str());
             }
+        }
+
+        return true;
+    }
+
+    bool ApplicationManager::RunAssetListToSourcePathCommands(const AZ::Outcome<AssetListToSourcePathParams, AZStd::string>& paramsOutcome)
+    {
+        using namespace AzToolsFramework;
+        using namespace AzToolsFramework::AssetCatalog;
+
+        if (!paramsOutcome.IsSuccess())
+        {
+            AZ_Error(AppWindowName, false, paramsOutcome.GetError().c_str());
+            return false;
+        }
+
+        const auto platform = AZ::PlatformDefaults::PlatformFlags::Platform_PC;
+        //const auto platformIds = AzFramework::PlatformHelper::GetPlatformIndicesInterpreted(platform);
+        const AzFramework::PlatformId platformId = AzFramework::PlatformId::PC;
+
+        auto catalogOutcome = InitAssetCatalog(platform);
+        if (!catalogOutcome.IsSuccess())
+        {
+            AZ_Error(AppWindowName, false, catalogOutcome.GetError().c_str());
+            return false;
+        }
+
+        // Connect to AP
+        {
+            bool connectedToAssetProcessor = false;
+            // When the AssetProcessor is already launched it should take less than a second to perform a connection
+            // but when the AssetProcessor needs to be launch it could take up to 15 seconds to have the AssetProcessor initialize
+            // and able to negotiate a connection when running a debug build
+            // and to negotiate a connection
+            // Setting the connectTimeout to 3 seconds if not set within the settings registry
+
+            AzFramework::AssetSystem::ConnectionSettings connectionSettings;
+            AzFramework::AssetSystem::ReadConnectionSettingsFromSettingsRegistry(connectionSettings);
+
+            connectionSettings.m_launchAssetProcessorOnFailedConnection = true;
+            connectionSettings.m_connectionIdentifier = AzFramework::AssetSystem::ConnectionIdentifiers::Editor;
+            connectionSettings.m_loggingCallback = []([[maybe_unused]] AZStd::string_view logData)
+            {
+                AZ_Printf(AssetBundler::AppWindowName, "%.*s", aznumeric_cast<int>(logData.size()), logData.data());
+            };
+
+            AzFramework::AssetSystemRequestBus::BroadcastResult(connectedToAssetProcessor,
+                &AzFramework::AssetSystemRequestBus::Events::EstablishAssetProcessorConnection,
+                connectionSettings);
+
+            if (!connectedToAssetProcessor)
+            {
+                AZ_Error(AssetBundler::AppWindowName, false, "Failed to connect to asset processor");
+                return false;
+            }
+        }
+
+        // Output data
+        AZStd::unordered_set<AZStd::string> filePaths;
+
+        const auto ProcessAssetListFile = [&](const FilePath& p)
+        {
+            auto assetFileInfoOutcome = m_assetSeedManager->LoadAssetFileInfo(p.AbsolutePath());
+            if (!assetFileInfoOutcome.IsSuccess())
+            {
+                AZ_Error(AssetBundler::AppWindowName, false, assetFileInfoOutcome.GetError().c_str());
+                return;
+            }
+
+            const auto& infos = assetFileInfoOutcome.GetValue().m_fileInfoList;
+
+            AZ_Printf(AssetBundler::AppWindowName, "Including assets from %s (%llu product assets) ...\n", p.AbsolutePath().c_str(), infos.size());
+
+            for (const auto& assetFileInfo : infos)
+            {
+                AZStd::string productPath;
+                PlatformAddressedAssetCatalogRequestBus::EventResult(productPath, (int)platformId,
+                    &PlatformAddressedAssetCatalogRequestBus::Events::GetAssetPathById,
+                    assetFileInfo.m_assetId
+                );
+
+                if (!productPath.empty())
+                {
+                    AZStd::string sourcePath;
+                    bool success = false;
+                    AssetSystemRequestBus::BroadcastResult(success,
+                        &AssetSystemRequestBus::Events::GetFullSourcePathFromRelativeProductPath,
+                        static_cast<const AZStd::string&>(productPath), sourcePath
+                    );
+
+                    if (!sourcePath.empty())
+                    {
+                        filePaths.emplace(AZStd::move(sourcePath));
+                    }
+                    else
+                    {
+                        AZ_Warning(AssetBundler::AppWindowName, false,
+                            "Could not find source asset associated with product asset %s (ID %s)",
+                            productPath.c_str(),
+                            assetFileInfo.m_assetId.ToString<AZStd::string>().c_str()
+                        );
+                    }
+                }
+                else
+                {
+                    AZ_Warning(AssetBundler::AppWindowName, false, "Could not find product asset associated with asset ID %s", assetFileInfo.m_assetId.ToString<AZStd::string>().c_str());
+                }
+            }
+        };
+
+        const AssetListToSourcePathParams& params = paramsOutcome.GetValue();
+
+        // Get all files for all platofmrs (why?)
+        AZStd::vector<FilePath> allAssetListFilePaths = GetAllPlatformSpecificFilesOnDisk(FilePath(params.m_assetListFilePath));
+
+        // Read all asset info data and collect all asset paths
+        if (allAssetListFilePaths.empty())
+        {
+            FilePath p = FilePath(params.m_assetListFilePath);
+            ProcessAssetListFile(p);
+        }
+        else
+        {
+            for (const auto& assetListFilePath : allAssetListFilePaths)
+            {
+                ProcessAssetListFile(assetListFilePath);
+            }
+        }
+
+        // Print all paths
+        AZ_Printf(AssetBundler::AppWindowName, "\n\n\n");
+        for (const auto& p : filePaths)
+        {
+            AZ_Printf(AssetBundler::AppWindowName, "%s\n", p.c_str());
         }
 
         return true;

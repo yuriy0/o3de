@@ -33,7 +33,8 @@
                 "connect_ap_timeout" : 3,
                 "launch_ap_timeout": 15,
                 "wait_ap_ready_timeout": 1200,
-                "project_path": "Deadhaus_Sonata"
+                "project_path": "Deadhaus_Sonata",
+                "UseAssimp": true
             }
         }
     }

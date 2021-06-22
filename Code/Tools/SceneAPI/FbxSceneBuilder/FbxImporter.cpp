@@ -59,7 +59,7 @@ namespace AZ
             FbxImporter::FbxImporter()
                 : m_sceneSystem(new FbxSceneSystem())
                 // APC BEGIN: Use FBX SDK, not AssImp
-                //, m_useAssetImporterSDK(false)
+                , m_useAssetImporterSDK(true)
                 // APC END
             {
                 // APC BEGIN: allow switching between Assimp/FbxSDK by registry key 
@@ -70,14 +70,18 @@ namespace AZ
                 }
                 // APC END
 
-                //if (m_useAssetImporterSDK)
-                //{
+                AZStd::string sceneWrapperName;
+                if (m_useAssetImporterSDK)
+                {
                     m_sceneWrapper = AZStd::make_unique<AssImpSDKWrapper::AssImpSceneWrapper>();
-                //}
-                //else
-                //{
-                //    m_sceneWrapper = AZStd::make_unique<FbxSDKWrapper::FbxSceneWrapper>();
-                //}
+                    sceneWrapperName = "AssImpSceneWrapper";
+                }
+                else
+                {
+                    m_sceneWrapper = AZStd::make_unique<FbxSDKWrapper::FbxSceneWrapper>();
+                    sceneWrapperName = "FbxSceneWrapper";
+                }
+                AZ_Printf("FbxImporter", "Use %s to import FBX file", sceneWrapperName.c_str());
 
                 BindToCall(&FbxImporter::ImportProcessing);
             }

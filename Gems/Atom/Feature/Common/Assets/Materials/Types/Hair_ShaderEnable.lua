@@ -13,13 +13,17 @@
 ----------------------------------------------------------------------------------------------------
 
 function GetMaterialPropertyDependencies()
-    return {"opacity.mode"}
+    return {"opacity.mode", "debug.displayOnlyPass"}
 end
 
 OpacityMode_Opaque = 0
 OpacityMode_Cutout = 1
 OpacityMode_Blended = 2
 OpacityMode_TintedTransparent = 3
+
+DisplayOnlyPass_None = 0
+DisplayOnlyPass_OnlyOpaque = 1
+DisplayOnlyPass_OnlyTransparent = 2
 
 function Process(context)
     local opacityMode = context:GetMaterialPropertyValue_enum("opacity.mode")
@@ -29,7 +33,8 @@ function Process(context)
     local transparentPass = context:GetShaderByTag("TransparentPass");
     local momentGenerationPass = context:GetShaderByTag("OITMomentGenerationPass");
 
-    --local isTransparent = (opacityMode == OpacityMode_Blended) or (opacityMode == OpacityMode_TintedTransparent);
+    -- TODO: figure out if any transparent pass is needed
+    -- local isTransparent = (opacityMode == OpacityMode_Blended) or (opacityMode == OpacityMode_TintedTransparent);
     local isTransparent = false;
     
     context:GetShaderByTag("DepthPassTransparentMin"):SetEnabled(true)
@@ -40,4 +45,15 @@ function Process(context)
 
     shadowMapWitPS:SetEnabled(true)
     forwardPass:SetEnabled(true)
+    
+    -- Handle debug flag
+    local displayOnlyPass = context:GetMaterialPropertyValue_enum("debug.displayOnlyPass")
+    if (displayOnlyPass == DisplayOnlyPass_OnlyOpaque) then
+        transparentPass:SetEnabled(false)
+        momentGenerationPass:SetEnabled(false)
+        
+    elseif (displayOnlyPass == DisplayOnlyPass_OnlyTransparent) then
+        forwardPass:SetEnabled(false)
+       
+    end
 end

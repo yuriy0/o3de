@@ -384,6 +384,13 @@ namespace AZ
             ResultCode(Tasks::Merge, Outcomes::Success), pointerPathString.GetString());
     }
 
+    AZStd::string ToString(const rapidjson::Pointer& path)
+    {
+        rapidjson::StringBuffer sb;
+        path.Stringify(sb);
+        return sb.GetString();
+    }
+
     JsonSerializationResult::ResultCode JsonMerger::ApplyPatch_Remove(rapidjson::Value& target, const rapidjson::Pointer& path,
         StackedString& element, JsonApplyPatchSettings& settings)
     {
@@ -408,7 +415,11 @@ namespace AZ
         {
             if (!parentValue->EraseMember(tokens[path.GetTokenCount() - 1].name))
             {
-                return settings.m_reporting(R"(The "remove" operation failed to remove member from object.)",
+                return settings.m_reporting(
+                    AZStd::string::format(R"(The "remove" operation failed to remove member '%s' from object at path '%s'.)",
+                        tokens[path.GetTokenCount() - 1].name,
+                        ToString(path).c_str()
+                    ),
                     ResultCode(Tasks::Merge, Outcomes::Invalid), element);
             }
         }

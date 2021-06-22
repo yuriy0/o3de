@@ -43,6 +43,11 @@
                 "id": "general",
                 "displayName": "General Settings",
                 "description": "General settings."
+            },
+            {
+                "id": "debug",
+                "displayName": "Debug Settings",
+                "description": "Debug settings."
             }
         ],
         "properties": {
@@ -507,45 +512,6 @@
                     }
                 },
                 {
-                    "id": "collimationFactor",
-                    "displayName": "Collimation Factor",
-                    "description": "Determines to which degree the transparent surface diffuses light which passes through it.",
-                    "type": "Float",
-                    "min": 0.0,
-                    "max": 1.0,
-                    "step": 0.005,
-                    "defaultValue": 0.5,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_collimationFactor"
-                    }
-                },
-                {
-                    "id": "thicknessToGapSizeRatio",
-                    "displayName": "Thickness to gap size ratio",
-                    "description": "Used to approximate transparency at glancing angles by considering the surface as made of many small columns of alternating opaque and transparent mediums (e.g. woven cloth fibres) where light rays pass through only the transparent columns (called gaps). This parameter is the ratio of the surface thickness to the width of gaps, in units of centimeters over meters. The width of opaque columns in this approximation is based on alpha; e.g. alpha=0.5 means the ratio of opaque column width to gap width is 1:1.",
-                    "type": "Float",
-                    "min": 0.0,
-                    "softMax": 1000.0,
-                    "defaultValue": 1.0,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_thicknessToGap"
-                    }
-                },
-                {
-                    "id": "oitBlendFunction",
-                    "displayName": "Order-independent blend weight function",
-                    "description": "The depth-based weight function used to determine how much each overlapping transparent surface contributes to the final color. Standard = Weight function from McGuire & Mara: (1-d)^3 where d is linear depth; NearDepthRelativeExponential = exponential relative to minimum transparent surface depth: `exp(-Z)' where Z is the distance from the closest transparent pixel to the transparent pixel being rendered.",
-                    "type": "Enum",
-                    "enumValues": [ "Standard", "NearDepthRelativeExponential" ],
-                    "defaultValue": "Standard",
-                    "connection": {
-                        "type": "ShaderOption",
-                        "id": "o_oit_weight_function"
-                    }
-                },
-                {
                     "id": "oitClip",
                     "displayName": "Alpha test",
                     "description": "",
@@ -724,6 +690,16 @@
                     "defaultValue": 1.0,
                     "min": 0.0,
                     "max": 1.0
+                }
+            ],
+            "debug": [
+                {
+                    "id": "displayOnlyPass",
+                    "displayName": "Display only pass",
+                    "description": "If not none, redner to only the specified pass (opaque or transparent)",
+                    "type": "Enum",
+                    "enumValues": [ "None", "OnlyOpaque", "OnlyTransparent" ],
+                    "defaultValue": "None"
                 }
             ]
         }
