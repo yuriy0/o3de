@@ -73,7 +73,6 @@ function Process(context)
    SetTranparentPassRenderStates(context:GetShaderByTag("TransparentPass"))
    SetMomentGenerationRenderStates(context:GetShaderByTag("OITMomentGenerationPass"))
    ResetAlphaBlending(context:GetShaderByTag("ForwardPass"))
-   ResetAlphaBlending(context:GetShaderByTag("ForwardPass_EDS"))
 end
 
 function ProcessEditor(context)

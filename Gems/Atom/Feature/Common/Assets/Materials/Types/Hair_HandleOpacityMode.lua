@@ -27,37 +27,14 @@ AlphaSource_None = 2
 
 ForwardPassIndex = 1
 
-function ConfigureAlphaBlending(shaderItem) 
-    shaderItem:GetRenderStatesOverride():SetDepthEnabled(true)
-    shaderItem:GetRenderStatesOverride():SetDepthWriteMask(DepthWriteMask_Zero)
-    shaderItem:GetRenderStatesOverride():SetBlendEnabled(0, true)
-    shaderItem:GetRenderStatesOverride():SetBlendSource(0, BlendFactor_One)
-    shaderItem:GetRenderStatesOverride():SetBlendDest(0, BlendFactor_AlphaSourceInverse)
-    shaderItem:GetRenderStatesOverride():SetBlendOp(0, BlendOp_Add)
-end
-
-function ConfigureDualSourceBlending(shaderItem)
-    -- This blend multiplies the dest against color source 1, then adds color source 0.
-    shaderItem:GetRenderStatesOverride():SetDepthEnabled(true)
-    shaderItem:GetRenderStatesOverride():SetDepthWriteMask(DepthWriteMask_Zero)
-    shaderItem:GetRenderStatesOverride():SetBlendEnabled(0, true)
-    shaderItem:GetRenderStatesOverride():SetBlendSource(0, BlendFactor_One)
-    shaderItem:GetRenderStatesOverride():SetBlendDest(0, BlendFactor_ColorSource1)
-    shaderItem:GetRenderStatesOverride():SetBlendOp(0, BlendOp_Add)
-end
-
-function ResetAlphaBlending(shaderItem)
-    shaderItem:GetRenderStatesOverride():ClearDepthEnabled()
-    shaderItem:GetRenderStatesOverride():ClearDepthWriteMask()
-    shaderItem:GetRenderStatesOverride():ClearBlendEnabled(0)
-    shaderItem:GetRenderStatesOverride():ClearBlendSource(0)
-    shaderItem:GetRenderStatesOverride():ClearBlendDest(0)
-    shaderItem:GetRenderStatesOverride():ClearBlendOp(0)
-end
-
 function Process(context)
-   -- NB: runtime processing for opactiy mode is handled by Hair_Apc_ShaderEnable.lua, Hair_Apc_SetTransparentRefractiveBlendStates.lua
+    -- NB: runtime processing for opactiy mode is handled by Hair_Apc_ShaderEnable.lua, Hair_Apc_SetTransparentRefractiveBlendStates.lua
 
+    local lastShader = context:GetShaderCount() - 1;
+
+    for i=0,lastShader do
+        context:GetShader(i):GetRenderStatesOverride():SetCullMode(CullMode_None)
+    end
 
     local opacityMode = context:GetMaterialPropertyValue_enum("opacity.mode") 
 
@@ -81,8 +58,6 @@ function Process(context)
     -- Handle alpha test
     --if (opacityMode == OpacityMode_Cutout) then
        EnableAlphaToCoverage(context:GetShaderByTag("ForwardPass"))
-       EnableAlphaToCoverage(context:GetShaderByTag("ForwardPass_EDS"))
-       EnableAlphaToCoverage(context:GetShaderByTag("DepthPass_WithPS"))
        EnableAlphaToCoverage(context:GetShaderByTag("Shadowmap_WithPS"))
     --end
 end

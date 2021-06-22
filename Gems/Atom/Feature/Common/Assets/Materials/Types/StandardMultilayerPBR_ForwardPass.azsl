@@ -482,6 +482,8 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     lightingData.specularOcclusion = BlendLayers(lightingInputLayer1.m_specularOcclusion, lightingInputLayer2.m_specularOcclusion, lightingInputLayer3.m_specularOcclusion, blendWeights);
     lightingData.diffuseAmbientOcclusion = BlendLayers(lightingInputLayer1.m_diffuseAmbientOcclusion, lightingInputLayer2.m_diffuseAmbientOcclusion, lightingInputLayer3.m_diffuseAmbientOcclusion, blendWeights);
 
+    lightingData.ssao = PassSrg::m_ssaoTexture.Load(uint3(IN.m_position.x, IN.m_position.y, 0)).x;
+
     lightingData.CalculateMultiscatterCompensation(surface.specularF0, o_specularF0_enableMultiScatterCompensation);
 
     // ------- Combine Clearcoat -------

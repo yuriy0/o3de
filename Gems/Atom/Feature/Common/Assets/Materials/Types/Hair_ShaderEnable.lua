@@ -24,27 +24,20 @@ OpacityMode_TintedTransparent = 3
 function Process(context)
     local opacityMode = context:GetMaterialPropertyValue_enum("opacity.mode")
     
-    local depthPass = context:GetShaderByTag("DepthPass")
-    local shadowMap = context:GetShaderByTag("Shadowmap")
-    local forwardPassEDS = context:GetShaderByTag("ForwardPass_EDS")
-    local depthPassWithPS = context:GetShaderByTag("DepthPass_WithPS")
     local shadowMapWitPS = context:GetShaderByTag("Shadowmap_WithPS")
     local forwardPass = context:GetShaderByTag("ForwardPass")
     local transparentPass = context:GetShaderByTag("TransparentPass");
     local momentGenerationPass = context:GetShaderByTag("OITMomentGenerationPass");
 
-    local isTransparent = (opacityMode == OpacityMode_Blended) or (opacityMode == OpacityMode_TintedTransparent);
+    --local isTransparent = (opacityMode == OpacityMode_Blended) or (opacityMode == OpacityMode_TintedTransparent);
+    local isTransparent = false;
     
-    context:GetShaderByTag("DepthPassTransparentMin"):SetEnabled(isTransparent)
-    context:GetShaderByTag("DepthPassTransparentMax"):SetEnabled(isTransparent)
+    context:GetShaderByTag("DepthPassTransparentMin"):SetEnabled(true)
+    context:GetShaderByTag("DepthPassTransparentMax"):SetEnabled(true)
+    
     transparentPass:SetEnabled(isTransparent)
     momentGenerationPass:SetEnabled(isTransparent)
 
-    depthPass:SetEnabled(false)
-    shadowMap:SetEnabled(false)
-    forwardPassEDS:SetEnabled(false)
-
-    depthPassWithPS:SetEnabled(false)
     shadowMapWitPS:SetEnabled(true)
     forwardPass:SetEnabled(true)
 end

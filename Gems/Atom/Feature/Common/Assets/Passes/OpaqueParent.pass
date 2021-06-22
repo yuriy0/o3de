@@ -63,6 +63,19 @@
             ],
             "PassRequests": [
                 {
+                    "Name": "SsaoPass",
+                    "TemplateName": "SsaoParentTemplate",
+                    "Connections": [
+                        {
+                            "LocalSlot": "LinearDepth",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DepthLinear"
+                            }
+                        }
+                    ]
+                },
+                {
                     "Name": "ForwardMSAAPass",
                     "TemplateName": "ForwardMSAAPassTemplate",
                     "Connections": [
@@ -107,6 +120,20 @@
                             "AttachmentRef": {
                                 "Pass": "Parent",
                                 "Attachment": "LightListRemapped"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DepthLinear",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DepthLinear"
+                            }
+                        },
+                        {
+                            "LocalSlot": "SsaoInput",
+                            "AttachmentRef": {
+                                "Pass": "SsaoPass",
+                                "Attachment": "Output"
                             }
                         },
                         // Input/Outputs...
@@ -172,6 +199,20 @@
                             "AttachmentRef": {
                                 "Pass": "Parent",
                                 "Attachment": "LightListRemapped"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DepthLinear",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DepthLinear"
+                            }
+                        },
+                        {
+                            "LocalSlot": "SsaoInput",
+                            "AttachmentRef": {
+                                "Pass": "SsaoPass",
+                                "Attachment": "Output"
                             }
                         },
                         // Input/Outputs...
@@ -464,55 +505,14 @@
                     }
                 },
                 {
-                    "Name": "Ssao",
-                    "TemplateName": "SsaoParentTemplate",
-                    "Connections": [
-                        {
-                            "LocalSlot": "LinearDepth",
-                            "AttachmentRef": {
-                                "Pass": "Parent",
-                                "Attachment": "DepthLinear"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "Name": "ModulateWithSsao",
-                    "TemplateName": "ModulateTextureTemplate",
-                    "Enabled": true,
-                    "Connections": [
-                        {
-                            "LocalSlot": "Input",
-                            "AttachmentRef": {
-                                "Pass": "Ssao",
-                                "Attachment": "Output"
-                            }
-                        },
-                        {
-                            "LocalSlot": "InputOutput",
-                            "AttachmentRef": {
-                                "Pass": "SubsurfaceScatteringPass",
-                                "Attachment": "Output"
-                            }
-                        }
-                    ],
-                    "PassData": {
-                        "$type": "ComputePassData",
-                        "ShaderAsset": {
-                            "FilePath": "Shaders/PostProcessing/ModulateTexture.shader"
-                        },
-                        "Make Fullscreen Pass": true
-                    }
-                },
-                {
                     "Name": "DiffuseSpecularMergePass",
                     "TemplateName": "DiffuseSpecularMergeTemplate",
                     "Connections": [
                         {
                             "LocalSlot": "InputDiffuse",
                             "AttachmentRef": {
-                                "Pass": "ModulateWithSsao",
-                                "Attachment": "InputOutput"
+                                "Pass": "SubsurfaceScatteringPass",
+                                "Attachment": "Output"
                             }
                         },
                         {

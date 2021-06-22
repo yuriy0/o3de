@@ -1,7 +1,6 @@
 {
-    "Shader" : "Hair_Apc_ForwardPass_EDS.shader",
+    "Shader" : "Hair_ForwardPass.shader",
 
-    // There are many possible permutations, so we explicitly compile only the most common variants. Other variants will use runtime branching
     "Variants": [
         {
             "StableId": 1,
@@ -28,4 +27,4 @@
             }
         }
     ]
-}
+} 

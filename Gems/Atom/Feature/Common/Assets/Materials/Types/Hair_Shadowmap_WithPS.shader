@@ -1,5 +1,5 @@
 {
-    "Source" : "./Hair_Apc_Shadowmap_WithPS.azsl",
+    "Source" : "./Hair_Shadowmap_WithPS.azsl",
 
     "DepthStencilState" : { 
         "Depth" : { "Enable" : true, "CompareFunc" : "LessEqual" }

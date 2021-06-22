@@ -1,5 +1,5 @@
 {
-    "Source" : "./Hair_Apc_ForwardPass.azsl",
+    "Source" : "./Hair_ForwardPass.azsl",
 
     "DepthStencilState" :
     {
@@ -36,11 +36,11 @@
           "type": "Vertex"
         },
         {
-          "name": "StandardPbr_ForwardPassPS_EDS",
+          "name": "StandardPbr_ForwardPassPS",
           "type": "Fragment"
         }
       ]
     },
 
     "DrawList" : "forward"
-}
+} 

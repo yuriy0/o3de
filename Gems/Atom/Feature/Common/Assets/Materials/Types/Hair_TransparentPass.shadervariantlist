@@ -1,5 +1,5 @@
 {
-    "Shader" : "Hair_Apc_TransparentPass.shader",
+    "Shader" : "Hair_TransparentPass.shader",
     "Variants": [
         {
             "StableId": 1,

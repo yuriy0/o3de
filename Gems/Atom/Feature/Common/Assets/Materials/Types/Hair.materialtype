@@ -24,19 +24,9 @@
                 "description": "Properties related to configuring surface normal."
             },
             {
-                "id": "anisotropy",
-                "displayName": "Anisotropic Material Response",
-                "description": "How much is this material response anisotropic."
-            },
-            {
                 "id": "occlusion",
                 "displayName": "Occlusion",
                 "description": "Properties for baked textures that represent geometric occlusion of light."
-            },
-            {
-                "id": "subsurfaceScattering",
-                "displayName": "Subsurface Scattering",
-                "description": "Properties for configuring subsurface scattering effects."
             },
             {
                 "id": "opacity",
@@ -57,18 +47,6 @@
         ],
         "properties": {
             "general": [
-                {
-                    "id": "lightingModel",
-                    "displayName": "Lighing Model",
-                    "description": "The lighting model to use for this material; some models may enable new properties or ignore existing properties",
-                    "type": "Enum",
-                    "enumValues": [ "Standard", "Cloth" ],
-                    "defaultValue": "Standard",
-                    "connection": {
-                        "type": "ShaderOption",
-                        "id": "o_lightingModel"
-                    }
-                },
                 {
                     "id": "applySpecularAA",
                     "displayName": "Apply Specular AA",
@@ -287,45 +265,6 @@
                     }
                 }
             ],
-            "anisotropy": [
-                {
-                    "id": "enableAnisotropy",
-                    "displayName": "Enable Anisotropy",
-                    "description": "Enable anisotropic surface response for non uniform reflection along the axis",
-                    "type": "Bool",
-                    "defaultValue": false,
-                    "connection": {
-                        "type": "ShaderOption",
-                        "id": "o_enableAnisotropy"
-                    }
-                },
-                {
-                    "id": "factor",
-                    "displayName": "Anisotropy Factor",
-                    "description": "Strength factor for the anisotropy: negative = along v, positive = along u",
-                    "type": "Float",
-                    "defaultValue": 0.0,
-                    "min": -0.95,
-                    "max": 0.95,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_anisotropicFactor"
-                    }
-                },
-                {
-                    "id": "anisotropyAngle",
-                    "displayName": "Anisotropy Angle",
-                    "description": "Anisotropy direction of major reflection axis: 0 = 0 degrees, 1.0 = 180 degrees",
-                    "type": "Float",
-                    "defaultValue": 0.0,
-                    "min": 0.0,
-                    "max": 1.0,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_anisotropicAngle"
-                    }
-                }
-            ],
             "specularF0": [
                 {
                     "id": "factor",
@@ -506,6 +445,34 @@
                     "connection": {
                         "type": "ShaderInput",
                         "id": "m_opacityFactor"
+                    }
+                },
+                {
+                    "id": "alphaClipThreshold",
+                    "displayName": "Alpha Clip Threshold",
+                    "description": "Threshold below which alpha values are clipped in the opaque pass",
+                    "type": "Float",
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01,
+                    "defaultValue": 0.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_alphaClipThreshold"
+                    }
+                },
+                {
+                    "id": "depthClipDistance",
+                    "displayName": "Depth Clip Distance",
+                    "description": "Distance below which pixels are clipped in the opaque pass",
+                    "type": "Float",
+                    "min": 0.0,
+                    "max": 3.0,
+                    "step": 0.001,
+                    "defaultValue": 0.01,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_depthClipDistance"
                     }
                 },
                 {
@@ -740,183 +707,6 @@
                     }
                 }
             ],
-            "subsurfaceScattering": [
-                {
-                    "id": "enableSubsurfaceScattering",
-                    "displayName": "Subsurface Scattering",
-                    "description": "Enable subsurface scattering feature, this will disable metallic and parallax mapping property due to incompatibility",
-                    "type": "Bool",
-                    "defaultValue": false,
-                    "connection": {
-                        "type": "ShaderOption",
-                        "id": "o_enableSubsurfaceScattering"
-                    }
-                },
-                {
-                    "id": "subsurfaceScatterFactor",
-                    "displayName": "    Factor",
-                    "description": "Strength factor for scaling percentage of subsurface scattering effect applied",
-                    "type": "float",
-                    "defaultValue": 1.0,
-                    "min": 0.0,
-                    "max": 1.0,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_subsurfaceScatteringFactor"
-                    }
-                },
-                {
-                    "id": "influenceMap",
-                    "displayName": "    Influence Map",
-                    "description": "Texture for controlling the strength of subsurface scattering",
-                    "type": "Image",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_subsurfaceScatteringInfluenceMap"
-                    }
-                },
-                {
-                    "id": "useInfluenceMap",
-                    "displayName": "    Use Influence Map",
-                    "description": "Whether to use the influence map.",
-                    "type": "Bool",
-                    "defaultValue": true
-                },
-                {
-                    "id": "influenceMapUv",
-                    "displayName": "    UV",
-                    "description": "Influence map UV set",
-                    "type": "Enum",
-                    "enumIsUv": true,
-                    "defaultValue": "Tiled",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_subsurfaceScatteringInfluenceMapUvIndex"
-                    }
-                },
-                {
-                    "id": "scatterColor",
-                    "displayName": "    Scatter color",
-                    "description": "Color of volume light traveled through",
-                    "type": "Color",
-                    "defaultValue": [ 1.0, 0.27, 0.13 ]
-                },
-                {
-                    "id": "scatterDistance",
-                    "displayName": "    Scatter distance",
-                    "description": "How far light traveled inside the volume",
-                    "type": "float",
-                    "defaultValue": 8,
-                    "min": 0.0,
-                    "softMax": 20.0
-                },
-                {
-                    "id": "quality",
-                    "displayName": "    Quality",
-                    "description": "How much percent of sample will be used for each pixel, more samples improve quality and reduce artifacts, especially when the scatter distance is relatively large, but slow down computation time, 1.0 = full set 200 samples per pixel",
-                    "type": "float",
-                    "defaultValue": 0.4,
-                    "min": 0.2,
-                    "max": 1.0,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_subsurfaceScatteringQuality"
-                    }
-                },
-                {
-                    "id": "transmissionMode",
-                    "displayName": "Transmission",
-                    "description": "Algorithm used for calculating transmission",
-                    "type": "Enum",
-                    "enumValues": [ "None", "ThickObject", "ThinObject" ],
-                    "defaultValue": "None",
-                    "connection": {
-                        "type": "ShaderOption",
-                        "id": "o_transmission_mode"
-                    }
-                },
-                {
-                    "id": "thickness",
-                    "displayName": "    Thickness",
-                    "description": "Normalized global thickness, the maxima between this value (multiplied by thickness map if enabled) and thickness from shadow map (if applicable) will be used as final thickness of pixel",
-                    "type": "float",
-                    "defaultValue": 0.5,
-                    "min": 0.0,
-                    "max": 1.0
-                },
-                {
-                    "id": "thicknessMap",
-                    "displayName": "    Thickness Map",
-                    "description": "Texture for controlling per pixel thickness",
-                    "type": "Image",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_transmissionThicknessMap"
-                    }
-                },
-                {
-                    "id": "useThicknessMap",
-                    "displayName": "    Use Thickness Map",
-                    "description": "Whether to use the thickness map",
-                    "type": "Bool",
-                    "defaultValue": true
-                },
-                {
-                    "id": "thicknessMapUv",
-                    "displayName": "    UV",
-                    "description": "Thickness map UV set",
-                    "type": "Enum",
-                    "enumIsUv": true,
-                    "defaultValue": "Tiled",
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_transmissionThicknessMapUvIndex"
-                    }
-                },
-                {
-                    "id": "transmissionTint",
-                    "displayName": "    Transmission Tint",
-                    "description": "Color of the volume light traveling through",
-                    "type": "Color",
-                    "defaultValue": [ 1.0, 0.8, 0.6 ]
-                },
-                {
-                    "id": "transmissionPower",
-                    "displayName": "    Power",
-                    "description": "How much transmitted light scatter radially ",
-                    "type": "float",
-                    "defaultValue": 6.0,
-                    "min": 0.0,
-                    "softMax": 20.0
-                },
-                {
-                    "id": "transmissionDistortion",
-                    "displayName": "    Distortion",
-                    "description": "How much light direction distorted towards surface normal",
-                    "type": "float",
-                    "defaultValue": 0.1,
-                    "min": 0.0,
-                    "max": 1.0
-                },
-                {
-                    "id": "transmissionAttenuation",
-                    "displayName": "    Attenuation",
-                    "description": "How fast transmitted light fade with thickness",
-                    "type": "float",
-                    "defaultValue": 4.0,
-                    "min": 0.0,
-                    "softMax": 20.0
-                },
-                {
-                    "id": "transmissionScale",
-                    "displayName": "    Scale",
-                    "description": "Strength of transmission",
-                    "type": "float",
-                    "defaultValue": 3.0,
-                    "min": 0.0,
-                    "softMax": 20.0
-                }
-            ],
             "irradiance": [
                 // Note: this property group is used in the DiffuseGlobalIllumination pass and not by the main forward shader
                 {
@@ -940,20 +730,12 @@
     },
     "shaders": [
         {
-            "file": "./Hair_Apc_ForwardPass.shader", 
+            "file": "./Hair_ForwardPass.shader", 
             "tag": "ForwardPass"
         },
         {
-            "file": "./Hair_Apc_ForwardPass_EDS.shader",
-            "tag": "ForwardPass_EDS"
-        },
-        {
-            "file": "./Hair_Apc_Shadowmap_WithPS.shader",
+            "file": "./Hair_Shadowmap_WithPS.shader",
             "tag": "Shadowmap_WithPS"
-        },
-        {
-            "file": "./Hair_Apc_DepthPass_WithPS.shader",
-            "tag": "DepthPass_WithPS"
         },
         // [GFX TODO][ATOM-4726] Use an "isSkinnedMesh" external material property and a functor that enables/disables the appropriate motion-vector shader
         {
@@ -974,7 +756,7 @@
             "tag": "DepthPassTransparentMax"
         },
         {
-            "file": "./Hair_Apc_TransparentPass.shader", 
+            "file": "./Hair_TransparentPass.shader", 
             "tag": "TransparentPass"
         },
         {
@@ -997,25 +779,6 @@
                 "rotateDegreesProperty": "uv.rotateDegrees",
                 "float3x3ShaderInput": "m_uvMatrix",
                 "float3x3InverseShaderInput": "m_uvMatrixInverse"
-            }
-        },
-        {
-            // Preprocess & build parameter set for subsurface scattering and translucency
-            "type": "HandleSubsurfaceScatteringParameters",
-            "args": {
-                "mode": "subsurfaceScattering.transmissionMode",
-                "scale": "subsurfaceScattering.transmissionScale",
-                "power": "subsurfaceScattering.transmissionPower",
-                "distortion": "subsurfaceScattering.transmissionDistortion",
-                "attenuation": "subsurfaceScattering.transmissionAttenuation",
-                "tintColor": "subsurfaceScattering.transmissionTint",
-                "thickness": "subsurfaceScattering.thickness",
-                "enabled": "subsurfaceScattering.enableSubsurfaceScattering",
-                "scatterDistanceColor": "subsurfaceScattering.scatterColor",
-                "scatterDistanceIntensity": "subsurfaceScattering.scatterDistance",
-                "scatterDistanceShaderInput": "m_scatterDistance",
-                "parametersShaderInput": "m_transmissionParams",
-                "tintThickenssShaderInput": "m_transmissionTintThickness"
             }
         },
         {
@@ -1066,37 +829,25 @@
         {
             "type": "Lua",
             "args": {
-                "file": "../../../Feature/Common/Assets/Materials/Types/StandardPBR_Roughness.lua"
+                "file": "StandardPBR_Roughness.lua"
             }
         },
         {
             "type": "Lua",
             "args": {
-                "file": "../../../Feature/Common/Assets/Materials/Types/EnhancedPBR_SubsurfaceState.lua"
+                "file": "Hair_SetTransparentRefractiveBlendStates.lua"
             }
         },
         {
             "type": "Lua",
             "args": {
-                "file": "Hair_Apc_HandleOpacityDoubleSided.lua"
+                "file": "Hair_ShaderEnable.lua"
             }
         },
         {
             "type": "Lua",
             "args": {
-                "file": "Hair_Apc_SetTransparentRefractiveBlendStates.lua"
-            }
-        },
-        {
-            "type": "Lua",
-            "args": {
-                "file": "Hair_Apc_ShaderEnable.lua"
-            }
-        },
-        {
-            "type": "Lua",
-            "args": {
-                "file": "Hair_Apc_HandleOpacityMode.lua"
+                "file": "Hair_HandleOpacityMode.lua"
             }
         }
     ],

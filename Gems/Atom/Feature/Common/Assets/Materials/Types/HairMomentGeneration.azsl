@@ -4,10 +4,9 @@
 #include <Atom/RPI/ShaderResourceGroups/DefaultDrawSrg.azsli>
 
 // TODO: move this to a reusable location
-#include "../../Materials/Types/Hair_Apc_Common.azsli"
+#include "Hair_Common.azsli"
 
 COMMON_OPTIONS_BASE_COLOR()
-
 
 struct VSInput
 {

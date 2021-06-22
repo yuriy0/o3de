@@ -11,11 +11,12 @@
 */
 
 #include <viewsrg.srgi>
-#include <Apc/Features/Pbr/TransparentRefractivePassSrg.azsli>
-#include "Hair_Apc_Common.azsli"
+#include <Atom/Features/PBR/ForwardPassSrg.azsli>
+#include "Hair_Common.azsli"
 #include <Atom/Features/PBR/DefaultObjectSrg.azsli>
 #include <Atom/Features/ScreenSpace/ScreenSpaceUtil.azsli>
 #include <Atom/Features/PBR/ForwardPassOutput.azsli>
+#include <Atom/Features/PBR/Lighting/HairLighting.azsli>
 
 #include <Atom/Features/ColorManagement/TransformColor.azsli>
 
@@ -29,16 +30,15 @@ COMMON_OPTIONS_NORMAL()
 COMMON_OPTIONS_CLEAR_COAT()
 COMMON_OPTIONS_OCCLUSION()
 COMMON_OPTIONS_EMISSIVE()
-COMMON_OPTIONS_DETAIL_MAPS()
 
 // Alpha
-#include "MaterialInputs_Apc/AlphaInput.azsli"
+//#include "MaterialInputs_Apc/AlphaInput.azsli"
 
 // Subsurface
-#include "../../../Gems/Atom/Feature/Common/Assets/Materials/Types/MaterialInputs/SubsurfaceInput.azsli"
+#include "MaterialInputs/SubsurfaceInput.azsli"
 
 // Transmission
-#include "../../../Gems/Atom/Feature/Common/Assets/Materials/Types/MaterialInputs/TransmissionInput.azsli"
+#include "MaterialInputs/TransmissionInput.azsli"
 
 struct VSInput
 {
@@ -66,12 +66,10 @@ struct VSOutput
 
     // Extended fields (only referenced in this azsl file)...
     float2 m_uv[UvSetCount] : UV1; // UV1,UV2 because UvSetCount=2
-    float2 m_detailUv[UvSetCount] : UV3; // UV3,UV4 because UvSetCount=2
 };
 
 #include <Atom/Features/PBR/AlphaUtils.azsli>
 #include <Atom/Features/Vertex/VertexHelper.azsli>
-#include "Hair_Apc_LightingModels.azsli"
 
 VSOutput StandardPbr_ForwardPassVS(VSInput IN)
 {
@@ -82,18 +80,14 @@ VSOutput StandardPbr_ForwardPassVS(VSInput IN)
     // By design, only UV0 is allowed to apply transforms.
     OUT.m_uv[0] = mul(MaterialSrg::m_uvMatrix, float3(IN.m_uv0, 1.0)).xy;
     OUT.m_uv[1] = IN.m_uv1;
-    OUT.m_detailUv[0] = mul(MaterialSrg::m_detailUvMatrix, float3(IN.m_uv0, 1.0)).xy;
-    OUT.m_detailUv[1] = IN.m_uv1;
 
-    // Shadow coords will be calculated in the pixel shader in this case
-    bool skipShadowCoords = ShouldHandleParallax() && o_parallax_enablePixelDepthOffset;
-
+    bool skipShadowCoords = false;
     VertexHelper(IN, OUT, worldPosition, skipShadowCoords);
 
     return OUT;
 }
 
-#include "Hair_Apc_VS_Common.azsli"
+#include "Hair_PS_Common.azsli"
 
 ForwardPassOutputWithDepth StandardPbr_ForwardPassPS(VSOutput IN, bool isFrontFace : SV_IsFrontFace)
 {
