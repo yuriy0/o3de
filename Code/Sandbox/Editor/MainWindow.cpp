@@ -30,6 +30,7 @@ AZ_POP_DISABLE_WARNING
 #include <AzCore/Component/ComponentApplication.h>
 #include <AzCore/Settings/SettingsRegistryMergeUtils.h>
 #include <AzCore/Interface/Interface.h>
+#include <AzCore/Utils/Utils.h>
 
 // AzFramework
 #include <AzFramework/API/ApplicationAPI.h>
@@ -91,14 +92,6 @@ AZ_POP_DISABLE_WARNING
 #include "AzAssetBrowser/AzAssetBrowserWindow.h"
 #include "AssetEditor/AssetEditorWindow.h"
 #include "ActionManager.h"
-
-// uncomment this to show thumbnail demo widget
-// #define ThumbnailDemo
-
-#ifdef ThumbnailDemo
-#include "Editor/Thumbnails/Example/ThumbnailsSampleWidget.h"
-#endif
-
 
 using namespace AZ;
 using namespace AzQtComponents;
@@ -1281,7 +1274,7 @@ void MainWindow::OnEditorNotifyEvent(EEditorNotifyEvent ev)
         auto cryEdit = CCryEditApp::instance();
         if (cryEdit)
         {
-            cryEdit->SetEditorWindowTitle(0, 0, GetIEditor()->GetGameEngine()->GetLevelName());
+            cryEdit->SetEditorWindowTitle(0, AZ::Utils::GetProjectName().c_str(), GetIEditor()->GetGameEngine()->GetLevelName());
         }
     }
     break;
@@ -1290,7 +1283,7 @@ void MainWindow::OnEditorNotifyEvent(EEditorNotifyEvent ev)
         auto cryEdit = CCryEditApp::instance();
         if (cryEdit)
         {
-            cryEdit->SetEditorWindowTitle();
+            cryEdit->SetEditorWindowTitle(0, AZ::Utils::GetProjectName().c_str(), 0);
         }
     }
     break;
@@ -1362,14 +1355,6 @@ void MainWindow::RegisterStdViewClasses()
     CSettingsManagerDialog::RegisterViewClass();
     AzAssetBrowserWindow::RegisterViewClass();
     AssetEditorWindow::RegisterViewClass();
-
-#ifdef ThumbnailDemo
-    ThumbnailsSampleWidget::RegisterViewClass();
-#endif
-
-    //These view dialogs aren't used anymore so they became disabled.
-    //CLightmapCompilerDialog::RegisterViewClass();
-    //CLightmapCompilerDialog::RegisterViewClass();
 
     // Notify that views can now be registered
     AzToolsFramework::EditorEvents::Bus::Broadcast(

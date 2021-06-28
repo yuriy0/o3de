@@ -19,11 +19,13 @@
 #include <SceneAPIExt/Groups/MotionGroup.h>
 #include <SceneAPIExt/Rules/MotionScaleRule.h>
 #include <SceneAPIExt/Rules/MotionZeroRule.h>
+#include <SceneAPIExt/Rules/MotionAdditiveRule.h>
 #include <SceneAPIExt/Rules/MotionCompressionSettingsRule.h>
+#include <SceneAPIExt/Rules/MotionMetaDataRule.h>
+#include <SceneAPIExt/Rules/MotionSamplingRule.h>
+#include <SceneAPIExt/Rules/MotionScaleRule.h>
 #include <SceneAPIExt/Rules/MotionRangeRule.h>
 #include <SceneAPIExt/Rules/MorphTargetRule.h>
-#include <SceneAPIExt/Rules/MotionAdditiveRule.h>
-#include <SceneAPIExt/Rules/MotionSamplingRule.h>
 
 namespace EMotionFX
 {
@@ -36,12 +38,14 @@ namespace EMotionFX
             void MotionGroupBehavior::Reflect(AZ::ReflectContext* context)
             {
                 Group::MotionGroup::Reflect(context);
-                Rule::MotionScaleRule::Reflect(context);
                 Rule::MotionZeroRule::Reflect(context);
-                Rule::MotionCompressionSettingsRule::Reflect(context);
-                Rule::MorphTargetRuleReadOnly::Reflect(context);
                 Rule::MotionAdditiveRule::Reflect(context);
+                Rule::MotionCompressionSettingsRule::Reflect(context);
+                Rule::MotionMetaData::Reflect(context);
+                Rule::MotionMetaDataRule::Reflect(context);
                 Rule::MotionSamplingRule::Reflect(context);
+                Rule::MotionScaleRule::Reflect(context);
+                Rule::MorphTargetRuleReadOnly::Reflect(context);
                 
                 AZ::SerializeContext* serializeContext = azrtti_cast<AZ::SerializeContext*>(context);
                 if (serializeContext)
