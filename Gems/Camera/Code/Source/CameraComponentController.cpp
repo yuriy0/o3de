@@ -105,9 +105,9 @@ namespace Camera
             OnTransformChanged(localTransform, worldTransform);
 
             // Push the Atom camera after we make sure we're up-to-date with our component's transform to ensure the viewport reads the correct state
+            UpdateCamera();
             atomViewportRequests->PushView(contextName, m_atomCamera);
             AZ::RPI::ViewportContextNotificationBus::Handler::BusConnect(contextName);
-            UpdateCamera();
         }
     }
 

@@ -253,16 +253,20 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     // Finalize Lighting
     lightingData.FinalizeLighting();
 
-
-    if (o_opacity_mode == OpacityMode::Blended || o_opacity_mode == OpacityMode::TintedTransparent)
-    {
-        float fresnelAlpha = FresnelSchlickWithRoughness(lightingData.NdotV, alpha, surface.roughnessLinear).x; // Increase opacity at grazing angles.
-        alpha = lerp(fresnelAlpha, alpha, MaterialSrg::m_opacityAffectsSpecularFactor);
-    }
-
     PbrLightingOutput lightingOutput = GetPbrLightingOutput(surface, lightingData, alpha);
 
     // ------- Opacity -------
+
+    if (o_opacity_mode == OpacityMode::Blended || o_opacity_mode == OpacityMode::TintedTransparent)
+    {
+        // Increase opacity at grazing angles for surfaces with a low m_opacityAffectsSpecularFactor.
+        // For m_opacityAffectsSpecularFactor values close to 0, that indicates a transparent surface
+        // like glass, so it becomes less transparent at grazing angles. For m_opacityAffectsSpecularFactor
+        // values close to 1.0, that indicates the absence of a surface entirely, so this effect should
+        // not apply.
+        float fresnelAlpha = FresnelSchlickWithRoughness(lightingData.NdotV, alpha, surface.roughnessLinear).x;
+        alpha = lerp(fresnelAlpha, alpha, MaterialSrg::m_opacityAffectsSpecularFactor);
+    }
 
     if (o_opacity_mode == OpacityMode::Blended)
     {
@@ -279,6 +283,8 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
         float3 specular = lightingOutput.m_specularColor.rgb;
         specular = lerp(specular, specular * lightingOutput.m_diffuseColor.w, MaterialSrg::m_opacityAffectsSpecularFactor);
         lightingOutput.m_diffuseColor.rgb += specular;
+
+        lightingOutput.m_diffuseColor.w = alpha;
         
         // HACK: diffuse/spec RTs got swapped to support A2C with SSS by placing coverage in specular alpha channel,
         // which must be RT0 to work with A2C. But the transparent pass and opaque pass use the same output semantics
@@ -306,8 +312,8 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
         specular = lerp(specular, specular * lightingOutput.m_diffuseColor.w, MaterialSrg::m_opacityAffectsSpecularFactor);
         lightingOutput.m_diffuseColor.rgb += specular;
 
-        lightingOutput.m_specularColor.rgb = baseColor * (1.0 - lightingOutput.m_diffuseColor.w); 
-        
+        lightingOutput.m_specularColor.rgb = baseColor * (1.0 - alpha);
+
         // HACK: diffuse/spec RTs got swapped to support A2C with SSS by placing coverage in specular alpha channel,
         // which must be RT0 to work with A2C. But the transparent pass and opaque pass use the same output semantics
         // and the tinted transparent pass has not got the RTs swapped
