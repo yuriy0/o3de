@@ -23,19 +23,19 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
         PrepareGeneratedTangent(IN.m_normal, IN.m_worldPosition, isFrontFace, IN.m_uv, UvSetCount, tangents, bitangents);
     }
 
-    {
-        float3 dirToCamera = normalize(ViewSrg::m_worldPosition.xyz - surface.position);
-        float3 tangent = tangents[0];
-
-        // Handle case where tangent is aligned with camera
-        if(all(tangent == dirToCamera) || all(tangent == -dirToCamera))
-        {
-            tangent += IN.m_normal * 0.001f;
-        }
-
-        float3 bitangent = cross(dirToCamera, tangent);
-        IN.m_normal = normalize( cross(tangent, bitangent) );
-    }
+    // {
+    //     float3 dirToCamera = normalize(ViewSrg::m_worldPosition.xyz - surface.position);
+    //     float3 tangent = tangents[0];
+    // 
+    //     // Handle case where tangent is aligned with camera
+    //     if(all(tangent == dirToCamera) || all(tangent == -dirToCamera))
+    //     {
+    //         tangent -= IN.m_normal * 0.001f;
+    //     }
+    // 
+    //     float3 bitangent = cross(dirToCamera, tangent);
+    //     IN.m_normal = normalize( cross(tangent, bitangent) );
+    // }
 
     // ------- Alpha & Depth & Clip -------
 
@@ -96,6 +96,13 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
                                         MaterialSrg::m_roughnessLowerBound, MaterialSrg::m_roughnessUpperBound, o_roughness_useTexture);
     surface.CalculateRoughnessA();
 
+    // ------- Hair -------
+    
+    float3 bitangent = cross(surface.normal, tangents[0]);
+    float3 tangent = cross(bitangent, surface.normal);
+    surface.tangent = normalize(tangent);
+    surface.cuticleTilt = MaterialSrg::m_cuticleTilt;
+
     // ------- Lighting Data -------
 
     LightingData lightingData;
@@ -135,7 +142,14 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     ApplyDirectLighting(surface, lightingData);
 
     // Apply Image Based Lighting (IBL)
-    ApplyIBL(surface, lightingData);
+    if(o_hair_lighting_model == HairLightingModel::GGX)
+    {
+        ApplyIBL(surface, lightingData);
+    }
+    else if(o_hair_lighting_model == HairLightingModel::Marschner)
+    {
+        ApplyIblHair(surface, lightingData);
+    }
 
     // Finalize Lighting
     lightingData.FinalizeLighting();

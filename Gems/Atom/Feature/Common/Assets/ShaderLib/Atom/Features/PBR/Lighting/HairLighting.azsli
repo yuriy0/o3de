@@ -22,31 +22,300 @@
 #include <Atom/Features/PBR/LightingUtils.azsli>
 #include <Atom/Features/PBR/Microfacet/Brdf.azsli>
 
+option enum class HairLightingModel {GGX, Marschner} o_hair_lighting_model;
+
+// --- Overview ---
+// 
+// This hair rendering model is based off of the following papers, please refer to them for details:
+// 
+// Light Scattering from Human Hair Fibers
+// http://www.graphics.stanford.edu/papers/hair/hair-sg03final.pdf
+// 
+// An Energy-Conserving Hair Reflectance Model
+// http://www.eugenedeon.com/project/an-energy-conserving-hair-reflectance-model/
+// http://www.eugenedeon.com/wp-content/uploads/2014/04/egsrhair.pdf
+// 
+// Physically Based Hair Shading in Unreal 
+// https://blog.selfshadow.com/publications/s2016-shading-course/karis/s2016_pbs_epic_hair.pptx
+// 
+// Strand-based Hair Rendering in Frostbite
+// https://advances.realtimerendering.com/s2019/hair_presentation_final.pdf
+
+// --- TLDR ---
+// 
+// The Marschner model divides hair rendering into three light paths: R, TT and TRT 
+// R is the path where the light bounces straight off the hair fiber
+// TT is the path where the light enters the hair, then exits out the other side
+// TRT is the path where the light enters the hair, bounces off the other side of the hair, and exists the hair
+// 
+// Furthermore, for each path, the calculations are devided into longitudinal and azimuthal approximations, denoted M and R respectively
+// This gives us M_R, M_TT, M_TRT and N_R, N_TT, N_TRT
+
+// --- Notations ---
+// 
+// Let Wi denote the incoming light vector and Wr the reflected light vector (i.e. direction towards the camera)
+// L will denote angles with respect to the Longitude, and O will denote vectors with respect to the azimuth
+// Li and Lr are the longitudinal angles with respect to incoming/reflected light, i.e. the angle between those vectors
+//     and the normal plane (plane perpendicular to the hair)
+// Oi and Or are the azimuthal angles, i.e. the angles contained within the normal plane
+// Lh and Oh are the averages, i.e. Lh = (Lr + Li) / 2  and  Oh = (Or + Oi) / 2
+// Ld is the difference angle, i.e. Ld = (Lr - Li) / 2
+// O denotes the relative azimuth, simply O = (Or - Oi)
+
+
+// Longitudinal functions (M_R, M_TT, M_RTR)
+
+float M_R(Surface surface, float Lh)
+{
+    float a = -surface.cuticleTilt;
+    float b =  surface.roughnessA2;
+    return GaussianNormalized(Lh, a, b);
+}
+
+float M_TT(Surface surface, float Lh)
+{
+    float a = 0.5 * surface.cuticleTilt;
+    float b = 0.5 * surface.roughnessA2;
+    return GaussianNormalized(Lh, a, b);
+}
+
+float M_TRT(Surface surface, float Lh)
+{
+    float a = 1.5 * surface.cuticleTilt;
+    float b = 2.0 * surface.roughnessA2;
+    return GaussianNormalized(Lh, a, b);
+}
+
+
+// Azimuth functions (N_R, N_TT, N_RTR)
+
+float N_R(Surface surface, float cos_O2, float3 Wi, float3 Wr, float f0)
+{
+    // Fresnel part of the attentuation term (A in the papers)
+    float fresnel = FresnelSchlick( sqrt(0.5 * dot(Wi, Wr) + 0.5) , f0);
+
+    // Distribution term
+    float distribution = 0.25 * cos_O2;
+
+    // No absorption term since this is the reflected light path
+    return fresnel * distribution;
+}
+
+float3 N_TT(Surface surface, float n2, float cos_O, float cos_O2, float3 cos_Ld, float f0)
+{
+    // Helper variables (see papers)
+    float a = rcp(n2);
+    float h = (1 + a * (0.6 - (0.8 * cos_O))) * cos_O2;
+
+    // Fresnel part of the attentuation term (A in the papers)
+    float fresnel = FresnelSchlick(cos_Ld * sqrt( 1 - (h*h) ), f0);
+    fresnel = Pow2(1 - fresnel);
+
+    // Absorption part of the attenuation term (A in the papers). Defines how much light the hair will absorb.
+    float3 absorption = pow(surface.albedo, sqrt( 1 - (h*h*a*a) ) / (2 * cos_Ld) );
+
+    // Distribution term
+    float distribution = exp(-3.65 * cos_O - 3.98);
+
+    return absorption * (fresnel * distribution);
+}
+
+float N_TRT(Surface surface, float cos_O, float3 cos_Ld, float f0)
+{
+    // Helper variables (see papers)
+    float h = sqrt(3) * 0.5;
+
+    // Fresnel part of the attentuation term (A in the papers)
+    float fresnel = FresnelSchlick(cos_Ld * sqrt( 1 - (h*h) ), f0);
+    fresnel = Pow2(1 - fresnel) * fresnel;
+
+    // How much light the hair will absorb. Part of the attenuation term (A in the papers)
+    float3 absorption = pow(surface.albedo, 0.8 * cos_Ld);
+
+    // Distribution term
+    float distribution = exp(17 * cos_O - 16.78);
+
+    return absorption * (fresnel * distribution);    
+}
+
+
+float3 HairBSDF(Surface surface, LightingData lightingData, const float3 dirToLight)
+{
+    // Incoming and outgoing light directions
+    float3 Wi = dirToLight;
+    float3 Wr = lightingData.dirToCamera;
+
+    // Hair tangent
+    float3 T = surface.tangent;
+
+    // Distance to Normal plane
+    float Distance_i = dot(T, Wi);
+    float Distance_r = dot(T, Wr);
+
+    // Project onto Normal plane
+    float3 NPi = normalize( Wi - (T * Distance_i) );
+    float3 NPr = normalize( Wr - (T * Distance_r) );
+
+    // Azimuthal angles
+    // float O = acos(dot(NPi, NPr))  <- Unused, just here for reference
+    float cos_O = dot(NPi, NPr);
+
+    // cosine(O / 2)
+    float cos_O2 = sqrt(0.5 * cos_O + 0.5);  // <- trigonometric formula for calculating cos(x/2) given cos(x) 
+
+    // Longitudinal angles
+    float Li = acos(dot(Wi, NPi));
+    float Lr = acos(dot(Wr, NPr));
+    float Lh = (Lr + Li) * 0.5;
+    float Ld = (Lr - Li) * 0.5;
+
+    // Refraction index
+    const float n = 1.55;
+    float cos_Ld = cos(Ld);
+    float n2 = (1.19f / cos_Ld) + 0.36 * cos_Ld;
+
+    // Fresnel F0
+    float f0 = Pow2( (1 - n) / (1 + n) );
+
+    float3 lighting = float3(0, 0, 0);
+
+    // R Path (p = 0 in the papers)
+    if(MaterialSrg::m_applyR)
+    {
+        float lighting_R = M_R(surface, Lh);
+        lighting_R *= N_R(surface, cos_O2, Wi, Wr, f0);
+        lighting += float3(lighting_R, lighting_R, lighting_R);
+    }
+
+    // TT Path (p = 1 in the papers)
+    if(MaterialSrg::m_applyTT)
+    {
+        float3 lighting_TT = M_TT(surface, Lh);
+        lighting_TT *= N_TT(surface, n2, cos_O, cos_O2, cos_Ld, f0);
+        lighting += lighting_TT;
+    }
+
+    // RTR Path (p = 2 in the papers)
+    if(MaterialSrg::m_applyTRT)
+    {
+        float3 lighting_TRT = M_TRT(surface, Lh);
+        lighting_TRT *= N_TRT(surface, cos_O, cos_Ld, f0);
+        lighting += lighting_TRT;
+    }
+
+    return lighting;
+}
+
+
+
 // Then define the Diffuse and Specular lighting functions
 float3 GetDiffuseLighting(Surface surface, LightingData lightingData, float3 lightIntensity, float3 dirToLight)
 {
-    float3 diffuse = DiffuseLambertian(surface.albedo, surface.normal, dirToLight);
+    float3 diffuse = float3(0, 0, 0);
+    if(o_hair_lighting_model == HairLightingModel::GGX)
+    {
+        diffuse = DiffuseLambertian(surface.albedo, surface.normal, dirToLight);
+        diffuse *= lightIntensity;
+    }
+    else if(o_hair_lighting_model == HairLightingModel::Marschner)
+    {
+        // For Marschner, all lighting is calculated together in the specular lighting function
+    }
 
-    diffuse *= lightIntensity;
     return diffuse;
 }
 
 float3 GetSpecularLighting(Surface surface, LightingData lightingData, const float3 lightIntensity, const float3 dirToLight)
 {
-    float3 specular = SpecularGGX(lightingData.dirToCamera, dirToLight, surface.normal, surface.specularF0, lightingData.NdotV, surface.roughnessA2, lightingData.multiScatterCompensation);
-    
-    specular *= lightIntensity;    
-    return specular;
+    float3 specular = float3(0, 0, 0);
+    if(o_hair_lighting_model == HairLightingModel::GGX)
+    {
+        specular = SpecularGGX(lightingData.dirToCamera, dirToLight, surface.normal, surface.specularF0, lightingData.NdotV, surface.roughnessA2, lightingData.multiScatterCompensation);
+    }
+    else if(o_hair_lighting_model == HairLightingModel::Marschner)
+    {
+        specular = HairBSDF(surface, lightingData, dirToLight);
+    }
+
+    return (specular * lightIntensity);
 }
 
-float3 GetBackLighting(Surface surface, LightingData lightingData, float3 lightIntensity, float3 dirToLight, float shadowRatio)
+float3 GetBackLighting(Surface surface, LightingData lightingData, float3 lightIntensity, float3 dirToLight, float shadowDistance)
 {
-    return float3(0.0f, 0.0f, 0.0f);
+    if(MaterialSrg::m_applyMultiScattering)
+    {
+        float3 color = surface.albedo;
+        float luminance = dot(color, float3(0.299f, 0.587f, 0.114f));
+
+        float3 multiscattering = sqrt(color);
+        multiscattering *= ( (1 + dot(dirToLight, surface.normal)) / (4 * PI) );
+        multiscattering *= pow(color / luminance, 1 - shadowDistance);
+
+        return multiscattering * lightIntensity;
+    }
+    return float3(0, 0, 0);
 }
 
 // Then include everything else
 #include <Atom/Features/PBR/Lights/Lights.azsli>
 #include <Atom/Features/PBR/Lights/Ibl.azsli>
+
+
+float3 GetIblSpecularHair(
+    float3 position, 
+    float3 normal, 
+    float roughnessLinear, 
+    float3 dirToCamera,
+    float3 dirToLight)
+{
+    dirToCamera = MultiplyVectorQuaternion(dirToCamera, SceneSrg::m_iblOrientation);    
+
+    // global
+    float3 outSpecular = SceneSrg::m_specularEnvMap.SampleLevel(SceneSrg::m_samplerEnv, GetCubemapCoords(dirToCamera), GetRoughnessMip(roughnessLinear)).rgb;
+    
+    // reflection probe
+    if (ObjectSrg::m_reflectionProbeData.m_useReflectionProbe)
+    {
+        if (ObjectSrg::m_reflectionProbeData.m_useParallaxCorrection)
+        {
+            dirToCamera = ApplyParallaxCorrection(
+                ObjectSrg::m_reflectionProbeData.m_outerAabbMin,
+                ObjectSrg::m_reflectionProbeData.m_outerAabbMax,
+                ObjectSrg::m_reflectionProbeData.m_aabbPos,
+                position,
+                dirToCamera);
+        }
+    
+        float3 probeSpecular = ObjectSrg::m_reflectionProbeCubeMap.SampleLevel(SceneSrg::m_samplerEnv, GetCubemapCoords(dirToCamera), GetRoughnessMip(roughnessLinear)).rgb;
+    
+        // compute blend amount based on world position in the reflection probe volume
+        float blendAmount = ComputeLerpBetweenInnerOuterAABBs(
+            ObjectSrg::m_reflectionProbeData.m_innerAabbMin,
+            ObjectSrg::m_reflectionProbeData.m_innerAabbMax,
+            ObjectSrg::m_reflectionProbeData.m_outerAabbMax,
+            ObjectSrg::m_reflectionProbeData.m_aabbPos,
+            position);
+    
+        outSpecular = lerp(outSpecular, probeSpecular, blendAmount);
+    }
+    return outSpecular;
+}
+
+void ApplyIblHair(Surface surface, inout LightingData lightingData)
+{
+    if(MaterialSrg::m_applyIblHair)
+    {
+        float3 dirToLight = reflect(-lightingData.dirToCamera, surface.normal);
+        //float3 lightIntensity = GetIblSpecularHair(surface.position, surface.normal, surface.roughnessLinear, lightingData.dirToCamera, dirToLight);
+        float3 lightIntensity = GetIblSpecularHair(surface.position, surface.normal, 0, lightingData.dirToCamera, dirToLight);
+        lightIntensity *= PI;
+        float3 specular = HairBSDF(surface, lightingData, dirToLight);
+
+        float iblExposureFactor = pow(2.0, SceneSrg::m_iblExposure);
+        lightingData.specularLighting += (specular * iblExposureFactor);
+    }
+}
+
 
 struct PbrLightingOutput
 {
@@ -67,10 +336,32 @@ PbrLightingOutput GetPbrLightingOutput(Surface surface, LightingData lightingDat
 
     // albedo, specularF0, roughness, and normals for later passes (specular IBL, Diffuse GI, SSR, AO, etc)
     lightingOutput.m_specularF0 = float4(surface.specularF0, surface.roughnessLinear);
-    lightingOutput.m_albedo.rgb = surface.albedo * lightingData.diffuseResponse * lightingData.diffuseAmbientOcclusion * lightingData.ssao;
+
+    if(o_hair_lighting_model == HairLightingModel::GGX)
+    {
+        lightingOutput.m_albedo.rgb = surface.albedo * lightingData.diffuseResponse * lightingData.diffuseAmbientOcclusion * lightingData.ssao;
+    }
+    else
+    {
+        lightingOutput.m_albedo.rgb = float3(0.0f, 0.0f, 0.0f);
+    }
+    
     lightingOutput.m_albedo.a = lightingData.specularOcclusion;
     lightingOutput.m_normal.rgb = EncodeNormalSignedOctahedron(surface.normal);
     lightingOutput.m_normal.a = o_specularF0_enableMultiScatterCompensation ? 1.0f : 0.0f;
     
     return lightingOutput;
+}
+
+PbrLightingOutput DebugOutput(float3 color)
+{
+    PbrLightingOutput output = (PbrLightingOutput)0;
+
+    float defaultNormal = float3(0.0f, 0.0f, 1.0f);
+
+    output.m_diffuseColor = float4(color.rgb, 1.0f);
+    output.m_specularColor = float4(color.rgb, 1.0f);
+    output.m_normal.rgb = EncodeNormalSignedOctahedron(defaultNormal);
+
+    return output;
 }
