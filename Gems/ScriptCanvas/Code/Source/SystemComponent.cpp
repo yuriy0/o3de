@@ -1,6 +1,6 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -9,10 +9,11 @@
 
 #include <AzCore/Component/EntityUtils.h>
 #include <AzCore/Serialization/EditContext.h>
+#include <AzCore/Serialization/Json/RegistrationContext.h>
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzCore/Serialization/Utils.h>
-
 #include <Libraries/Libraries.h>
+#include <ScriptCanvas/Asset/RuntimeAsset.h>
 #include <ScriptCanvas/Core/Contract.h>
 #include <ScriptCanvas/Core/Graph.h>
 #include <ScriptCanvas/Core/Node.h>
@@ -21,6 +22,7 @@
 #include <ScriptCanvas/Execution/ExecutionPerformanceTimer.h>
 #include <ScriptCanvas/Execution/Interpreted/ExecutionInterpretedAPI.h>
 #include <ScriptCanvas/Execution/RuntimeComponent.h>
+#include <ScriptCanvas/Serialization/ScriptUserDataSerializer.h>
 #include <ScriptCanvas/SystemComponent.h>
 #include <ScriptCanvas/Variable/GraphVariableManagerComponent.h>
 #include <ScriptCanvas/Execution/VariableBus.h>
@@ -54,7 +56,6 @@ namespace ScriptCanvasSystemComponentCpp
 
 namespace ScriptCanvas
 {
-
     void SystemComponent::Reflect(AZ::ReflectContext* context)
     {
         Nodeable::Reflect(context);
@@ -82,6 +83,12 @@ namespace ScriptCanvas
                     ->Attribute(AZ::Edit::Attributes::Min, 1000) // Safeguard user given value is valid
                     ;
             }
+        }
+
+        if (AZ::JsonRegistrationContext* jsonContext = azrtti_cast<AZ::JsonRegistrationContext*>(context))
+        {
+            jsonContext->Serializer<AZ::ScriptUserDataSerializer>()
+                ->HandlesType<RuntimeVariable>();
         }
 
 #if defined(SC_EXECUTION_TRACE_ENABLED)
@@ -153,7 +160,7 @@ namespace ScriptCanvas
 
         ModPerformanceTracker()->CalculateReports();
         Execution::PerformanceTrackingReport report = ModPerformanceTracker()->GetGlobalReport();
-        
+
         const double ready = aznumeric_caster(report.timing.initializationTime);
         const double instant = aznumeric_caster(report.timing.executionTime);
         const double latent = aznumeric_caster(report.timing.latentTime);
@@ -366,11 +373,11 @@ namespace ScriptCanvas
         auto dataRegistry = ScriptCanvas::GetDataRegistry();
         for (const auto& classIter : behaviorContext->m_classes)
         {
-           auto createability = GetCreatibility(serializeContext, classIter.second);
-           if (createability.first != DataRegistry::Createability::None)
-           {
-               dataRegistry->RegisterType(classIter.second->m_typeId, createability.second, createability.first);
-           }
+            auto createability = GetCreatibility(serializeContext, classIter.second);
+            if (createability.first != DataRegistry::Createability::None)
+            {
+                dataRegistry->RegisterType(classIter.second->m_typeId, createability.second, createability.first);
+            }
         }
     }
 

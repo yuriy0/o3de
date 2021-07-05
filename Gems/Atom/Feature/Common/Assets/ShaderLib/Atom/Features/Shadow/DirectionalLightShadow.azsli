@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project
+ * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
  * 
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
@@ -162,7 +162,8 @@ bool2 DirectionalLightShadow::IsShadowed(float3 shadowCoord, uint indexOfCascade
 {
     static const float PixelMargin = 1.5; // avoiding artifact between cascade levels.
     static const float DepthMargin = 0.01; // avoiding artifact when near depth bounds.
-    // size is the shadowap's width and height.
+
+    // size is the shadowap's width and height.
     const uint size = ViewSrg::m_directionalLightShadows[m_lightIndex].m_shadowmapSize;
 
     const uint cascadeCount = ViewSrg::m_directionalLightShadows[m_lightIndex].m_cascadeCount;
@@ -181,7 +182,8 @@ bool2 DirectionalLightShadow::IsShadowed(float3 shadowCoord, uint indexOfCascade
             return bool2(true, (depthDiff > m_slopeBias[indexOfCascade]));
         }
     }
-    return bool2(false, false);}
+    return bool2(false, false);
+}
 
 bool DirectionalLightShadow::IsShadowedWithJitter(
     float3 jitterUnit,
@@ -354,8 +356,9 @@ float DirectionalLightShadow::GetVisibilityFromLightEsm()
         {
             const float distanceWithinCameraView = depthDiff / (1. - distanceMin);
             const float3 coord = float3(shadowCoord.xy, indexOfCascade);
-            const float expDepthInShadowmap = expShadowmap.Sample(PassSrg::LinearSampler, coord).r;
-            const float ratio = exp(-EsmExponentialShift * distanceWithinCameraView) * expDepthInShadowmap;
+            const float occluder = expShadowmap.Sample(PassSrg::LinearSampler, coord).r;                        
+            const float exponent = -EsmExponentialShift * (distanceWithinCameraView - occluder);
+            const float ratio = exp(exponent);
 
             m_debugInfo.m_cascadeIndex = indexOfCascade;
             return saturate(ratio);
@@ -383,8 +386,9 @@ float DirectionalLightShadow::GetVisibilityFromLightEsmPcf()
         {
             const float distanceWithinCameraView = depthDiff / (1. - distanceMin);
             const float3 coord = float3(shadowCoord.xy, indexOfCascade);
-            const float expDepthInShadowmap = expShadowmap.Sample(PassSrg::LinearSampler, coord).r;
-            float ratio = exp(-EsmExponentialShift * distanceWithinCameraView) * expDepthInShadowmap;
+            const float occluder = expShadowmap.Sample(PassSrg::LinearSampler, coord).r;
+            const float exponent = -EsmExponentialShift * (distanceWithinCameraView - occluder);
+            float ratio = exp(exponent);
 
             static const float pcfFallbackThreshold = 1.04;
             if (ratio > pcfFallbackThreshold)
