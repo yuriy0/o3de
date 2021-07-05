@@ -13,7 +13,7 @@
 ----------------------------------------------------------------------------------------------------
 
 function GetMaterialPropertyDependencies()
-    return {"opacity.mode", "debug.displayOnlyPass"}
+    return {"opacity.mode"}
 end
 
 OpacityMode_Opaque = 0
@@ -46,14 +46,4 @@ function Process(context)
     shadowMapWitPS:SetEnabled(true)
     forwardPass:SetEnabled(true)
     
-    -- Handle debug flag
-    local displayOnlyPass = context:GetMaterialPropertyValue_enum("debug.displayOnlyPass")
-    if (displayOnlyPass == DisplayOnlyPass_OnlyOpaque) then
-        transparentPass:SetEnabled(false)
-        momentGenerationPass:SetEnabled(false)
-        
-    elseif (displayOnlyPass == DisplayOnlyPass_OnlyTransparent) then
-        forwardPass:SetEnabled(false)
-       
-    end
 end

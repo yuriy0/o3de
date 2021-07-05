@@ -24,6 +24,11 @@
                 "description": "Properties related to configuring surface normal."
             },
             {
+                "id": "hair",
+                "displayName": "Hair",
+                "description": "Properties that drive the appearance of hair."
+            },
+            {
                 "id": "occlusion",
                 "displayName": "Occlusion",
                 "description": "Properties for baked textures that represent geometric occlusion of light."
@@ -46,8 +51,8 @@
             },
             {
                 "id": "debug",
-                "displayName": "Debug Settings",
-                "description": "Debug settings."
+                "displayName": "Debug",
+                "description": "Debug booleans and floats used to debug hair rendering."
             }
         ],
         "properties": {
@@ -123,7 +128,7 @@
                     "displayName": "Forward Pass IBL Specular",
                     "description": "Whether to apply IBL specular in the forward pass.",
                     "type": "Bool",
-                    "defaultValue": false,
+                    "defaultValue": true,
                     "connection": {
                         "type": "ShaderOption",
                         "id": "o_materialUseForwardPassIBLSpecular"
@@ -388,6 +393,207 @@
                     "connection": {
                         "type": "ShaderInput",
                         "id": "m_normalFactor"
+                    }
+                }
+            ],
+            "hair": [
+                {
+                    "id": "hairLightingModel",
+                    "displayName": "Hair Lighting Model",
+                    "description": "Lighting model used to render the hair",
+                    "type": "Enum",
+                    "enumValues": [ "GGX", "Marschner" ],
+                    "defaultValue": "GGX",
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_hair_lighting_model"
+                    }
+                },
+                {
+                    "id": "cuticleTilt",
+                    "displayName": "Cuticle Tilt",
+                    "description": "How much the cuticles are tilted (in radians) along the hair. Lower values result is smoother, more cylindrical hair modeling.",
+                    "type": "Float",
+                    "defaultValue": 0.122,
+                    "min": 0.0,
+                    "softMax": 0.25,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_cuticleTilt"
+                    }
+                },
+                {
+                    "id": "transmissionMode",
+                    "displayName": "Transmission",
+                    "description": "Do not modify, should be left at ThickObject",
+                    "type": "Enum",
+                    "enumValues": [ "None", "ThickObject", "ThinObject" ],
+                    "defaultValue": "ThickObject",
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_transmission_mode"
+                    }
+                }
+            ],
+            "debug": [
+                {
+                    "id": "applyR",
+                    "displayName": "Apply R",
+                    "type": "Bool",
+                    "defaultValue": true,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_applyR"
+                    }
+                },
+                {
+                    "id": "applyTT",
+                    "displayName": "Apply TT",
+                    "type": "Bool",
+                    "defaultValue": true,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_applyTT"
+                    }
+                },
+                {
+                    "id": "applyTRT",
+                    "displayName": "Apply TRT",
+                    "type": "Bool",
+                    "defaultValue": true,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_applyTRT"
+                    }
+                },
+                {
+                    "id": "applyMultiScattering",
+                    "displayName": "Apply MultiScattering",
+                    "type": "Bool",
+                    "defaultValue": true,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_applyMultiScattering"
+                    }
+                },
+                {
+                    "id": "applyIblHair",
+                    "displayName": "Apply IBL on Hair",
+                    "type": "Bool",
+                    "defaultValue": true,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_applyIblHair"
+                    }
+                },
+                {
+                    "id": "debugBool01",
+                    "displayName": "Debug Bool 01",
+                    "type": "Bool",
+                    "defaultValue": false,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_debugBool01"
+                    }
+                },
+                {
+                    "id": "debugBool02",
+                    "displayName": "Debug Bool 02",
+                    "type": "Bool",
+                    "defaultValue": false,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_debugBool02"
+                    }
+                },
+                {
+                    "id": "debugBool03",
+                    "displayName": "Debug Bool 03",
+                    "type": "Bool",
+                    "defaultValue": false,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_debugBool03"
+                    }
+                },
+                {
+                    "id": "debugBool04",
+                    "displayName": "Debug Bool 04",
+                    "type": "Bool",
+                    "defaultValue": false,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_debugBool04"
+                    }
+                },
+                {
+                    "id": "debugBool05",
+                    "displayName": "Debug Bool 05",
+                    "type": "Bool",
+                    "defaultValue": false,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_debugBool05"
+                    }
+                },
+                {
+                    "id": "debugFloat01",
+                    "displayName": "Debug Float 01",
+                    "type": "Float",
+                    "defaultValue": 0,
+                    "min": 0.0,
+                    "softMax": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_debugFloat01"
+                    }
+                },
+                {
+                    "id": "debugFloat02",
+                    "displayName": "Debug Float 02",
+                    "type": "Float",
+                    "defaultValue": 0,
+                    "min": 0.0,
+                    "softMax": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_debugFloat02"
+                    }
+                },
+                {
+                    "id": "debugFloat03",
+                    "displayName": "Debug Float 03",
+                    "type": "Float",
+                    "defaultValue": 0,
+                    "min": 0.0,
+                    "softMax": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_debugFloat03"
+                    }
+                },
+                {
+                    "id": "debugFloat04",
+                    "displayName": "Debug Float 04",
+                    "type": "Float",
+                    "defaultValue": 0,
+                    "min": 0.0,
+                    "softMax": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_debugFloat04"
+                    }
+                },
+                {
+                    "id": "debugFloat05",
+                    "displayName": "Debug Float 05",
+                    "type": "Float",
+                    "defaultValue": 0,
+                    "min": 0.0,
+                    "softMax": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_debugFloat05"
                     }
                 }
             ],
@@ -691,36 +897,21 @@
                     "min": 0.0,
                     "max": 1.0
                 }
-            ],
-            "debug": [
-                {
-                    "id": "displayOnlyPass",
-                    "displayName": "Display only pass",
-                    "description": "If not none, redner to only the specified pass (opaque or transparent)",
-                    "type": "Enum",
-                    "enumValues": [ "None", "OnlyOpaque", "OnlyTransparent" ],
-                    "defaultValue": "None"
-                }
             ]
         }
     },
     "shaders": [
         {
-            "file": "./Hair_ForwardPass.shader", 
+            "file": "./Hair_ForwardPass.shader",
             "tag": "ForwardPass"
         },
         {
             "file": "./Hair_Shadowmap_WithPS.shader",
             "tag": "Shadowmap_WithPS"
         },
-        // [GFX TODO][ATOM-4726] Use an "isSkinnedMesh" external material property and a functor that enables/disables the appropriate motion-vector shader
         {
-            "file": "Shaders/MotionVector/StaticMeshMotionVector.shader",
-            "tag": "StaticMeshMotionVector"
-        },
-        {
-            "file": "Shaders/MotionVector/SkinnedMeshMotionVector.shader",
-            "tag": "SkinnedMeshMotionVector"
+            "file": "Shaders/MotionVector/MeshMotionVector.shader",
+            "tag": "MeshMotionVector"
         },
         // Used by the light culling system to produce accurate depth bounds for this object when it uses blended transparency
         {
@@ -732,13 +923,13 @@
             "tag": "DepthPassTransparentMax"
         },
         {
-            "file": "./Hair_TransparentPass.shader", 
+            "file": "./Hair_TransparentPass.shader",
             "tag": "TransparentPass"
         },
         {
             "file": "./HairMomentGeneration.shader",
             "tag": "OITMomentGenerationPass"
-        }        
+        }
     ],
     "functors": [
         {

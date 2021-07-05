@@ -29,6 +29,11 @@ class Surface
     float roughnessA;           //!< Actual roughness value ( a.k.a. "alpha roughness") to be used in microfacet calculations
     float roughnessA2;          //!< Alpha roughness ^ 2 (i.e. roughnessA * roughnessA), used in GGX, cached here for perfromance
 
+    // ------- Hair Surface Data -------
+
+    float3 tangent;
+    float3 cuticleTilt;
+
     //! Applies specular anti-aliasing to roughnessA2 
     void ApplySpecularAA();
 

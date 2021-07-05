@@ -53,6 +53,31 @@ ShaderResourceGroup MaterialSrg : SRG_PerMaterial
     Texture2D m_opacityMap;
     uint m_opacityMapUvIndex;
 
+    // Hair Params
+
+    // The tilt of the hair cuticles in radians (value should be between 5 and 10 degrees)
+    float m_cuticleTilt;
+
+    // Hair Params
+
+    float m_debugFloat01;
+    float m_debugFloat02;
+    float m_debugFloat03;
+    float m_debugFloat04;
+    float m_debugFloat05;
+
+    bool m_debugBool01;
+    bool m_debugBool02;
+    bool m_debugBool03;
+    bool m_debugBool04;
+    bool m_debugBool05;
+
+    bool m_applyR;
+    bool m_applyTT;
+    bool m_applyTRT;
+    bool m_applyMultiScattering;
+    bool m_applyIblHair;
+
     Sampler m_sampler
     {
        AddressU = Wrap;
