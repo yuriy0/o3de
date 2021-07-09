@@ -14,11 +14,11 @@
 #include <AzCore/std/smart_ptr/make_shared.h>
 #include <AzCore/std/string/conversions.h>
 #include <AzToolsFramework/Debug/TraceContext.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxBlendShapeImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxImporterUtilities.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/Utilities/RenamedNodesMap.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/Utilities/FbxMeshImporterUtilities.h>
-#include <SceneAPI/FbxSceneBuilder/FbxSceneSystem.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxBlendShapeImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxImporterUtilities.h>
+#include <SceneAPI/SceneBuilder/Importers/Utilities/RenamedNodesMap.h>
+#include <SceneAPI/SceneBuilder/Importers/Utilities/FbxMeshImporterUtilities.h>
+#include <SceneAPI/SceneBuilder/SceneSystem.h>
 #include <SceneAPI/FbxSDKWrapper/FbxNodeWrapper.h>
 #include <SceneAPI/FbxSDKWrapper/FbxMeshWrapper.h>
 #include <SceneAPI/FbxSDKWrapper/FbxBlendShapeWrapper.h>
@@ -32,7 +32,7 @@ namespace AZ
 {
     namespace SceneAPI
     {
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             FbxBlendShapeImporter::FbxBlendShapeImporter()
             {
@@ -123,6 +123,6 @@ namespace AZ
 
                 return combinedBlendShapeResult.GetResult();
             }
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ

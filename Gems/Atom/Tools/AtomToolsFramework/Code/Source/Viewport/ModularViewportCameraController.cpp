@@ -165,7 +165,12 @@ namespace AtomToolsFramework
                     }
                 }
 
-                viewportContext->SetCameraTransform(m_camera.Transform());
+                const auto tm = viewportContext->GetCameraTransform();
+                const auto newTm = m_camera.Transform();
+                if (!tm.IsClose(newTm))
+                {
+                    viewportContext->SetCameraTransform(newTm);
+                }
             }
             else if (m_cameraMode == CameraMode::Animation)
             {

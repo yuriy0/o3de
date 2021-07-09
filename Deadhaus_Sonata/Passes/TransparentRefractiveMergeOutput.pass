@@ -35,7 +35,8 @@
                 "$type": "FullscreenTrianglePassData", 
                 "ShaderAsset": {
                     "FilePath": "Shaders/TransparentRefractiveMergeOutput.shader"
-                }
+                },
+                "PipelineViewTag": "MainCamera"
             }
         }
     }

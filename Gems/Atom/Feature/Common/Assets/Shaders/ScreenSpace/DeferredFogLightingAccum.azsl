@@ -153,8 +153,14 @@ void MainCS(uint3 dispatch_id: SV_DispatchThreadID)
     float3 dim;
     PassSrg::m_lightingAccum.GetDimensions(dim.x, dim.y, dim.z);
 
-    // Fog texture space UV(W) coordinates for sampling lighting
-    float3 uv = (float3(dispatch_id) /* + 0.5*/ ) / float3(dim.xy, dim.z-1.0);
+    const float dimZMinusOne = dim.z - 1.0;
+
+    // Screen space ray  for sampling lighting
+    // Note that the UV and W coords are treated totally seperately here;
+    // UV is used to unproject from screen space to world space ray (so we are interested in the centre
+    //   of the pixel and so offset by 0.5. It is NOT used as the XY portion of the 3d fog volume tex coord
+    // W is used to compute linear depth to the near plane (NOT centre) of the froxel
+    const float3 uv = (float3(dispatch_id) + float3(0.5, 0.5, 0.0)) / float3(dim.xy, dimZMinusOne);
 
     // Ray direction
     const float3 rayDir = normalize(Unproject(uv.xy, 0) - ViewSrg::m_worldPosition);
@@ -164,7 +170,7 @@ void MainCS(uint3 dispatch_id: SV_DispatchThreadID)
     const float3 sampleWsPos = ViewSrg::m_worldPosition + rayDir * sampleDepth;
 
     // World space position of previous slice
-    const float prevSampleDepth = FogVolumeTexZToLinearDepth(uv.z - (1 / (dim.z-1.0)));
+    const float prevSampleDepth = FogVolumeTexZToLinearDepth(uv.z - (1 / dimZMinusOne));
     const float3 prevSampleWsPos = ViewSrg::m_worldPosition + rayDir * prevSampleDepth;
 
     // Compute lighting at a random z within the slice

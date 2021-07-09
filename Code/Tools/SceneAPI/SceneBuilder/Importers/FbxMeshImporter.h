@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include <SceneAPI/FbxSceneBuilder/ImportContexts/FbxImportContexts.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/FbxImportContexts.h>
 #include <SceneAPI/SceneCore/Components/LoadingComponent.h>
 
 namespace AZ
@@ -32,9 +32,9 @@ namespace AZ
 
     namespace SceneAPI
     {
-        class FbxSceneSystem;
+        class SceneSystem;
 
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             class FbxMeshImporter
                 : public SceneCore::LoadingComponent
@@ -49,6 +49,6 @@ namespace AZ
 
                 Events::ProcessingResult ImportMesh(FbxNodeEncounteredContext& context);
             };
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ

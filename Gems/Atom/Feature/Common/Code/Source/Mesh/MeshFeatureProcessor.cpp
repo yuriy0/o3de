@@ -1157,24 +1157,68 @@ namespace AZ
                 RHI::ShaderInputImageIndex reflectionCubeMapImageIndex = m_shaderResourceGroup->FindShaderInputImageIndex(reflectionCubeMapImageName);
                 AZ_Error("MeshDataInstance", reflectionCubeMapImageIndex.IsValid(), "Failed to find shader image index [%s]", reflectionCubeMapImageName.GetCStr());
 
-                // retrieve the list of probes that contain the centerpoint of the mesh
-                TransformServiceFeatureProcessor* transformServiceFeatureProcessor = m_scene->GetFeatureProcessor<TransformServiceFeatureProcessor>();
-                Transform transform = transformServiceFeatureProcessor->GetTransformForId(m_objectId);
-
+                // retrieve the list of probes
                 ReflectionProbeFeatureProcessor::ReflectionProbeVector reflectionProbes;
-                reflectionProbeFeatureProcessor->FindReflectionProbes(transform.GetTranslation(), reflectionProbes);
+                reflectionProbeFeatureProcessor->FindReflectionProbes(reflectionProbes);
 
-                if (!reflectionProbes.empty() && reflectionProbes[0])
+                // Get the mesh world bbox
+                TransformServiceFeatureProcessor* transformServiceFeatureProcessor = m_scene->GetFeatureProcessor<TransformServiceFeatureProcessor>();
+                const Transform localToWorld = transformServiceFeatureProcessor->GetTransformForId(m_objectId);
+                const Vector3 nonUniformScale = transformServiceFeatureProcessor->GetNonUniformScaleForId(m_objectId);
+                const AZ::Aabb worldBbox = [&]()
                 {
-                    m_shaderResourceGroup->SetConstant(posConstantIndex, reflectionProbes[0]->GetPosition());
-                    m_shaderResourceGroup->SetConstant(outerAabbMinConstantIndex, reflectionProbes[0]->GetOuterAabbWs().GetMin());
-                    m_shaderResourceGroup->SetConstant(outerAabbMaxConstantIndex, reflectionProbes[0]->GetOuterAabbWs().GetMax());
-                    m_shaderResourceGroup->SetConstant(innerAabbMinConstantIndex, reflectionProbes[0]->GetInnerAabbWs().GetMin());
-                    m_shaderResourceGroup->SetConstant(innerAabbMaxConstantIndex, reflectionProbes[0]->GetInnerAabbWs().GetMax());
-                    m_shaderResourceGroup->SetConstant(useReflectionProbeConstantIndex, true);
-                    m_shaderResourceGroup->SetConstant(useParallaxCorrectionConstantIndex, reflectionProbes[0]->GetUseParallaxCorrection());
+                    auto bb = m_aabb;
+                    bb.MultiplyByScale(nonUniformScale);
+                    return bb.GetTransformedAabb(localToWorld);
+                }();
 
-                    m_shaderResourceGroup->SetImage(reflectionCubeMapImageIndex, reflectionProbes[0]->GetCubeMapImage());
+                // filter out only those which overlap the mesh bbox
+                const auto probeIntersectsMeshBBox = [&](const AZStd::shared_ptr<ReflectionProbe>& probe)
+                {
+                    return !probe || !worldBbox.Overlaps(probe->GetOuterAabbWs());
+                };
+                reflectionProbes.erase(
+                    AZStd::remove_if(reflectionProbes.begin(), reflectionProbes.end(), probeIntersectsMeshBBox),
+                    reflectionProbes.end()
+                );
+
+                if (!reflectionProbes.empty())
+                {
+                    // Sort available probes by their distance to the mesh bbox centre
+                    if (reflectionProbes.size() > 1)
+                    {
+                        const AZ::Vector3 worldBBoxCentre = worldBbox.GetCenter();
+                        const auto probeDistanceToMesh = [&](const AZStd::shared_ptr<ReflectionProbe>& probe)
+                        {
+                            if (probe->GetOuterAabbWs().Contains(worldBBoxCentre))
+                            {
+                                return -(probe->GetOuterAabbWs().GetCenter() - worldBBoxCentre).GetLengthSq();
+                            }
+                            else
+                            {
+                                return probe->GetOuterAabbWs().GetDistanceSq(worldBBoxCentre);
+                            }
+                        };
+
+                        AZStd::sort(
+                            reflectionProbes.begin(), reflectionProbes.end(),
+                            [&](const auto& p0, const auto& p1) {
+                                return probeDistanceToMesh(p0) < probeDistanceToMesh(p1);
+                            }
+                        );
+                    }
+
+                    const AZStd::shared_ptr<ReflectionProbe>& probe = reflectionProbes[0];
+
+                    m_shaderResourceGroup->SetConstant(posConstantIndex, probe->GetPosition());
+                    m_shaderResourceGroup->SetConstant(outerAabbMinConstantIndex, probe->GetOuterAabbWs().GetMin());
+                    m_shaderResourceGroup->SetConstant(outerAabbMaxConstantIndex, probe->GetOuterAabbWs().GetMax());
+                    m_shaderResourceGroup->SetConstant(innerAabbMinConstantIndex, probe->GetInnerAabbWs().GetMin());
+                    m_shaderResourceGroup->SetConstant(innerAabbMaxConstantIndex, probe->GetInnerAabbWs().GetMax());
+                    m_shaderResourceGroup->SetConstant(useReflectionProbeConstantIndex, true);
+                    m_shaderResourceGroup->SetConstant(useParallaxCorrectionConstantIndex, probe->GetUseParallaxCorrection());
+
+                    m_shaderResourceGroup->SetImage(reflectionCubeMapImageIndex, probe->GetCubeMapImage());
                 }
                 else
                 {

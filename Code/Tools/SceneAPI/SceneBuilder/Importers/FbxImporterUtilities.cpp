@@ -7,9 +7,9 @@
 
 #include <AzCore/Math/Transform.h>
 #include <AzToolsFramework/Debug/TraceContext.h>
-#include <SceneAPI/FbxSceneBuilder/ImportContexts/FbxImportContexts.h>
-#include <SceneAPI/FbxSceneBuilder/ImportContexts/AssImpImportContexts.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxImporterUtilities.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/FbxImportContexts.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/AssImpImportContexts.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxImporterUtilities.h>
 #include <SceneAPI/FbxSDKWrapper/FbxNodeWrapper.h>
 #include <SceneAPI/FbxSDKWrapper/FbxSceneWrapper.h>
 #include <SceneAPI/FbxSDKWrapper/FbxTypeConverter.h>
@@ -29,7 +29,7 @@ namespace AZ
 {
     namespace SceneAPI
     {
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             static const float g_sceneUtilityEqualityEpsilon = 0.001f;
 
@@ -493,6 +493,6 @@ namespace AZ
                 return true;
             }
 
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ

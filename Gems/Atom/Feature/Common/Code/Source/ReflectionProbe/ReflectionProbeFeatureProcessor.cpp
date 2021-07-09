@@ -341,6 +341,22 @@ namespace AZ
             }
         }
 
+        void ReflectionProbeFeatureProcessor::FindReflectionProbes(ReflectionProbeVector& reflectionProbes)
+        {
+            reflectionProbes.clear();
+
+            // simple AABB check to find the reflection probes that contain the position
+            for (auto& reflectionProbe : m_reflectionProbes)
+            {
+                if (reflectionProbe->GetCubeMapImage()
+                    && reflectionProbe->GetCubeMapImage()->IsInitialized()
+                    )
+                {
+                    reflectionProbes.push_back(reflectionProbe);
+                }
+            }
+        }
+
         void ReflectionProbeFeatureProcessor::CreateBoxMesh()
         {
             // vertex positions

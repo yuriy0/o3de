@@ -8,7 +8,7 @@
  */
 
 #include <SceneAPI/FbxSDKWrapper/FbxSkinWrapper.h>
-#include <SceneAPI/FbxSceneBuilder/Tests/TestFbxNode.h>
+#include <SceneAPI/SceneBuilder/Tests/TestFbxNode.h>
 
 namespace AZ
 {

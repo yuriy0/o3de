@@ -35,7 +35,7 @@ namespace Physics
             m_onTriggerExitHandler = decltype(m_onTriggerExitHandler)([this](AzPhysics::SimulatedBodyHandle, const TriggerEvent& ev) { OnTriggerExit(ev); });
 
             AzPhysics::SimulatedBodyEvents::RegisterOnTriggerEnterHandler(sceneHandle, bodyHandle, m_onTriggerEnterHandler);
-            AzPhysics::SimulatedBodyEvents::RegisterOnTriggerEnterHandler(sceneHandle, bodyHandle, m_onTriggerExitHandler);
+            AzPhysics::SimulatedBodyEvents::RegisterOnTriggerExitHandler(sceneHandle, bodyHandle, m_onTriggerExitHandler);
         }
 
         __declspec(noinline) void OnBodyAdded(AzPhysics::SceneHandle sceneHandle, AzPhysics::SimulatedBodyHandle bodyHandle, AZ::EntityId id)

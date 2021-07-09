@@ -1,19 +1,30 @@
---------------------------------------------------------------------------------------
---
--- All or portions of this file Copyright (c) Amazon.com, Inc. or its affiliates or
--- its licensors.
---
--- For complete copyright and license terms please see the LICENSE at the root of this
--- distribution (the "License"). All use of this software is governed by the License,
--- or, if provided, by the license below or the license accompanying this file. Do not
--- remove or modify any license notices. This file is distributed on an "AS IS" BASIS,
--- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
---
---
-----------------------------------------------------------------------------------------------------
+-- TODO: get require working
+-- local DisintegrateLib = require '../../../Gems/Atom/Feature/Common/Assets/Materials/Types/MaterialInputs/DisintegrateEffectLib.lua'
+
+local DisintegrateLib = {}
+
+DisintegrateLib.GetMaterialPropertyDependencies_DisintegrateEffectIsEnabled = function()
+    return {
+        "disintegrate.mask", "disintegrate.percentage"
+    }
+end
+
+DisintegrateLib.IsDisintegrateEffectEnabled = function(context)
+   local mask = context:GetMaterialPropertyValue_Image("disintegrate.mask")
+   local percentage = context:GetMaterialPropertyValue_float("disintegrate.percentage")
+   return mask ~= nil and percentage > 0
+end
+
+-- END TODO
 
 function GetMaterialPropertyDependencies()
-    return {"opacity.mode", "parallax.textureMap", "parallax.useTexture", "parallax.pdo"}
+   local deps = {"opacity.mode", "parallax.textureMap", "parallax.useTexture", "parallax.pdo"}
+
+   for _, prop in ipairs(DisintegrateLib.GetMaterialPropertyDependencies_DisintegrateEffectIsEnabled()) do
+      table.insert(deps, prop)
+   end
+
+   return deps
 end
 
 OpacityMode_Opaque = 0
@@ -61,13 +72,19 @@ function Process(context)
           shadowMapWitPS:SetEnabled(true)
           forwardPass:SetEnabled(true)
        else
-          depthPass:SetEnabled(opacityMode == OpacityMode_Opaque)
-          shadowMap:SetEnabled(opacityMode == OpacityMode_Opaque)
-          forwardPassEDS:SetEnabled((opacityMode == OpacityMode_Opaque) or (opacityMode == OpacityMode_Blended) or (opacityMode == OpacityMode_TintedTransparent))
 
-          depthPassWithPS:SetEnabled(opacityMode == OpacityMode_Cutout)
-          shadowMapWitPS:SetEnabled(opacityMode == OpacityMode_Cutout)
-          forwardPass:SetEnabled(opacityMode == OpacityMode_Cutout)
+          local isDisintegrateEffect = DisintegrateLib.IsDisintegrateEffectEnabled(context)
+
+          depthPass:SetEnabled(opacityMode == OpacityMode_Opaque and not isDisintegrateEffect)
+          shadowMap:SetEnabled(opacityMode == OpacityMode_Opaque and not isDisintegrateEffect)
+          forwardPassEDS:SetEnabled(
+             ((opacityMode == OpacityMode_Opaque) or (opacityMode == OpacityMode_Blended) or (opacityMode == OpacityMode_TintedTransparent))
+             and not isDisintegrateEffect
+          )
+
+          depthPassWithPS:SetEnabled(opacityMode == OpacityMode_Cutout or isDisintegrateEffect)
+          shadowMapWitPS:SetEnabled(opacityMode == OpacityMode_Cutout or isDisintegrateEffect)
+          forwardPass:SetEnabled(opacityMode == OpacityMode_Cutout or isDisintegrateEffect)
        end
     end
 end

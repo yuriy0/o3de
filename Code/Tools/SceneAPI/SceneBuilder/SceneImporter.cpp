@@ -15,10 +15,10 @@
 #include <AzCore/std/smart_ptr/make_shared.h>
 #include <AzToolsFramework/Debug/TraceContext.h>
 #include <SceneAPI/SceneBuilder/SceneImporter.h>
-#include <SceneAPI/FbxSceneBuilder/ImportContexts/FbxImportContexts.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/FbxImportContexts.h>
 #include <SceneAPI/SceneBuilder/ImportContexts/AssImpImportContexts.h>
 #include <SceneAPI/SceneBuilder/Importers/AssImpMaterialImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxImporterUtilities.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxImporterUtilities.h>
 #include <SceneAPI/SceneBuilder/Importers/ImporterUtilities.h>
 #include <SceneAPI/SceneBuilder/Importers/Utilities/RenamedNodesMap.h>
 #include <SceneAPI/FbxSDKWrapper/FbxSceneWrapper.h>
@@ -28,6 +28,7 @@
 #include <SceneAPI/SceneData/GraphData/TransformData.h>
 #include <SceneAPI/SDKWrapper/AssImpSceneWrapper.h>
 #include <SceneAPI/SDKWrapper/AssImpNodeWrapper.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/FbxImportContexts.h>
 
 // APC BEGIN
 #include <AzCore/Settings/SettingsRegistry.h>
@@ -109,7 +110,7 @@ namespace AZ
                 }
                 else
                 {
-                    convertFunc = AZStd::bind(&SceneImporter::ConvertFbxScene, this, AZStd::placeholders::_1);
+                    convertFunc = AZStd::bind(&SceneImporter::ConvertScene, this, AZStd::placeholders::_1);
                 }
 
                 if (convertFunc(context.GetScene()))
@@ -124,6 +125,8 @@ namespace AZ
 
             bool SceneImporter::ConvertFbxSceneContext(Containers::Scene& scene) const
             {
+                using namespace SceneBuilder;
+
                 std::shared_ptr<SDKNode::NodeWrapper> fbxRoot = m_sceneWrapper->GetRootNode();
                 if (!fbxRoot)
                 {
@@ -176,14 +179,14 @@ namespace AZ
                     }
                 }
 
-                AZStd::queue<FbxSceneBuilder::QueueNode> nodes;
+                AZStd::queue<SceneBuilder::QueueNode> nodes;
                 nodes.emplace(AZStd::move(fbxRoot), scene.GetGraph().GetRoot());
 
                 RenamedNodesMap nodeNameMap;
                 
                 while (!nodes.empty())
                 {
-                    FbxSceneBuilder::QueueNode& node = nodes.front();
+                    SceneBuilder::QueueNode& node = nodes.front();
 
                     AZ_Assert(node.m_node, "Empty fbx node queued");
                     

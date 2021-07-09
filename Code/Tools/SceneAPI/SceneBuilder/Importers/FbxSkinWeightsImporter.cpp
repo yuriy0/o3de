@@ -14,9 +14,9 @@
 #include <AzCore/std/smart_ptr/make_shared.h>
 #include <AzCore/std/string/conversions.h>
 #include <AzToolsFramework/Debug/TraceContext.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxSkinWeightsImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxImporterUtilities.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/Utilities/RenamedNodesMap.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxSkinWeightsImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxImporterUtilities.h>
+#include <SceneAPI/SceneBuilder/Importers/Utilities/RenamedNodesMap.h>
 #include <SceneAPI/FbxSDKWrapper/FbxMeshWrapper.h>
 #include <SceneAPI/SceneCore/Events/ImportEventContext.h>
 #include <SceneAPI/SceneData/GraphData/MeshData.h>
@@ -28,7 +28,7 @@ namespace AZ
 {
     namespace SceneAPI
     {
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             const AZStd::string FbxSkinWeightsImporter::s_skinWeightName = "SkinWeight_";
 
@@ -172,6 +172,6 @@ namespace AZ
                 m_pendingSkinWeights.clear();
                 return result;
             }
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ

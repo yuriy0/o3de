@@ -68,6 +68,11 @@
                 "id": "general",
                 "displayName": "General Settings",
                 "description": "General settings."
+            },
+            {
+                "id": "disintegrate",
+                "displayName": "Disintegrate",
+                "description": "Properties for configuring the disintegrate effect."
             }
         ],
         "properties": {
@@ -655,7 +660,7 @@
                     "displayName": "Double-sided",
                     "description": "Whether to render back-faces or just front-faces.",
                     "type": "Bool"
-                },
+                }/*,
                 {
                     "id": "alphaAffectsSpecular",
                     "displayName": "Alpha affects specular",
@@ -668,7 +673,7 @@
                         "type": "ShaderInput",
                         "id": "m_opacityAffectsSpecularFactor"
                     }
-                }
+                }*/
             ],
             "uv": [
                 {
@@ -1007,6 +1012,72 @@
                     "min": 0.0,
                     "max": 1.0
                 }
+            ],
+            "disintegrate": [
+                {
+                    "id": "mask",
+                    "displayName": "    Texture",
+                    "description": "",
+                    "type": "Image",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_disintegrate_mask"
+                    }
+                },
+                {
+                    "id": "tint",
+                    "displayName": "    Disintegration tint",
+                    "description": "",
+                    "type": "Color",
+                    "defaultValue": [ 1.0, 0.4, 0.0 ],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_disintegrate_tint"
+                    }
+                },
+                {
+                    "id": "emissivePower",
+                    "displayName": "    Disintegration emissive power",
+                    "description": "",
+                    "type": "Float",
+                    "defaultValue": 4,
+                    "min": 0,
+                    "max": 1000,
+                    "softMin": 0,
+                    "softMax": 50,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_disintegrate_emissivePower"
+                    }
+                },
+                {
+                    "id": "thickness",
+                    "displayName": "    Disintegration edge thickness",
+                    "description": "",
+                    "type": "Float",
+                    "defaultValue": 0.5,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_disintegrate_thickness"
+                    }
+                },
+                {
+                    "id": "percentage",
+                    "displayName": "    Percentage disintegrated",
+                    "description": "",
+                    "type": "Float",
+                    "defaultValue": 0.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_disintegrate_percentage"
+                    }
+                }
             ]
         }
     },
@@ -1186,7 +1257,13 @@
         {
             "type": "Lua",
             "args": {
-                "file": "StandardPBR_ShaderEnable.lua"
+                "file": "EnhancedPBR_ShaderEnable.lua"
+            }
+        },
+        {
+            "type": "Lua",
+            "args": {
+                "file": "MaterialInputs/DisintegrateEffectCommonFunctor.lua"
             }
         }
     ],

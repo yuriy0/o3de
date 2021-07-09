@@ -8,10 +8,15 @@
                 "SourcePaths":
                 [
                     "Gems/Atom/Tools/MaterialEditor",
-                    "Gems/UiBasics",
-                    "Gems/AtomContent/ReferenceMaterials",
-                    "Gems/AtomContent/LookDevelopmentStudioPixar",
-                    "Gems/AtomContent/Sponza"
+                    "Gems/AtomContent/ReferenceMaterials"
+                ]
+            },
+            "Hair":
+            {
+                "SourcePaths":
+                [
+                    "Gems/AtomTressFX/Assets",
+                    "Gems/AtomTressFX/External/Assets"
                 ]
             }
         }

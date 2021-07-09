@@ -8,7 +8,7 @@
  */
 
 #include <SceneAPI/FbxSDKWrapper/FbxNodeWrapper.h>
-#include <SceneAPI/FbxSceneBuilder/Tests/TestFbxMesh.h>
+#include <SceneAPI/SceneBuilder/Tests/TestFbxMesh.h>
 
 namespace AZ
 {

@@ -28,7 +28,7 @@ namespace AZ
     namespace FbxSDKWrapper
     {
         FbxMaterialWrapper::FbxMaterialWrapper(FbxSurfaceMaterial* fbxMaterial)
-            : SDKMaterial::MaterialWrapper(fbxMaterial)
+            : SDKMaterial::MaterialWrapper(nullptr), m_fbxMaterial(fbxMaterial)
         {
             AZ_Assert(fbxMaterial, "Invalid FbxSurfaceMaterial input to initialize FbxMaterialWrapper");
         }

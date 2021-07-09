@@ -26,18 +26,18 @@
 #include <SceneAPI/SceneBuilder/Importers/AssImpBoneImporter.h>
 #include <SceneAPI/SceneBuilder/Importers/AssImpAnimationImporter.h>
 #include <SceneAPI/SceneBuilder/Importers/AssImpBlendShapeImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxAnimationImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxBlendShapeImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxBoneImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxColorStreamImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxTangentStreamImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxBitangentStreamImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxMaterialImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxMeshImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxSkinImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxSkinWeightsImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxTransformImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxUvMapImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxAnimationImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxBlendShapeImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxBoneImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxColorStreamImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxTangentStreamImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxBitangentStreamImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxMaterialImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxMeshImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxSkinImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxSkinWeightsImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxTransformImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxUvMapImporter.h>
 
 namespace AZ
 {

@@ -1,0 +1,12 @@
+
+#pragma once
+
+#define COMMON_SRG_INPUTS_DISINTEGRATE_EFFECT(prefix) \
+Texture2D m_disintegrate_mask;\
+float3 m_disintegrate_tint;\
+float m_disintegrate_thickness;\
+float m_disintegrate_percentage;\
+float m_disintegrate_emissivePower;
+
+#define COMMON_OPTIONS_DISINTEGRATE_EFFECT(prefix)   \
+option bool o_disintegrate_effect_enabled = false;

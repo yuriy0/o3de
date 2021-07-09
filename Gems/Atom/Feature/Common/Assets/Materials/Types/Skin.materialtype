@@ -54,6 +54,11 @@
                 "description": "Properties for wrinkle maps to support morph animation, using vertex color blend weights."
             },
             {
+                "id": "debug",
+                "displayName": "Debug Settings",
+                "description": "Debug settings."
+            },
+            {
                 "id": "general",
                 "displayName": "General Settings",
                 "description": "General settings."
@@ -739,6 +744,45 @@
                     "defaultValue": 3.0,
                     "min": 0.0,
                     "softMax": 20.0
+                }
+            ],
+            "debug": [
+                {
+                    "id": "shaderDebugOutput",
+                    "displayName": "Shader Debug Output",
+                    "type": "Enum",
+                    "enumValues": [ "None", "VertexNormal", "Normal", "VertexTangent", "Tanget", "VertexUv", "Uv", "DebugLighting" ],
+                    "defaultValue": "None",
+                    "connection": {
+                        "type": "ShaderOption",
+                        "id": "o_shader_debug_output"
+                    }
+                },
+                {
+                    "id": "debugAngleXY",
+                    "displayName": "Debug Angle XY",
+                    "description": "Debug Angle XY",
+                    "type": "float",
+                    "defaultValue": 0.0,
+                    "min": 0.0,
+                    "max": 7.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_debugAngleXY"
+                    }
+                },
+                {
+                    "id": "debugAngleZ",
+                    "displayName": "Debug Angle Z",
+                    "description": "Debug Angle Z",
+                    "type": "float",
+                    "defaultValue": 0.0,
+                    "min": 0.0,
+                    "max": 3.5,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_debugAngleZ"
+                    }
                 }
             ],
             "wrinkleLayers": [

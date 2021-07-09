@@ -20,6 +20,9 @@
 
 option bool o_enableDualSpecular = true;
 
+option enum class ShaderDebugOutput {None, VertexNormal, Normal, VertexTangent, Tanget, VertexUv, Uv, DebugLighting} o_shader_debug_output;
+
+
 // Then define the Diffuse and Specular lighting functions
 float3 GetDiffuseLighting(Surface surface, LightingData lightingData, float3 lightIntensity, float3 dirToLight)
 {
@@ -105,6 +108,14 @@ PbrLightingOutput GetPbrLightingOutput(Surface surface, LightingData lightingDat
     lightingOutput.m_albedo.a = lightingData.specularOcclusion;
     lightingOutput.m_normal.rgb = EncodeNormalSignedOctahedron(surface.normal);
     lightingOutput.m_normal.a = o_specularF0_enableMultiScatterCompensation ? 1.0f : 0.0f;
-    
+
+    if(o_shader_debug_output != ShaderDebugOutput::None)
+    {
+        lightingOutput.m_specularF0 = float4(0, 0, 0, 0);
+        lightingOutput.m_albedo = float4(0, 0, 0, 0);
+        lightingOutput.m_specularColor = float4(0, 0, 0, 1);
+        lightingOutput.m_diffuseColor = float4(0, 0, 0, 1);
+    }
+
     return lightingOutput;
 }

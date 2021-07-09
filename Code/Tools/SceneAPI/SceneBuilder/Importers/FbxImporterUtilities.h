@@ -7,10 +7,11 @@
 
 #pragma once
 
-#include <SceneAPI/FbxSceneBuilder/ImportContexts/FbxImportContexts.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/FbxImportContexts.h>
 #include <SceneAPI/SceneCore/DataTypes/MatrixType.h>
 #include <SceneAPI/SceneCore/Events/CallProcessorBus.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/ImporterUtilities.h>
+#include <SceneAPI/SceneBuilder/Importers/ImporterUtilities.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/ImportContexts.h>
 
 namespace AZ
 {
@@ -24,7 +25,7 @@ namespace AZ
 
     namespace SceneAPI
     {
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             struct FbxImportContext;
 
@@ -51,8 +52,8 @@ namespace AZ
             // of the node in bindpose. Returns false if bindpose info is not available for the node.
             bool GetBindPoseLocalTransform(const FbxSDKWrapper::FbxSceneWrapper& sceneWrapper,
                 FbxSDKWrapper::FbxNodeWrapper& nodeWrapper, DataTypes::MatrixType& xf);
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ
 
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxImporterUtilities.inl>
+#include <SceneAPI/SceneBuilder/Importers/FbxImporterUtilities.inl>

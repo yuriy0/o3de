@@ -10,7 +10,7 @@
 *
 */
 
-#include <SceneAPI/FbxSceneBuilder/ImportContexts/FbxImportContexts.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/FbxImportContexts.h>
 #include <SceneAPI/FbxSDKWrapper/FbxNodeWrapper.h>
 #include <SceneAPI/SceneCore/Events/ImportEventContext.h>
 
@@ -18,10 +18,10 @@ namespace AZ
 {
     namespace SceneAPI
     {
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             FbxImportContext::FbxImportContext(const FbxSDKWrapper::FbxSceneWrapper& sourceScene, 
-                const FbxSceneSystem& sourceSceneSystem, FbxSDKWrapper::FbxNodeWrapper& sourceNode)
+                const SceneSystem& sourceSceneSystem, FbxSDKWrapper::FbxNodeWrapper& sourceNode)
                 : m_sourceScene(sourceScene)
                 , m_sourceSceneSystem(sourceSceneSystem)
                 , m_sourceNode(sourceNode)
@@ -30,7 +30,7 @@ namespace AZ
 
             FbxNodeEncounteredContext::FbxNodeEncounteredContext(Containers::Scene& scene,
                 Containers::SceneGraph::NodeIndex currentGraphPosition, const FbxSDKWrapper::FbxSceneWrapper& sourceScene,
-                const FbxSceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap, FbxSDKWrapper::FbxNodeWrapper& sourceNode)
+                const SceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap, FbxSDKWrapper::FbxNodeWrapper& sourceNode)
                 : FbxImportContext(sourceScene, sourceSceneSystem, sourceNode)
                 , NodeEncounteredContext(scene, currentGraphPosition, nodeNameMap)
             {
@@ -38,7 +38,7 @@ namespace AZ
 
             FbxNodeEncounteredContext::FbxNodeEncounteredContext(
                 Events::ImportEventContext& parent, Containers::SceneGraph::NodeIndex currentGraphPosition,
-                const FbxSDKWrapper::FbxSceneWrapper& sourceScene, const FbxSceneSystem& sourceSceneSystem,
+                const FbxSDKWrapper::FbxSceneWrapper& sourceScene, const SceneSystem& sourceSceneSystem,
                 RenamedNodesMap& nodeNameMap, FbxSDKWrapper::FbxNodeWrapper& sourceNode)
                 : FbxImportContext(sourceScene, sourceSceneSystem, sourceNode)
                 , NodeEncounteredContext(parent.GetScene(), currentGraphPosition, nodeNameMap)
@@ -54,7 +54,7 @@ namespace AZ
 
             SceneDataPopulatedContext::SceneDataPopulatedContext(Containers::Scene& scene,
                 Containers::SceneGraph::NodeIndex currentGraphPosition, const FbxSDKWrapper::FbxSceneWrapper& sourceScene,
-                const FbxSceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap, FbxSDKWrapper::FbxNodeWrapper& sourceNode,
+                const SceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap, FbxSDKWrapper::FbxNodeWrapper& sourceNode,
                 const AZStd::shared_ptr<DataTypes::IGraphObject>& nodeData, const AZStd::string& dataName)
                 : FbxImportContext(sourceScene, sourceSceneSystem, sourceNode)
                 , SceneDataPopulatedContextBase(scene, currentGraphPosition, nodeNameMap, nodeData, dataName)
@@ -70,7 +70,7 @@ namespace AZ
 
             SceneNodeAppendedContext::SceneNodeAppendedContext(Containers::Scene& scene,
                 Containers::SceneGraph::NodeIndex currentGraphPosition, const FbxSDKWrapper::FbxSceneWrapper& sourceScene,
-                const FbxSceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap, FbxSDKWrapper::FbxNodeWrapper& sourceNode)
+                const SceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap, FbxSDKWrapper::FbxNodeWrapper& sourceNode)
                 : FbxImportContext(sourceScene, sourceSceneSystem, sourceNode)
                 , SceneNodeAppendedContextBase(scene, currentGraphPosition, nodeNameMap)
             {
@@ -104,12 +104,12 @@ namespace AZ
             }
 
             FinalizeSceneContext::FinalizeSceneContext(Containers::Scene& scene, const FbxSDKWrapper::FbxSceneWrapper& sourceScene,
-                const FbxSceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap)
+                const SceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap)
                 : FinalizeSceneContextBase(scene, nodeNameMap)
                 , m_sourceScene(sourceScene)
                 , m_sourceSceneSystem(sourceSceneSystem)
             {
             }
         } // namespace SceneAPI
-    } // namespace FbxSceneBuilder
+    } // namespace SceneBuilder
 } // namespace AZ

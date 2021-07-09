@@ -14,7 +14,7 @@
 
 #include <AzCore/RTTI/RTTI.h>
 #include <AzCore/std/string/string.h>
-#include <SceneAPI/FbxSceneBuilder/ImportContexts/ImportContexts.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/ImportContexts.h>
 #include <SceneAPI/SceneCore/Containers/SceneGraph.h>
 
 namespace AZ
@@ -27,9 +27,9 @@ namespace AZ
     
     namespace SceneAPI
     {
-        class FbxSceneSystem;
+        class SceneSystem;
 
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             class RenamedNodesMap;
 
@@ -43,11 +43,11 @@ namespace AZ
             {
                 AZ_RTTI(FbxImportContext, "{C8D665D5-E871-41AD-90E7-C84CF6842BCF}");
 
-                FbxImportContext(const FbxSDKWrapper::FbxSceneWrapper& sourceScene, const FbxSceneSystem& sourceSceneSystem, 
+                FbxImportContext(const FbxSDKWrapper::FbxSceneWrapper& sourceScene, const SceneSystem& sourceSceneSystem, 
                     FbxSDKWrapper::FbxNodeWrapper& sourceNode);
 
                 const FbxSDKWrapper::FbxSceneWrapper& m_sourceScene;
-                const FbxSceneSystem& m_sourceSceneSystem; // Needed for unit and axis conversion
+                const SceneSystem& m_sourceSceneSystem; // Needed for unit and axis conversion
                 FbxSDKWrapper::FbxNodeWrapper& m_sourceNode;
             };
 
@@ -65,11 +65,11 @@ namespace AZ
 
                 FbxNodeEncounteredContext(Containers::Scene& scene, 
                     Containers::SceneGraph::NodeIndex currentGraphPosition, const FbxSDKWrapper::FbxSceneWrapper& sourceScene,
-                    const FbxSceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap, FbxSDKWrapper::FbxNodeWrapper& sourceNode);
+                    const SceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap, FbxSDKWrapper::FbxNodeWrapper& sourceNode);
 
                 FbxNodeEncounteredContext(Events::ImportEventContext& parent, 
                     Containers::SceneGraph::NodeIndex currentGraphPosition, const FbxSDKWrapper::FbxSceneWrapper& sourceScene,
-                    const FbxSceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap, FbxSDKWrapper::FbxNodeWrapper& sourceNode);
+                    const SceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap, FbxSDKWrapper::FbxNodeWrapper& sourceNode);
             };
 
             //  SceneDataPopulatedContext
@@ -95,7 +95,7 @@ namespace AZ
 
                 SceneDataPopulatedContext(Containers::Scene& scene, 
                     Containers::SceneGraph::NodeIndex currentGraphPosition, const FbxSDKWrapper::FbxSceneWrapper& sourceScene, 
-                    const FbxSceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap, FbxSDKWrapper::FbxNodeWrapper& sourceNode,
+                    const SceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap, FbxSDKWrapper::FbxNodeWrapper& sourceNode,
                     const AZStd::shared_ptr<DataTypes::IGraphObject>& nodeData, const AZStd::string& dataName);
             };
 
@@ -112,7 +112,7 @@ namespace AZ
                 SceneNodeAppendedContext(SceneDataPopulatedContext& parent, Containers::SceneGraph::NodeIndex newIndex);
                 SceneNodeAppendedContext(Containers::Scene& scene,
                     Containers::SceneGraph::NodeIndex currentGraphPosition, const FbxSDKWrapper::FbxSceneWrapper& sourceScene, 
-                    const FbxSceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap, FbxSDKWrapper::FbxNodeWrapper& sourceNode);
+                    const SceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap, FbxSDKWrapper::FbxNodeWrapper& sourceNode);
             };
 
             // SceneAttributeDataPopulatedContext
@@ -173,12 +173,12 @@ namespace AZ
                 AZ_RTTI(FinalizeSceneContext, "{C8D665D5-E871-41AD-90E7-C84CF6842BCF}", FinalizeSceneContextBase);
 
                 FinalizeSceneContext(Containers::Scene& scene, const FbxSDKWrapper::FbxSceneWrapper& sourceScene, 
-                    const FbxSceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap);
+                    const SceneSystem& sourceSceneSystem, RenamedNodesMap& nodeNameMap);
 
                 const FbxSDKWrapper::FbxSceneWrapper& m_sourceScene;
-                const FbxSceneSystem& m_sourceSceneSystem; // Needed for unit and axis conversion
+                const SceneSystem& m_sourceSceneSystem; // Needed for unit and axis conversion
             };
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ
 

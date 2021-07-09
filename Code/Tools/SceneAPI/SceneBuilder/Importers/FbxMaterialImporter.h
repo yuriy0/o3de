@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include <SceneAPI/FbxSceneBuilder/ImportContexts/FbxImportContexts.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/FbxImportContexts.h>
 #include <SceneAPI/SceneCore/Events/ProcessingResult.h>
 #include <SceneAPI/SceneCore/Components/LoadingComponent.h>
 
@@ -28,7 +28,7 @@ namespace AZ
 
     namespace SceneAPI
     {
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             class FbxMaterialImporter
                 : public SceneCore::LoadingComponent
@@ -46,6 +46,6 @@ namespace AZ
             protected:
                 AZStd::shared_ptr<SceneData::GraphData::MaterialData> BuildMaterial(FbxSDKWrapper::FbxNodeWrapper& node, int materialIndex) const;
             };
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ

@@ -9,9 +9,26 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     float3 tangents[UvSetCount] = { IN.m_tangent.xyz, IN.m_tangent.xyz };
     float3 bitangents[UvSetCount] = { IN.m_bitangent.xyz, IN.m_bitangent.xyz };
 
+
+
     if ((o_parallax_feature_enabled && !o_enableSubsurfaceScattering) || o_normal_useTexture || (o_clearCoat_enabled && o_clearCoat_normal_useTexture) || o_detail_normal_useTexture)
     {
         PrepareGeneratedTangent(IN.m_normal, IN.m_worldPosition, isFrontFace, IN.m_uv, UvSetCount, tangents, bitangents);
+    }
+
+    if (o_force_normals_to_face_camera)
+    {
+        float3 dirToCamera = normalize(ViewSrg::m_worldPosition.xyz - IN.m_worldPosition);
+        float3 tangent = tangents[0];
+
+        // Handle case where tangent is aligned with camera
+        if(all(tangent == dirToCamera) || all(tangent == -dirToCamera))
+        {
+            tangent += IN.m_normal * 0.001f;
+        }
+
+        float3 bitangent = cross(dirToCamera, tangent);
+        IN.m_normal = normalize( cross(tangent, bitangent) );
     }
 
     // ------- Depth & Parallax -------
@@ -65,6 +82,12 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
         }
     }
 
+    // ------- Disintegrate effect clip -------
+
+    DisintegrateClipParams disintegrateEffect;
+    disintegrateEffect.uv = opacityUv;
+    DisintegratePostClipState disintegrateState = ClipDisintegrateEffect(disintegrateEffect);
+
     // ------- Detail Layer Setup -------
 
     const float2 detailUv = IN.m_detailUv[MaterialSrg::m_detail_allMapsUvIndex];
@@ -108,6 +131,10 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     {
         ApplyParallaxClippingHighlight(baseColor);
     }
+
+    // ------- Disintegrate effect modify base color -------
+    float3 disintegrateEmissive = float3(0,0,0);
+    ModifySurfaceForDisintegrate(disintegrateState, baseColor, disintegrateEmissive);
 
     // ------- Metallic -------
 
@@ -171,10 +198,17 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     float2 emissiveUv = IN.m_uv[MaterialSrg::m_emissiveMapUvIndex];
     lightingData.emissiveLighting = GetEmissiveInput(MaterialSrg::m_emissiveMap, MaterialSrg::m_sampler, emissiveUv, MaterialSrg::m_emissiveIntensity, MaterialSrg::m_emissiveColor.rgb, o_emissiveEnabled, o_emissive_useTexture);
 
+    // ------- Disintegrate Emissive -------
+    lightingData.emissiveLighting += disintegrateEmissive;
+
     // ------- Occlusion -------
     
     lightingData.diffuseAmbientOcclusion = GetOcclusionInput(MaterialSrg::m_diffuseOcclusionMap, MaterialSrg::m_sampler, IN.m_uv[MaterialSrg::m_diffuseOcclusionMapUvIndex], MaterialSrg::m_diffuseOcclusionFactor, o_diffuseOcclusion_useTexture);
     lightingData.specularOcclusion = GetOcclusionInput(MaterialSrg::m_specularOcclusionMap, MaterialSrg::m_sampler, IN.m_uv[MaterialSrg::m_specularOcclusionMapUvIndex], MaterialSrg::m_specularOcclusionFactor, o_specularOcclusion_useTexture);
+    if (o_apply_ssao && (o_opacity_mode == OpacityMode::Opaque || o_opacity_mode == OpacityMode::Cutout))
+    {
+        lightingData.ssao = PassSrg::m_ssaoTexture.Load(uint3(IN.m_position.x, IN.m_position.y, 0)).x;
+    }
 
     // ------- Clearcoat -------
     

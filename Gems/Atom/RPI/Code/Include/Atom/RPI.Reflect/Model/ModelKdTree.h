@@ -95,10 +95,10 @@ namespace AZ
         class ModelKdTreeNode
         {
         public:
-            AZ::u32 GetVertexBufferSize() const
-            {
-                return aznumeric_cast<AZ::u32>(m_vertexIndices.size());
-            }
+            //AZ::u32 GetVertexBufferSize() const
+            //{
+            //    return aznumeric_cast<AZ::u32>(m_vertexIndices.size());
+            //}
             float GetSplitPos() const
             {
                 return m_splitPos;
@@ -143,23 +143,23 @@ namespace AZ
             {
                 m_boundBox = aabb;
             }
-            void SetVertexIndexBuffer(AZStd::vector<AZStd::tuple<AZ::u8, ModelKdTree::TriangleIndices>>&& vertexInfos)
-            {
-                m_vertexIndices.swap(vertexInfos);
-            }
+            //void SetVertexIndexBuffer(AZStd::vector<AZStd::tuple<AZ::u8, ModelKdTree::TriangleIndices>>&& vertexInfos)
+            //{
+            //    m_vertexIndices.swap(vertexInfos);
+            //}
 
-            ModelKdTree::TriangleIndices GetVertexIndex(AZ::u32 nIndex) const
-            {
-                return AZStd::get<1>(m_vertexIndices[nIndex]);
-            }
-            AZ::u8 GetObjIndex(AZ::u32 nIndex) const
-            {
-                return AZStd::get<0>(m_vertexIndices[nIndex]);
-            }
+            //ModelKdTree::TriangleIndices GetVertexIndex(AZ::u32 nIndex) const
+            //{
+            //    return AZStd::get<1>(m_vertexIndices[nIndex]);
+            //}
+            //AZ::u8 GetObjIndex(AZ::u32 nIndex) const
+            //{
+            //    return AZStd::get<0>(m_vertexIndices[nIndex]);
+            //}
 
         private:
             AZ::Aabb m_boundBox{};  // Both
-            AZStd::vector<AZStd::tuple<AZ::u8, ModelKdTree::TriangleIndices>> m_vertexIndices;
+            //AZStd::vector<AZStd::tuple<AZ::u8, ModelKdTree::TriangleIndices>> m_vertexIndices;
             AZStd::array<AZStd::unique_ptr<ModelKdTreeNode>, 2> m_children{};   // Interior
             float m_splitPos{}; // Interior
             ModelKdTree::ESplitAxis m_splitAxis = ModelKdTree::eSA_Invalid;  // Interior;

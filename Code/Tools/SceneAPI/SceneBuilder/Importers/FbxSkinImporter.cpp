@@ -13,10 +13,10 @@
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzCore/std/smart_ptr/make_shared.h>
 #include <AzToolsFramework/Debug/TraceContext.h>
-#include <SceneAPI/FbxSceneBuilder/FbxSceneSystem.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxSkinImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxImporterUtilities.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/Utilities/FbxMeshImporterUtilities.h>
+#include <SceneAPI/SceneBuilder/SceneSystem.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxSkinImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxImporterUtilities.h>
+#include <SceneAPI/SceneBuilder/Importers/Utilities/FbxMeshImporterUtilities.h>
 #include <SceneAPI/FbxSDKWrapper/FbxNodeWrapper.h>
 #include <SceneAPI/FbxSDKWrapper/FbxMeshWrapper.h>
 #include <SceneAPI/SceneCore/Containers/Scene.h>
@@ -27,7 +27,7 @@ namespace AZ
 {
     namespace SceneAPI
     {
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             FbxSkinImporter::FbxSkinImporter()
             {
@@ -64,6 +64,6 @@ namespace AZ
                     return Events::ProcessingResult::Failure;
                 }
             }
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ

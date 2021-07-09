@@ -13,9 +13,9 @@
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzCore/std/smart_ptr/make_shared.h>
 #include <AzToolsFramework/Debug/TraceContext.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxBitangentStreamImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxImporterUtilities.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/Utilities/RenamedNodesMap.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxBitangentStreamImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxImporterUtilities.h>
+#include <SceneAPI/SceneBuilder/Importers/Utilities/RenamedNodesMap.h>
 #include <SceneAPI/FbxSDKWrapper/FbxNodeWrapper.h>
 #include <SceneAPI/FbxSDKWrapper/FbxVertexBitangentWrapper.h>
 #include <SceneAPI/SceneData/GraphData/MeshData.h>
@@ -28,7 +28,7 @@ namespace AZ
 {
     namespace SceneAPI
     {
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             FbxBitangentStreamImporter::FbxBitangentStreamImporter()
             {
@@ -96,7 +96,7 @@ namespace AZ
                     }
 
                     bitangentStream->SetBitangentSetIndex(elementIndex);
-                    bitangentStream->SetTangentSpace(AZ::SceneAPI::DataTypes::TangentSpace::FromFbx);
+                    bitangentStream->SetTangentSpace(AZ::SceneAPI::DataTypes::TangentSpace::FromSourceScene);
 
                     Containers::SceneGraph::NodeIndex newIndex = context.m_scene.GetGraph().AddChild(context.m_currentGraphPosition, nodeName.c_str());
                     AZ_Assert(newIndex.IsValid(), "Failed to create SceneGraph node for attribute.");
@@ -155,6 +155,6 @@ namespace AZ
 
                 return bitangentData;
             }
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ

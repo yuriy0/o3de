@@ -489,6 +489,10 @@ void MainWindow::Initialize()
     ActionOverrideRequestBus::Event(
         GetEntityContextId(), &ActionOverrideRequests::SetupActionOverrideHandler, this);
 
+    AzToolsFramework::Ticker* ticker = new AzToolsFramework::Ticker(this);
+    ticker->Start();
+    connect(ticker, &AzToolsFramework::Ticker::Tick, this, &MainWindow::SystemTick);
+
     AzToolsFramework::EditorEventsBus::Broadcast(&AzToolsFramework::EditorEvents::NotifyMainWindowInitialized, this);
 }
 

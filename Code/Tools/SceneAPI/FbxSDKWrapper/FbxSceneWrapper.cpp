@@ -28,10 +28,11 @@ namespace AZ
         }
 
         FbxSceneWrapper::FbxSceneWrapper(FbxScene* fbxScene)
-            : SceneWrapperBase(fbxScene)
+            : SceneWrapperBase()
             , m_fbxManager(nullptr)
             , m_fbxImporter(nullptr)
             , m_fbxIOSettings(nullptr)
+            , m_fbxScene(fbxScene)
         {
             AZ_Assert(fbxScene, "FbxSceneWrapper should have a valid scene to initialize.");
         }

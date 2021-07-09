@@ -18,6 +18,7 @@
 #include <AzCore/std/string/conversions.h>
 #include <AzCore/std/smart_ptr/make_shared.h>
 #include <AzCore/Utils/TypeHash.h>
+#include <AzCore/Settings/SettingsRegistry.h>
 
 namespace AZ
 {
@@ -160,6 +161,18 @@ namespace AZ
 #else
             m_features.m_rayTracing = false;
 #endif
+
+            // APC BEGIN
+            // Temporary hack: Setting for disabled RTX features even on hardward which supports it
+            if (auto settingsRegistry = AZ::SettingsRegistry::Get())
+            {
+                bool forceDisableFlag;
+                if (settingsRegistry->Get(forceDisableFlag, "/Amazon/AzCore/Bootstrap/ForceDisableRTX") && forceDisableFlag)
+                {
+                    m_features.m_rayTracing = false;
+                }
+            }
+            // APC END
 
             m_features.m_unboundedArrays = true;
 

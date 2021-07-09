@@ -88,6 +88,7 @@ namespace AzToolsFramework
 
         void RootAssetBrowserEntry::AddFile(const AssetDatabase::FileDatabaseEntry& fileDatabaseEntry)
         {
+            AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
             using namespace AzFramework;
             
             AssetBrowserEntry* scanFolder = nullptr;

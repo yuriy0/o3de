@@ -24,6 +24,7 @@
 #include "MaterialInputs/ParallaxInput.azsli"
 #include "MaterialInputs/UvSetCount.azsli"
 #include "MaterialInputs/DetailMapsInput.azsli"
+#include "MaterialInputs/DisintegrateEffectInput.azsli"
 
 ShaderResourceGroup MaterialSrg : SRG_PerMaterial
 {
@@ -50,7 +51,6 @@ ShaderResourceGroup MaterialSrg : SRG_PerMaterial
     float m_anisotropicFactor;  // Base layer anisotropic strength of deviation:  negative = Bi-Normal direction, positive = Tangent direction
 
     float m_opacityFactor;
-    float m_opacityAffectsSpecularFactor;
     Texture2D m_opacityMap;
     uint m_opacityMapUvIndex;
 
@@ -99,6 +99,8 @@ ShaderResourceGroup MaterialSrg : SRG_PerMaterial
     float4 m_transmissionTintThickness;
     Texture2D m_transmissionThicknessMap;
     uint m_transmissionThicknessMapUvIndex;
+
+    COMMON_SRG_INPUTS_DISINTEGRATE_EFFECT()
 }
 
 // Callback function for ParallaxMapping.azsli
@@ -121,3 +123,9 @@ bool ShouldHandleParallaxInDepthShaders()
     // parallax could affect texel clipping.
     return ShouldHandleParallax() && (o_parallax_enablePixelDepthOffset || o_opacity_mode == OpacityMode::Cutout);
 }
+
+
+COMMON_OPTIONS_DISINTEGRATE_EFFECT()
+
+
+#include <Atom/Features/Effects/DisintegrateCommon.azsli>

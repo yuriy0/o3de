@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
-#include <SceneAPI/FbxSceneBuilder/Tests/TestFbxNode.h>
+#include <SceneAPI/SceneBuilder/Tests/TestFbxNode.h>
 
 namespace AZ
 {

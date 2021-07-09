@@ -59,6 +59,7 @@ namespace AzToolsFramework
 
         void AssetEntryChangeset::Synchronize()
         {
+            AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
             using namespace AssetDatabase;
 
             AZStd::lock_guard<AZStd::mutex> locker(m_mutex);

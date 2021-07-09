@@ -13,14 +13,14 @@
 #pragma once
 
 #include <AzCore/Math/Transform.h>
-#include <SceneAPI/FbxSceneBuilder/ImportContexts/FbxImportContexts.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/FbxImportContexts.h>
 #include <SceneAPI/SceneCore/Components/LoadingComponent.h>
 
 namespace AZ
 {
     namespace SceneAPI
     {
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             class FbxTransformImporter
                 : public SceneCore::LoadingComponent
@@ -38,6 +38,6 @@ namespace AZ
             protected:
                 static const char* s_transformNodeName;
             };
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ

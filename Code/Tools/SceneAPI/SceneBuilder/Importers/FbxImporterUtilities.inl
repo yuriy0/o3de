@@ -10,8 +10,8 @@
 *
 */
 
-#include <SceneAPI/FbxSceneBuilder/ImportContexts/FbxImportContexts.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxImporterUtilities.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/FbxImportContexts.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxImporterUtilities.h>
 #include <SceneAPI/FbxSDKWrapper/FbxNodeWrapper.h>
 #include <SceneAPI/FbxSDKWrapper/FbxSkinWrapper.h>
 #include <SceneAPI/SceneCore/Containers/Scene.h>
@@ -21,7 +21,7 @@ namespace AZ
 {
     namespace SceneAPI
     {
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             //bool NodeIsOfType(const CoreSceneGraph& sceneGraph, CoreGraphNodeIndex nodeIndex, const AZ::Uuid& uuid)
             //{
@@ -77,6 +77,6 @@ namespace AZ
 
             //    return true;
             //}
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ

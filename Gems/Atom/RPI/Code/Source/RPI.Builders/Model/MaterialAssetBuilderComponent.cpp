@@ -78,7 +78,11 @@ namespace AZ
             jobDependency.m_platformIdentifier = platformIdentifier;
             jobDependency.m_type = AssetBuilderSDK::JobDependencyType::Order;
 
-            jobDependencyList.push_back(jobDependency);
+            // APC BEGIN
+            // Don't create a dependency between all FBXs and StandardPBR, as shader code currently is changing too frequently for this to be workeable
+            (void)(jobDependencyList, jobDependency);
+            // jobDependencyList.push_back(jobDependency);
+            // APC END
         }
 
         void MaterialAssetBuilderComponent::Reflect(ReflectContext* context)
@@ -86,7 +90,7 @@ namespace AZ
             if (auto* serialize = azrtti_cast<SerializeContext*>(context))
             {
                 serialize->Class<MaterialAssetBuilderComponent, SceneAPI::SceneCore::ExportingComponent>()
-                    ->Version(14);  // [ATOM-13410]
+                    ->Version(16);  // [ATOM-13410] // APC Version 1
             }
         }
 

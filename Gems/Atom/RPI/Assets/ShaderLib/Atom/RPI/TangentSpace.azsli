@@ -210,3 +210,16 @@ void SurfaceGradientNormalMapping_GenerateTB(float2 uv, out float3 tangentWS, ou
         SurfaceGradientNormalMapping_GenerateTB(uvSets[i], outTangents[i], outBitangents[i]);                               \
     }                                                                                                                       \
 }
+
+// Same as above, only forces the calculation for all tangents and bitangents
+// Introduced as a hack for incorrect vertex tangents on NGaztak (see Skin.azsl)
+#define PrepareGeneratedTangentForce(normal, worldPos, isFrontFace, uvSets, uvSetCount, outTangents, outBitangents)         \
+{                                                                                                                           \
+    SurfaceGradientNormalMapping_Init(normal, worldPos, !isFrontFace);                                                      \
+    [unroll]                                                                                                                \
+    for (uint i = 0; i < uvSetCount; ++i)                                                                                   \
+    {                                                                                                                       \
+        SurfaceGradientNormalMapping_GenerateTB(uvSets[i], outTangents[i], outBitangents[i]);                               \
+    }                                                                                                                       \
+}
+

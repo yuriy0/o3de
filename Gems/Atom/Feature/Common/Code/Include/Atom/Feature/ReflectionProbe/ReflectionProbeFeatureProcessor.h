@@ -47,6 +47,7 @@ namespace AZ
             // find the reflection probe volumes that contain the position
             using ReflectionProbeVector = AZStd::vector<AZStd::shared_ptr<ReflectionProbe>>;
             void FindReflectionProbes(const AZ::Vector3& position, ReflectionProbeVector& reflectionProbes);
+            void FindReflectionProbes(ReflectionProbeVector& reflectionProbes);
 
         private:
 

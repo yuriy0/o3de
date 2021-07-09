@@ -22,7 +22,7 @@ namespace AZ
     namespace FbxSDKWrapper
     {
         FbxNodeWrapper::FbxNodeWrapper(FbxNode* fbxNode)
-            : NodeWrapper(fbxNode)
+            : NodeWrapper(nullptr), m_fbxNode(fbxNode)
         {
             AZ_Assert(fbxNode, "Invalid FbxNode to initialize FbxNodeWrapper");
         }

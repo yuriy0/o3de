@@ -10,9 +10,17 @@
 
 #include <Atom/Features/PostProcessing/FullscreenVertexUtil.azsli>
 #include <Atom/Features/PostProcessing/FullscreenVertexInfo.azsli>
-#include <Atom/Features/PostProcessing/FullscreenPixelInfo.azsli>
+/* #include <Atom/Features/PostProcessing/FullscreenPixelinfo.azsli> */
 #include <Atom/Features/PBR/LightingUtils.azsli>
 #include <Atom/RPI/Math.azsli>
+
+
+struct PSOutput
+{
+    float4 m_color : SV_Target0;
+    float4 m_debugOutput : SV_Target1;
+};
+
 
 ShaderResourceGroup PassSrg : SRG_PerPass
 {
@@ -175,5 +183,8 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
 
     PSOutput OUT;
     OUT.m_color = float4(diffuse, 1.0f);
+
+    OUT.m_debugOutput = OUT.m_color;
+
     return OUT;
 }

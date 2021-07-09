@@ -1,0 +1,52 @@
+
+
+struct DisintegrateClipParams
+{
+    float2 uv;
+};
+
+struct DisintegratePostClipState
+{
+    float percentageSample;
+};
+
+DisintegratePostClipState ClipDisintegrateEffect(DisintegrateClipParams p)
+{
+    DisintegratePostClipState st;
+    if (o_disintegrate_effect_enabled)
+    {
+        float maskValue = MaterialSrg::m_disintegrate_mask.Sample(MaterialSrg::m_sampler, p.uv).r;
+
+        static const float eps = 0.0001;
+        st.percentageSample = maskValue - (MaterialSrg::m_disintegrate_percentage + eps);
+        clip(st.percentageSample);
+    }
+    else
+    {
+        st.percentageSample = 0.0;
+    }
+
+    return st;
+}
+
+// DisintegratePostClipState ClipDisintegrateEffect(DisintegrateClipParams p, inout float alpha)
+// {
+
+// }
+
+void ModifySurfaceForDisintegrate(DisintegratePostClipState st, inout float3 baseColor, inout float3 emissiveColor)
+{
+    if (o_disintegrate_effect_enabled)
+    {
+        const float thickness = MaterialSrg::m_disintegrate_thickness * saturate(MaterialSrg::m_disintegrate_percentage*10.0);
+
+        if (st.percentageSample < thickness)
+        {
+            const float normThickness = smoothstep(0.35, 1.0, st.percentageSample / thickness);
+
+            baseColor = lerp(MaterialSrg::m_disintegrate_tint, baseColor, normThickness);
+
+            emissiveColor += MaterialSrg::m_disintegrate_tint * MaterialSrg::m_disintegrate_emissivePower * (1.0 - normThickness);
+        }
+    }
+}

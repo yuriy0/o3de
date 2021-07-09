@@ -13,7 +13,7 @@
 #pragma once
 
 #include <AzCore/std/containers/vector.h>
-#include <SceneAPI/FbxSceneBuilder/ImportContexts/FbxImportContexts.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/FbxImportContexts.h>
 #include <SceneAPI/FbxSDKWrapper/FbxNodeWrapper.h>
 #include <SceneAPI/SceneCore/Components/LoadingComponent.h>
 #include <SceneAPI/SceneCore/DataTypes/GraphData/ISkinWeightData.h>
@@ -40,7 +40,7 @@ namespace AZ
             class PostImportEventContext;
         }
 
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             class FbxSkinWeightsImporter
                 : public SceneCore::LoadingComponent
@@ -74,6 +74,6 @@ namespace AZ
 
                 static const AZStd::string s_skinWeightName;
             };
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ

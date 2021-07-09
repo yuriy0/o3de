@@ -13,7 +13,7 @@
 #pragma once
 
 #include <fbxsdk.h>
-#include <SceneAPI/FbxSceneBuilder/ImportContexts/FbxImportContexts.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/FbxImportContexts.h>
 #include <SceneAPI/FbxSDKWrapper/FbxTimeWrapper.h>
 #include <SceneAPI/SceneCore/Components/LoadingComponent.h>
 
@@ -21,7 +21,7 @@ namespace AZ
 {
     namespace SceneAPI
     {
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             class FbxAnimationImporter
                 : public SceneCore::LoadingComponent
@@ -41,6 +41,6 @@ namespace AZ
                 static const char* s_animationNodeName;
                 static const FbxSDKWrapper::FbxTimeWrapper::TimeMode s_defaultTimeMode;
             };
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ

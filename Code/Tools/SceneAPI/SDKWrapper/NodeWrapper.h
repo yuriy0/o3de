@@ -9,6 +9,11 @@
 
 struct aiNode;
 
+namespace fbxsdk
+{
+    class FbxNode;
+}
+
 namespace AZ
 {
     namespace SDKNode
@@ -37,6 +42,8 @@ namespace AZ
 
             virtual int GetChildCount()const;
             virtual const std::shared_ptr<NodeWrapper> GetChild(int childIndex) const;
+
+            virtual ::fbxsdk::FbxNode* GetFbxNode() const { return nullptr; }
 
             aiNode* m_assImpNode = nullptr;
         };

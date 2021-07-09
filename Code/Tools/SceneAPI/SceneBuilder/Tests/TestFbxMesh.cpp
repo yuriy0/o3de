@@ -6,7 +6,7 @@
  */
 
 #include <AzCore/Casting/numeric_cast.h>
-#include <SceneAPI/FbxSceneBuilder/Tests/TestFbxMesh.h>
+#include <SceneAPI/SceneBuilder/Tests/TestFbxMesh.h>
 #include <fbxsdk.h>
 #include <AzCore/Casting/lossy_cast.h>
 #include <AzCore/Casting/numeric_cast.h>

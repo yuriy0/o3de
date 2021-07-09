@@ -82,7 +82,7 @@ function ProcessEditor(context)
     context:SetMaterialPropertyVisibility("opacity.textureMap", mainVisibility)
     context:SetMaterialPropertyVisibility("opacity.textureMapUv", mainVisibility)
     context:SetMaterialPropertyVisibility("opacity.factor", mainVisibility)
-    context:SetMaterialPropertyVisibility("opacity.doubleSided", mainVisibility)
+    context:SetMaterialPropertyVisibility("opacity.doubleSided", MaterialPropertyVisibility_Enabled)
 
     if(opacityMode == OpacityMode_Blended or opacityMode == OpacityMode_TintedTransparent) then
         context:SetMaterialPropertyVisibility("opacity.alphaAffectsSpecular", MaterialPropertyVisibility_Enabled)

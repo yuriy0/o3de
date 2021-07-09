@@ -140,6 +140,14 @@ function CalcOverallHeightRange(context)
         heightMinMax = {0,0}
     end
 
+    -- How does this happen?
+    if (heightMinMax[0] == nil) then
+       heightMinMax[0] = 0
+    end
+    if (heightMinMax[1] == nil) then
+       heightMinMax[1] = 1
+    end
+
     return heightMinMax
 end
 

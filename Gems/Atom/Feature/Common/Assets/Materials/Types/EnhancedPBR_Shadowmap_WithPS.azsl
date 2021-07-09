@@ -95,5 +95,10 @@ PSDepthOutput MainPS(VertexOutput IN, bool isFrontFace : SV_IsFrontFace)
     float alpha = SampleAlpha(MaterialSrg::m_baseColorMap, MaterialSrg::m_opacityMap, baseColorUV, opacityUV, MaterialSrg::m_sampler, o_opacity_source);
     CheckClipping(alpha, MaterialSrg::m_opacityFactor);
 
+    // Disintegrate effect
+    DisintegrateClipParams disintegrateEffect;
+    disintegrateEffect.uv = opacityUV;
+    DisintegratePostClipState disintegrateState = ClipDisintegrateEffect(disintegrateEffect);
+
     return OUT;
 }

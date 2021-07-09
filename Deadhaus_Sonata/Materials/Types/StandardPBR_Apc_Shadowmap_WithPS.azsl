@@ -103,5 +103,10 @@ PSDepthOutput MainPS(VertexOutput IN, bool isFrontFace : SV_IsFrontFace)
     
     OUT.m_color = float4(1,1,1,alpha);
 
+    // Disintegrate effect
+    DisintegrateClipParams disintegrateEffect;
+    disintegrateEffect.uv = opacityUV;
+    DisintegratePostClipState disintegrateState = ClipDisintegrateEffect(disintegrateEffect);
+
     return OUT;
 }

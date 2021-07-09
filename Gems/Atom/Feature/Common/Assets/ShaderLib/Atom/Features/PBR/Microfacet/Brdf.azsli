@@ -20,11 +20,16 @@
 
 // ------- Diffuse Lighting -------
 
-//! Simple Lambertian BRDF. 
-float3 DiffuseLambertian(float3 albedo, float3 normal, float3 dirToLight, float diffuseResponse)
+//! Simple Lambertian BRDF.
+float3 DiffuseLambertian(float3 albedo, float3 normal, float3 dirToLight)
 {
     float NdotL = saturate(dot(normal, dirToLight));
-    return albedo * NdotL * INV_PI * diffuseResponse;
+    return albedo * NdotL * INV_PI;
+}
+ 
+float3 DiffuseLambertian(float3 albedo, float3 normal, float3 dirToLight, float diffuseResponse)
+{
+    return DiffuseLambertian(albedo, normal, dirToLight) * diffuseResponse;
 }
 
 // Normalized Disney diffuse function taken from Frostbite's PBR course notes (page 10):

@@ -154,7 +154,7 @@ namespace AZ
 
             if (indices.size() <= s_MinimumVertexSizeInLeafNode)
             {
-                pNode->SetVertexIndexBuffer(AZStd::move(indices));
+                // pNode->SetVertexIndexBuffer(AZStd::move(indices));
                 return;
             }
 
@@ -165,13 +165,13 @@ namespace AZ
             SSplitInfo splitInfo;
             if (!SplitNode(boundbox, indices, splitAxis, splitPos, splitInfo))
             {
-                pNode->SetVertexIndexBuffer(AZStd::move(indices));
+                // pNode->SetVertexIndexBuffer(AZStd::move(indices));
                 return;
             }
 
             if (splitInfo.m_aboveIndices.empty() || splitInfo.m_belowIndices.empty())
             {
-                pNode->SetVertexIndexBuffer(AZStd::move(indices));
+                // pNode->SetVertexIndexBuffer(AZStd::move(indices));
                 return;
             }
 
@@ -246,57 +246,59 @@ namespace AZ
 
             if (pNode->IsLeaf())
             {
-                if (m_meshes.empty())
-                {
-                    return false;
-                }
+                return true;
 
-                const AZ::u32 nVBuffSize = pNode->GetVertexBufferSize();
-                if (nVBuffSize == 0)
-                {
-                    return false;
-                }
+                //if (m_meshes.empty())
+                //{
+                //    return false;
+                //}
 
-                float nearestDistanceNormalized = distanceNormalized;
-                for (AZ::u32 i = 0; i < nVBuffSize; ++i)
-                {
-                    const auto& [first, second, third] = pNode->GetVertexIndex(i);
-                    const AZ::u32 nObjIndex = pNode->GetObjIndex(i);
+                //const AZ::u32 nVBuffSize = pNode->GetVertexBufferSize();
+                //if (nVBuffSize == 0)
+                //{
+                //    return false;
+                //}
 
-                    const AZStd::array_view<float> positionBuffer = m_meshes[nObjIndex].m_vertexData;
+                //float nearestDistanceNormalized = distanceNormalized;
+                //for (AZ::u32 i = 0; i < nVBuffSize; ++i)
+                //{
+                //    const auto& [first, second, third] = pNode->GetVertexIndex(i);
+                //    const AZ::u32 nObjIndex = pNode->GetObjIndex(i);
 
-                    if (positionBuffer.empty())
-                    {
-                        continue;
-                    }
+                //    const AZStd::array_view<float> positionBuffer = m_meshes[nObjIndex].m_vertexData;
 
-                    const AZStd::array trianglePoints {
-                        AZ::Vector3{positionBuffer[first * 3 + 0], positionBuffer[first * 3 + 1], positionBuffer[first * 3 + 2]},
-                        AZ::Vector3{positionBuffer[second * 3 + 0], positionBuffer[second * 3 + 1], positionBuffer[second * 3 + 2]},
-                        AZ::Vector3{positionBuffer[third * 3 + 0], positionBuffer[third * 3 + 1], positionBuffer[third * 3 + 2]},
-                    };
+                //    if (positionBuffer.empty())
+                //    {
+                //        continue;
+                //    }
 
-                    float hitDistanceNormalized;
-                    AZ::Vector3 intersectionNormal;
-                    const AZ::Vector3 rayEnd = raySrc + rayDir;
-                    if (IntersectSegmentTriangleCCW(raySrc, rayEnd, trianglePoints[0], trianglePoints[1], trianglePoints[2],
-                        intersectionNormal, hitDistanceNormalized) != ISECT_RAY_AABB_NONE)
-                    {
-                        if (nearestDistanceNormalized > hitDistanceNormalized)
-                        {
-                            normal = intersectionNormal;
-                            nearestDistanceNormalized = hitDistanceNormalized;
-                        }
-                    }
-                }
+                //    const AZStd::array trianglePoints {
+                //        AZ::Vector3{positionBuffer[first * 3 + 0], positionBuffer[first * 3 + 1], positionBuffer[first * 3 + 2]},
+                //        AZ::Vector3{positionBuffer[second * 3 + 0], positionBuffer[second * 3 + 1], positionBuffer[second * 3 + 2]},
+                //        AZ::Vector3{positionBuffer[third * 3 + 0], positionBuffer[third * 3 + 1], positionBuffer[third * 3 + 2]},
+                //    };
 
-                if (nearestDistanceNormalized < distanceNormalized)
-                {
-                    distanceNormalized = nearestDistanceNormalized;
-                    return true;
-                }
+                //    float hitDistanceNormalized;
+                //    AZ::Vector3 intersectionNormal;
+                //    const AZ::Vector3 rayEnd = raySrc + rayDir;
+                //    if (IntersectSegmentTriangleCCW(raySrc, rayEnd, trianglePoints[0], trianglePoints[1], trianglePoints[2],
+                //        intersectionNormal, hitDistanceNormalized) != ISECT_RAY_AABB_NONE)
+                //    {
+                //        if (nearestDistanceNormalized > hitDistanceNormalized)
+                //        {
+                //            normal = intersectionNormal;
+                //            nearestDistanceNormalized = hitDistanceNormalized;
+                //        }
+                //    }
+                //}
 
-                return false;
+                //if (nearestDistanceNormalized < distanceNormalized)
+                //{
+                //    distanceNormalized = nearestDistanceNormalized;
+                //    return true;
+                //}
+
+                //return false;
             }
 
             // running both sides to find the closest intersection

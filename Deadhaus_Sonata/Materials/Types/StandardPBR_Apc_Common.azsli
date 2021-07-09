@@ -28,6 +28,7 @@
 #include "../../../Gems/Atom/Feature/Common/Assets/Materials/Types/MaterialInputs/ParallaxInput.azsli"
 #include "../../../Gems/Atom/Feature/Common/Assets/Materials/Types/MaterialInputs/UvSetCount.azsli"
 #include "../../../Gems/Atom/Feature/Common/Assets/Materials/Types/MaterialInputs/DetailMapsInput.azsli"
+#include "../../../Gems/Atom/Feature/Common/Assets/Materials/Types/MaterialInputs/DisintegrateEffectInput.azsli"
 
 ShaderResourceGroup MaterialSrg : SRG_PerMaterial
 {
@@ -123,6 +124,8 @@ ShaderResourceGroup MaterialSrg : SRG_PerMaterial
     float3 m_cloth_subsurface;
     float m_cloth_subsurfaceWrap;
     float m_cloth_sheenRoughness;
+
+    COMMON_SRG_INPUTS_DISINTEGRATE_EFFECT()
 }
 
 // Callback function for ParallaxMapping.azsli
@@ -145,3 +148,13 @@ bool ShouldHandleParallaxInDepthShaders()
     // parallax could affect texel clipping.
     return ShouldHandleParallax() && (o_parallax_enablePixelDepthOffset || o_opacity_mode == OpacityMode::Cutout);
 }
+
+option bool o_apply_ssao = true;
+
+option bool o_force_normals_to_face_camera = false;
+
+
+COMMON_OPTIONS_DISINTEGRATE_EFFECT()
+
+
+#include <Atom/Features/Effects/DisintegrateCommon.azsli>

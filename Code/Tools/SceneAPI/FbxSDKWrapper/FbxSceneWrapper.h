@@ -52,11 +52,13 @@ namespace AZ
             virtual int GetAnimationStackCount() const;
             virtual const std::shared_ptr<FbxAnimStackWrapper> GetAnimationStackAt(int index) const;
             void Clear() override;
+            fbxsdk::FbxScene* GetFbxScene() const override { return m_fbxScene; }
 
         protected:
             FbxManager* m_fbxManager;
             FbxImporter* m_fbxImporter;
             FbxIOSettings* m_fbxIOSettings;
+            fbxsdk::FbxScene* m_fbxScene = nullptr;
         };
     } // namespace FbxSDKWrapper
 } // namespace AZ

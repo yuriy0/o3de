@@ -94,7 +94,13 @@ PSDepthOutput MainPS(VSDepthOutput IN, bool isFrontFace : SV_IsFrontFace)
     float2 baseColorUV = IN.m_uv[MaterialSrg::m_baseColorMapUvIndex];
     float2 opacityUV = IN.m_uv[MaterialSrg::m_opacityMapUvIndex];
     float alpha = GetAlphaInputAndClip(MaterialSrg::m_baseColorMap, MaterialSrg::m_opacityMap, baseColorUV, opacityUV, MaterialSrg::m_sampler, MaterialSrg::m_opacityFactor, o_opacity_source, MaterialSrg::m_cutoutMipBias);
+    /* float alpha = 1.0; */
     OUT.m_color = float4(1,1,1,alpha);
+
+    // Disintegrate effect
+    DisintegrateClipParams disintegrateEffect;
+    disintegrateEffect.uv = opacityUV;
+    DisintegratePostClipState disintegrateState = ClipDisintegrateEffect(disintegrateEffect);
 
     return OUT;
 }

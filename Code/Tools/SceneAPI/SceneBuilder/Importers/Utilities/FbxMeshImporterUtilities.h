@@ -30,13 +30,13 @@ namespace AZ
 
     namespace SceneAPI
     {
-        class FbxSceneSystem;
-        namespace FbxSceneBuilder
+        class SceneSystem;
+        namespace SceneBuilder
         {
             bool BuildSceneMeshFromFbxMesh(const AZStd::shared_ptr<SceneData::GraphData::MeshData>& mesh,
-                const FbxSDKWrapper::FbxMeshWrapper& sourceMesh, const FbxSceneSystem& sceneSystem);
+                const FbxSDKWrapper::FbxMeshWrapper& sourceMesh, const SceneSystem& sceneSystem);
             bool BuildSceneBlendShapeFromFbxBlendShape(const AZStd::shared_ptr<SceneData::GraphData::BlendShapeData>& blendShape,
-                const AZStd::shared_ptr<const FbxSDKWrapper::FbxMeshWrapper>& sourceMesh, const FbxSceneSystem& sceneSystem);
+                const AZStd::shared_ptr<const FbxSDKWrapper::FbxMeshWrapper>& sourceMesh, const SceneSystem& sceneSystem);
         }
     }
 }

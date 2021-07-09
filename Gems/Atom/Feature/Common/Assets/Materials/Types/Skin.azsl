@@ -169,6 +169,12 @@ float2 ApplyNormalWrinkleMap(bool shouldApply, float2 baseNormalSample, Texture2
     }
 }
 
+float4 DebugVis(float3 debugInput)
+{
+    float3 vis = 0.5 * debugInput + 0.5;
+    return float4(saturate(vis), -1);
+}
+
 PbrLightingOutput SkinPS_Common(VSOutput IN)
 {
     bool isFrontFace = true;
@@ -180,7 +186,9 @@ PbrLightingOutput SkinPS_Common(VSOutput IN)
 
     if (o_normal_useTexture || o_detail_normal_useTexture)
     {
+        // Temporary fix for incorrect vertex tangents on Ngaztak
         PrepareGeneratedTangent(IN.m_normal, IN.m_worldPosition, isFrontFace, IN.m_uv, UvSetCount, tangents, bitangents);
+        /* PrepareGeneratedTangentForce(IN.m_normal, IN.m_worldPosition, isFrontFace, IN.m_uv, UvSetCount, tangents, bitangents); */
     }
     
     Surface surface;
@@ -379,6 +387,41 @@ PbrLightingOutput SkinPS_Common(VSOutput IN)
     lightingOutput.m_scatterDistance = MaterialSrg::m_multiplyScatterDistanceByAlbedo
                                        ? MaterialSrg::m_scatterDistance * surface.albedo
                                        : MaterialSrg::m_scatterDistance;
+
+    // o_shader_debug_output: None, VertexNormal, Normal, VertexTangent, Tanget, VertexUv, Uv, DebugLighting
+    
+    if(o_shader_debug_output == ShaderDebugOutput::VertexNormal)
+    {
+        lightingOutput.m_diffuseColor = DebugVis(IN.m_normal.rgb);
+    }
+    if(o_shader_debug_output == ShaderDebugOutput::Normal)
+    {
+        lightingOutput.m_diffuseColor = DebugVis(surface.normal.rgb);
+    }
+    if(o_shader_debug_output == ShaderDebugOutput::VertexTangent)
+    {
+        lightingOutput.m_diffuseColor = DebugVis(IN.m_tangent.xyz);
+    }
+    if(o_shader_debug_output == ShaderDebugOutput::Tanget)
+    {
+        lightingOutput.m_diffuseColor = DebugVis(tangents[0]);
+    }
+    if(o_shader_debug_output == ShaderDebugOutput::VertexUv)
+    {
+        lightingOutput.m_diffuseColor = float4(normalUv.x, 0, normalUv.y, -1);
+    }
+    if(o_shader_debug_output == ShaderDebugOutput::Uv)
+    {
+        lightingOutput.m_diffuseColor = float4(IN.m_uv[MaterialSrg::m_normalMapUvIndex].x, 0, IN.m_uv[MaterialSrg::m_normalMapUvIndex].y, -1);
+    }
+    if(o_shader_debug_output == ShaderDebugOutput::DebugLighting)
+    {
+        float angleXY = MaterialSrg::m_debugAngleXY;
+        float angleZ  = MaterialSrg::m_debugAngleZ;
+        float3 lightdir = normalize( float3(cos(angleXY) * sin(angleZ), sin(angleXY) * sin(angleZ), cos(angleZ)) );
+        float dotNormal = dot(lightdir, surface.normal);
+        lightingOutput.m_diffuseColor = float4(dotNormal, dotNormal, dotNormal, -1);
+    }
 
     return lightingOutput;
 }

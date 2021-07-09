@@ -39,6 +39,9 @@ namespace AZ
             float GetOpacity() const override;
             float GetShininess() const override;
             AZ::u64 GetUniqueId() const override;
+
+        protected:
+            FbxSurfaceMaterial* m_fbxMaterial;
         };
     } // namespace FbxSDKWrapper
 } // namespace AZ

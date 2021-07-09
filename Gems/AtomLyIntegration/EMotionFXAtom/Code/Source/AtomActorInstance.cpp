@@ -689,6 +689,9 @@ namespace AZ
 
                 m_meshHandle = AZStd::make_shared<MeshFeatureProcessorInterface::MeshHandle>(
                     m_meshFeatureProcessor->AcquireMesh(meshDescriptor, materials));
+
+                // Handle initial visibility flag
+                m_meshFeatureProcessor->SetVisible(*m_meshHandle, IsVisible());
             }
 
             // If render proxies already exist, they will be auto-freed

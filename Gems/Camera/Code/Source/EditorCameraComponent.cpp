@@ -149,9 +149,19 @@ namespace Camera
         }
         else if (m_isActiveEditorCamera)
         {
-            m_controller.DeactivateAtomView();
             m_isActiveEditorCamera = false;
-            AzToolsFramework::PropertyEditorGUIMessages::Bus::Broadcast(&AzToolsFramework::PropertyEditorGUIMessages::RequestRefresh, AzToolsFramework::PropertyModificationRefreshLevel::Refresh_AttributesAndValues);
+
+            // Queue the deactivation because there is currently a bug which requires that
+            // ActivateAtomView is called before DeactivateAtomView when the editor viewport view changes.
+            //
+            // There is no way to guarantee this event is in the desired order for the deactivating and activating
+            // camera entities, because event handlers are called in the order they were registered,
+            // this event handler is registered in Activate, and entity activation order is unspecified.
+            AZ::SystemTickBus::QueueFunction([this]()
+            {
+                m_controller.DeactivateAtomView();
+                AzToolsFramework::PropertyEditorGUIMessages::Bus::Broadcast(&AzToolsFramework::PropertyEditorGUIMessages::RequestRefresh, AzToolsFramework::PropertyModificationRefreshLevel::Refresh_AttributesAndValues);
+            });
         }
     }
 

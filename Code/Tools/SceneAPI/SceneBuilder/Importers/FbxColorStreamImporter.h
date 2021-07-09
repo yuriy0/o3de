@@ -13,7 +13,7 @@
 #pragma once
 
 #include <AzCore/std/smart_ptr/shared_ptr.h>
-#include <SceneAPI/FbxSceneBuilder/ImportContexts/FbxImportContexts.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/FbxImportContexts.h>
 #include <SceneAPI/SceneCore/Components/LoadingComponent.h>
 
 namespace AZ
@@ -34,7 +34,7 @@ namespace AZ
 
     namespace SceneAPI
     {
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             class FbxColorStreamImporter
                 : public SceneCore::LoadingComponent
@@ -52,6 +52,6 @@ namespace AZ
             protected:
                 AZStd::shared_ptr<SceneData::GraphData::MeshVertexColorData> BuildVertexColorData(const FbxSDKWrapper::FbxVertexColorWrapper& fbxVertexColors, size_t vertexCount, const std::shared_ptr<FbxSDKWrapper::FbxMeshWrapper>& fbxMesh);
             };
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ

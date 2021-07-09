@@ -11,8 +11,8 @@
 */
 
 #include <AzCore/Casting/numeric_cast.h>
-#include <SceneAPI/FbxSceneBuilder/FbxSceneSystem.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/Utilities/FbxMeshImporterUtilities.h>
+#include <SceneAPI/SceneBuilder/SceneSystem.h>
+#include <SceneAPI/SceneBuilder/Importers/Utilities/FbxMeshImporterUtilities.h>
 #include <SceneAPI/FbxSDKWrapper/FbxMeshWrapper.h>
 #include <SceneAPI/FbxSDKWrapper/FbxBlendShapeWrapper.h>
 #include <SceneAPI/SceneData/GraphData/MeshData.h>
@@ -22,10 +22,10 @@ namespace AZ
 {
     namespace SceneAPI
     {
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             bool BuildSceneMeshFromFbxMesh(const AZStd::shared_ptr<SceneData::GraphData::MeshData>& mesh,
-                const FbxSDKWrapper::FbxMeshWrapper& sourceMesh, const FbxSceneSystem& sceneSystem)
+                const FbxSDKWrapper::FbxMeshWrapper& sourceMesh, const SceneSystem& sceneSystem)
             {
                 // Save unit sizes of the mesh
                 mesh->SetUnitSizeInMeters(sceneSystem.GetUnitSizeInMeters());
@@ -196,7 +196,7 @@ namespace AZ
             // Currently doesn't maintain a list of unique control points.
             // Normals are associated with each triangle vertex from the face.
             bool BuildSceneBlendShapeFromFbxBlendShape(const AZStd::shared_ptr<SceneData::GraphData::BlendShapeData>& blendShape,
-                const AZStd::shared_ptr<const FbxSDKWrapper::FbxMeshWrapper>& sourceMesh, const FbxSceneSystem& sceneSystem)
+                const AZStd::shared_ptr<const FbxSDKWrapper::FbxMeshWrapper>& sourceMesh, const SceneSystem& sceneSystem)
             {
                 // Control points contain positions of vertices
                 const AZStd::vector<Vector3>& fbxControlPoints = sourceMesh->GetControlPoints();

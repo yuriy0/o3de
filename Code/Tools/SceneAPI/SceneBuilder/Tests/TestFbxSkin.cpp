@@ -7,8 +7,8 @@
 
 #include <AzCore/Casting/numeric_cast.h>
 #include <AzCore/std/smart_ptr/make_shared.h>
-#include <SceneAPI/FbxSceneBuilder/Tests/TestFbxSkin.h>
-#include <SceneAPI/FbxSceneBuilder/Tests/TestFbxNode.h>
+#include <SceneAPI/SceneBuilder/Tests/TestFbxSkin.h>
+#include <SceneAPI/SceneBuilder/Tests/TestFbxNode.h>
 
 namespace AZ
 {

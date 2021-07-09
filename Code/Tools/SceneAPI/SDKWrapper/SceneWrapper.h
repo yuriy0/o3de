@@ -11,6 +11,11 @@
 
 struct aiScene;
 
+namespace fbxsdk
+{
+    class FbxScene;
+}
+
 namespace AZ
 {
     namespace SDKScene
@@ -32,6 +37,7 @@ namespace AZ
             virtual void Clear();
             
             virtual const aiScene* GetAssImpScene() const;
+            virtual ::fbxsdk::FbxScene* GetFbxScene() const { return nullptr; }
 
             const aiScene* m_assImpScene = nullptr;
 

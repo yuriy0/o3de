@@ -12,10 +12,10 @@
 
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzCore/std/smart_ptr/make_shared.h>
-#include <SceneAPI/FbxSceneBuilder/FbxSceneSystem.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxTransformImporter.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/FbxImporterUtilities.h>
-#include <SceneAPI/FbxSceneBuilder/Importers/Utilities/RenamedNodesMap.h>
+#include <SceneAPI/SceneBuilder/SceneSystem.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxTransformImporter.h>
+#include <SceneAPI/SceneBuilder/Importers/FbxImporterUtilities.h>
+#include <SceneAPI/SceneBuilder/Importers/Utilities/RenamedNodesMap.h>
 #include <SceneAPI/FbxSDKWrapper/FbxNodeWrapper.h>
 #include <SceneAPI/SceneCore/Containers/Scene.h>
 #include <SceneAPI/SceneData/GraphData/TransformData.h>
@@ -24,7 +24,7 @@ namespace AZ
 {
     namespace SceneAPI
     {
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             const char* FbxTransformImporter::s_transformNodeName = "transform";
 
@@ -116,6 +116,6 @@ namespace AZ
 
                 return Events::ProcessingResult::Ignored;
             }
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ

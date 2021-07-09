@@ -111,6 +111,63 @@ namespace AZ
 
             return FrameCaptureOutputResult{FrameCaptureResult::InternalError, "Unable to save frame capture output to " + outputFilePath};
         }
+
+        AZStd::optional<AZStd::pair<OIIO::TypeDesc, OIIO::TypeDesc>> GetFormatOIIOType(AZ::RHI::Format format)
+        {
+            using namespace AZ::RHI;
+            using namespace OIIO;
+
+            switch (format)
+            {
+            case Format::R16G16B16A16_FLOAT:
+                return { { TypeDesc::HALF, TypeDesc::FLOAT } };
+
+            default:
+                return {};
+            }
+        };
+
+        FrameCaptureOutputResult TiffFrameCaptureOutput(
+            const AZStd::string& outputFilePath, const AZ::RPI::AttachmentReadback::ReadbackResult& readbackResult)
+        {
+            AZStd::shared_ptr<AZStd::vector<uint8_t>> buffer = readbackResult.m_dataBuffer;
+            const int numChannels = AZ::RHI::GetFormatComponentCount(readbackResult.m_imageDescriptor.m_format);
+            const auto mbFormats = GetFormatOIIOType(readbackResult.m_imageDescriptor.m_format);
+            if (!mbFormats)
+            {
+                return FrameCaptureOutputResult{
+                    FrameCaptureResult::UnsupportedFormat,
+                    AZStd::string::format(
+                        "Can't save image with format %s to a tiff file", RHI::ToString(readbackResult.m_imageDescriptor.m_format)
+                    )
+                };
+            }
+            const auto [srcFormat, tgtFormat] = *mbFormats;
+
+            using namespace OIIO;
+            AZStd::unique_ptr<ImageOutput> out = ImageOutput::create(outputFilePath.c_str());
+            if (out)
+            {
+                ImageSpec spec(
+                    readbackResult.m_imageDescriptor.m_size.m_width,
+                    readbackResult.m_imageDescriptor.m_size.m_height,
+                    numChannels,
+                    tgtFormat
+                );
+
+                if (out->open(outputFilePath.c_str(), spec))
+                {
+                    const bool success = out->write_image(srcFormat, buffer->data());
+                    out->close();
+                    if (success)
+                    {
+                        return FrameCaptureOutputResult{ FrameCaptureResult::Success, AZStd::nullopt };
+                    }
+                }
+            }
+
+            return FrameCaptureOutputResult{ FrameCaptureResult::InternalError, "Unable to save frame capture output to " + outputFilePath };
+        }
 #endif
 
         FrameCaptureOutputResult DdsFrameCaptureOutput(
@@ -490,6 +547,16 @@ namespace AZ
                                 "Can't save image with format %s to a png file", RHI::ToString(readbackResult.m_imageDescriptor.m_format));
                             m_result = FrameCaptureResult::UnsupportedFormat;
                         }
+                    }
+                    else if (extension == "tiff" || extension == "tif")
+                    {
+                        AZStd::string folderPath;
+                        AzFramework::StringFunc::Path::GetFolderPath(m_outputFilePath.c_str(), folderPath);
+                        AZ::IO::SystemFile::CreateDir(folderPath.c_str());
+
+                        const auto frameCaptureResult = TiffFrameCaptureOutput(m_outputFilePath, readbackResult);
+                        m_result = frameCaptureResult.m_result;
+                        m_latestCaptureInfo = frameCaptureResult.m_errorMessage.value_or("");
                     }
 #endif
                     else

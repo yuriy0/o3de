@@ -2,8 +2,8 @@
 
 
 #include <Atom/Features/PBR/Lights/LightTypesCommon.azsli>
-// #include <Atom/Features/Shadow/ProjectedShadow.azsli>
-#include "DeferredFog_ProjectedShadow.azsli"
+#include <Atom/Features/Shadow/ProjectedShadow.azsli>
+// #include "DeferredFog_ProjectedShadow.azsli"
 
 enum DiskLightFlag
 {

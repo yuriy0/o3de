@@ -12,14 +12,14 @@
 
 #pragma once
 
-#include <SceneAPI/FbxSceneBuilder/ImportContexts/FbxImportContexts.h>
+#include <SceneAPI/SceneBuilder/ImportContexts/FbxImportContexts.h>
 #include <SceneAPI/SceneCore/Components/LoadingComponent.h>
 
 namespace AZ
 {
     namespace SceneAPI
     {
-        namespace FbxSceneBuilder
+        namespace SceneBuilder
         {
             class FbxSkinImporter
                 : public SceneCore::LoadingComponent
@@ -34,6 +34,6 @@ namespace AZ
 
                 Events::ProcessingResult ImportSkin(FbxNodeEncounteredContext& context);
             };
-        } // namespace FbxSceneBuilder
+        } // namespace SceneBuilder
     } // namespace SceneAPI
 } // namespace AZ

@@ -11,6 +11,7 @@
 #include <SceneAPI/SDKWrapper/AssImpSceneWrapper.h>
 #include <SceneAPI/SDKWrapper/AssImpTypeConverter.h>
 #include <assimp/scene.h>
+#include <SceneAPI/FbxSDKWrapper/FbxSceneWrapper.h>
 
 
 namespace AZ
@@ -30,7 +31,7 @@ namespace AZ
             // Get unit conversion factor to meter.
             if (!azrtti_istypeof<AssImpSDKWrapper::AssImpSceneWrapper>(scene))
             {
-                const FbxSDKWrapper::FbxSceneWrapper* fbxSDKScene = azrtti_cast <const FbxSDKWrapper::FbxSceneWrapper*>(fbxScene);
+                const FbxSDKWrapper::FbxSceneWrapper* fbxSDKScene = azrtti_cast <const FbxSDKWrapper::FbxSceneWrapper*>(scene);
                 m_unitSizeInMeters = fbxSDKScene->GetSystemUnit()->GetConversionFactorTo(FbxSDKWrapper::FbxSystemUnitWrapper::m);
                 const FbxGlobalSettings& globalSettings = fbxSDKScene->GetFbxScene()->GetGlobalSettings();
                 m_originalUnitSizeInMeters = static_cast<float>(globalSettings.GetOriginalSystemUnit().GetConversionFactorTo(FbxSystemUnit::m));
@@ -44,9 +45,9 @@ namespace AZ
                     m_adjustTransformInverse.reset(new DataTypes::MatrixType(m_adjustTransform->GetInverseFull()));
                 }
             }
-            else if (azrtti_istypeof<AssImpSDKWrapper::AssImpSceneWrapper>(fbxScene))
+            else if (azrtti_istypeof<AssImpSDKWrapper::AssImpSceneWrapper>(scene))
             {
-                const AssImpSDKWrapper::AssImpSceneWrapper* assImpScene = azrtti_cast<const AssImpSDKWrapper::AssImpSceneWrapper*>(fbxScene);
+                const AssImpSDKWrapper::AssImpSceneWrapper* assImpScene = azrtti_cast<const AssImpSDKWrapper::AssImpSceneWrapper*>(scene);
 
                 // If either meta data piece is not available, the default of 1 will be used.
                 assImpScene->GetAssImpScene()->mMetaData->Get("UnitScaleFactor", m_unitSizeInMeters);

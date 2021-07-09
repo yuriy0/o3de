@@ -98,7 +98,7 @@ namespace LmbrCentral
         if (AZ::BehaviorContext* behaviorContext = azrtti_cast<AZ::BehaviorContext*>(context))
         {
             behaviorContext->EBus<PolygonPrismShapeComponentRequestBus>("PolygonPrismShapeComponentRequestBus")
-                ->Attribute(AZ::Script::Attributes::Scope, AZ::Script::Attributes::ScopeFlags::Automation)
+                ->Attribute(AZ::Script::Attributes::Scope, AZ::Script::Attributes::ScopeFlags::Common)
                 ->Attribute(AZ::Edit::Attributes::Category, "Shape")
                 ->Attribute(AZ::Script::Attributes::Module, "shape")
                 ->Event("GetPolygonPrism", &PolygonPrismShapeComponentRequestBus::Events::GetPolygonPrism)
@@ -106,8 +106,12 @@ namespace LmbrCentral
                 ->Event("AddVertex", &PolygonPrismShapeComponentRequestBus::Events::AddVertex)
                 ->Event("UpdateVertex", &PolygonPrismShapeComponentRequestBus::Events::UpdateVertex)
                 ->Event("InsertVertex", &PolygonPrismShapeComponentRequestBus::Events::InsertVertex)
+                ->Event("GetVertex", &PolygonPrismShapeComponentRequestBus::Events::GetVertex)
                 ->Event("RemoveVertex", &PolygonPrismShapeComponentRequestBus::Events::RemoveVertex)
                 ->Event("ClearVertices", &PolygonPrismShapeComponentRequestBus::Events::ClearVertices)
+                ->Event("Size", &PolygonPrismShapeComponentRequestBus::Events::Size)
+                ->Event("Empty", &PolygonPrismShapeComponentRequestBus::Events::Empty)
+                ->Event("SetVertices", &PolygonPrismShapeComponentRequestBus::Events::SetVertices)
                 ;
         }
     }

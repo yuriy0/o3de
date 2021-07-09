@@ -61,6 +61,50 @@
                             "Stencil"
                         ]
                     }
+                },
+                {
+                    "Name": "GlobalIlluminationDiffuseContributionDebug",
+                    "SlotType": "Output",
+                    "ScopeAttachmentUsage": "RenderTarget",
+                    "LoadStoreAction": {
+                        "ClearValue": {
+                            "Value": [
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0
+                            ]
+                        },
+                        "LoadAction": "Clear"
+                    }
+                }
+            ],
+            "ImageAttachments": [
+                {
+                    "Name": "GlobalIlluminationDiffuseContributionDebugImage",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "DiffuseInputOutput"
+                        }
+                    },
+                    "FormatSource": {
+                        "Pass": "This",
+                        "Attachment": "DiffuseInputOutput"
+                    },
+                    "MultisampleSource": {
+                        "Pass": "This",
+                        "Attachment": "DiffuseInputOutput"
+                    }
+                }
+            ],
+            "Connections": [
+                {
+                    "LocalSlot": "GlobalIlluminationDiffuseContributionDebug",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "GlobalIlluminationDiffuseContributionDebugImage"
+                    }
                 }
             ],
             "PassData": {

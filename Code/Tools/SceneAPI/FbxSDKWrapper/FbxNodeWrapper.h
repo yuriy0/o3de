@@ -62,8 +62,12 @@ namespace AZ
 
             virtual bool IsAnimated() const;
 
+            FbxNode* GetFbxNode() const override { return m_fbxNode; }
+
         protected:
             FbxNodeWrapper() = default;
+
+            FbxNode* m_fbxNode = nullptr;
         };
     } // namespace FbxSDKWrapper
 } // namespace AZ

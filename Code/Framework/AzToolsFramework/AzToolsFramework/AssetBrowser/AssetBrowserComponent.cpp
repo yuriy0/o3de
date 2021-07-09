@@ -161,6 +161,8 @@ namespace AzToolsFramework
 
         void AssetBrowserComponent::OnTick(float /*deltaTime*/, AZ::ScriptTimePoint /*time*/)
         {
+            AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+
             m_changeset->Synchronize();
             if (!m_entriesReady)
             {
