@@ -59,117 +59,6 @@ namespace ScriptCanvas
                 }
             }
 
-            void SetVariableNode::OnInputSignal(const SlotId& slotID)
-            {
-                if (slotID == GetSlotId(GetInputSlotName()))
-                {
-                    const Datum* sourceDatum = FindDatum(m_variableDataInSlotId);                    
-
-                    if (sourceDatum && m_variableView.IsValid())
-                    {
-                        m_variableView.AssignToDatum((*sourceDatum));
-
-                        SC_EXECUTION_TRACE_VARIABLE_CHANGE((m_variableId), (CreateVariableChange((*m_variableView.GetDatum()), m_variableId)));
-                    }
-                    
-                    Slot* resultSlot = GetSlot(m_variableDataOutSlotId);
-                    if (resultSlot && m_variableView.IsValid())
-                    {
-                        const Datum* variableDatum = m_variableView.GetDatum();
-
-                        PushOutput((*variableDatum), *resultSlot);
-
-                        // Push the data for each property slot out as well
-                        for (auto&& propertyAccount : m_propertyAccounts)
-                        {
-                            Slot* propertySlot = GetSlot(propertyAccount.m_propertySlotId);
-                            if (propertySlot && propertyAccount.m_getterFunction)
-                            {
-                                auto outputOutcome = propertyAccount.m_getterFunction((*variableDatum));
-
-                                if (!outputOutcome)
-                                {
-                                    SCRIPTCANVAS_REPORT_ERROR((*this), outputOutcome.TakeError().data());
-                                    return;
-                                }
-                                PushOutput(outputOutcome.TakeValue(), *propertySlot);
-                            }
-                        }
-                    }
-
-                    SignalOutput(GetSlotId(GetOutputSlotName()));
-                }
-                else
-                {
-                    auto setterIt = AZStd::find_if(
-                        m_propertySetters.begin(),
-                        m_propertySetters.end(),
-                        [&](const PropertySetterMetadata& setterData)
-                        {
-                            return setterData.m_signalSlotId == slotID;    
-                        }
-                    );
-                    if (setterIt != m_propertySetters.end())
-                    {
-                        const PropertySetterMetadata& setterData = *setterIt;
-                        
-                        SC_EXECUTION_TRACE_ANNOTATE_NODE((*this), CreateAnnotationData());
-
-                        // Get the source data
-                        const Datum* sourceDatum = FindDatum(m_variableDataInSlotId);
-                        const Datum* subFieldDatum = FindDatum(setterData.m_propertySlotId);
-
-                        // Assign the data
-                        if (sourceDatum && m_variableView.IsValid() && setterData.m_setterFunction)
-                        {
-                            Datum sourceDatumCopy = *sourceDatum;
-                            auto res = setterData.m_setterFunction(sourceDatumCopy, *subFieldDatum);
-
-                            if (!res.IsSuccess())
-                            {
-                                AZ_Error("Script Canvas", false,
-                                    "Failed to call property (%s : %s) setter method: %s",
-                                    setterData.m_propertyName.c_str(), Data::GetName(setterData.m_propertyType).data(),
-                                    res.GetError().c_str()
-                                );
-                            }
-
-                            m_variableView.AssignToDatum(AZStd::move(sourceDatumCopy));
-
-                            const Datum* variableDatum = m_variableView.GetDatum();
-
-                            SC_EXECUTION_TRACE_VARIABLE_CHANGE((m_variableId), (CreateVariableChange((*variableDatum), m_variableId)));
-                        }
-                    }
-
-                    Slot* resultSlot = GetSlot(m_variableDataOutSlotId);
-                    if (resultSlot && m_variableView.IsValid())
-                    {
-                        const Datum* variableDatum = m_variableView.GetDatum();
-
-                        PushOutput((*variableDatum), *resultSlot);
-
-                        // Push the data for each property slot out as well
-                        for (auto&& propertyAccount : m_propertyAccounts)
-                        {
-                            Slot* propertySlot = GetSlot(propertyAccount.m_propertySlotId);
-                            if (propertySlot && propertyAccount.m_getterFunction)
-                            {
-                                auto outputOutcome = propertyAccount.m_getterFunction((*variableDatum));
-
-                                if (!outputOutcome)
-                                {
-                                    SCRIPTCANVAS_REPORT_ERROR((*this), outputOutcome.TakeError().data());
-                                    return;
-                                }
-                                PushOutput(outputOutcome.TakeValue(), *propertySlot);
-                            }
-                        }
-                    }
-
-                    SignalOutput(GetSlotId(GetOutputSlotName()));
-                }
-            }
             VariableId SetVariableNode::GetVariableIdRead(const Slot*) const
             {
                 return m_variableId;
@@ -353,7 +242,8 @@ namespace ScriptCanvas
                     ScriptCanvas::Data::Type baseType = ScriptCanvas::Data::Type::Invalid();
                     VariableRequestBus::EventResult(baseType, GetScopedVariableId(), &VariableRequests::GetType);
 
-                    const AZStd::unordered_map<VariableId, GraphVariable>* variableMap = GetRuntimeBus()->GetVariables();
+                    const GraphVariableMapping* variableMap = nullptr;
+                    GraphRequestBus::EventResult(variableMap, GetOwningScriptCanvasId(), &GraphRequests::GetVariables);
 
                     if (variableMap && baseType.IsValid())
                     {
@@ -387,12 +277,6 @@ namespace ScriptCanvas
                     RemoveSlots();
                 }
                 VariableNodeNotificationBus::Event(GetEntityId(), &VariableNodeNotifications::OnVariableRemovedFromNode, removedVariableId);
-            }
-
-            AnnotateNodeSignal SetVariableNode::CreateAnnotationData()
-            {
-                AZ::EntityId assetNodeId = GetRuntimeBus()->FindAssetNodeIdByRuntimeNodeId(GetEntityId());
-                return AnnotateNodeSignal(CreateGraphInfo(GetOwningScriptCanvasId(), GetGraphIdentifier()), AnnotateNodeSignal::AnnotationLevel::Info, m_variableName, AZ::NamedEntityId(assetNodeId, GetNodeName()));
             }
 
             void SetVariableNode::AddPropertySlots(const Data::Type& type)

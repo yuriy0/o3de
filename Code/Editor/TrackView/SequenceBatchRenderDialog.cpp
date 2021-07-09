@@ -13,6 +13,7 @@
 
 #include "SequenceBatchRenderDialog.h"
 
+#include <AzCore/Component/ComponentApplication.h>
 #include <AzFramework/Windowing/WindowBus.h>
 
 // Qt
@@ -1219,6 +1220,18 @@ void CSequenceBatchRenderDialog::OnKickIdleTimout()
     {
         // All done with our custom OnKickIdle, restore editor idle.
         SetEnableEditorIdleProcessing(true);
+    }
+
+    //When we disable the editor idle processing. system tick is no longer invoked.
+    //so we call it here to ensure rendering + other systems are updated.
+    if (!m_editorIdleProcessingEnabled)
+    {
+        AZ::ComponentApplication* componentApplication = nullptr;
+        AZ::ComponentApplicationBus::BroadcastResult(componentApplication, &AZ::ComponentApplicationRequests::GetApplication);
+        if (componentApplication)
+        {
+            componentApplication->TickSystem();
+        }
     }
 }
 
