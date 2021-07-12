@@ -3,6 +3,7 @@
 
 #include <Atom/Features/PBR/Lights/LightTypesCommon.azsli>
 #include <Atom/Features/Shadow/ProjectedShadow.azsli>
+#include "DeferredFog_LightsCommon.azsli"
 // #include "DeferredFog_ProjectedShadow.azsli"
 
 enum DiskLightFlag
@@ -60,8 +61,8 @@ void ApplyDiskLight(ViewSrg::DiskLight light, Surface surface, inout LightingDat
         posToLightDir = normalize((nearSideDir + farSideDir) * 0.5);
 
         // Standard quadratic falloff
-        static const float MinDistanceToLight = 0.25;
-        distanceToDisk2 = max(MinDistanceToLight*MinDistanceToLight, distanceToDisk2); // clamp the light to at least 1mm away to avoid extreme values.
+        const float MinDistanceToLightSq = GetFogLightMinDistanceSqForIntensity(light.m_rgbIntensityCandelas);
+        distanceToDisk2 = max(MinDistanceToLightSq, distanceToDisk2); // clamp the light to at least 1mm away to avoid extreme values.
         float3 lightIntensity = (light.m_rgbIntensityCandelas / distanceToDisk2) * radiusAttenuation * angleFalloff;
 
         // Adjust brightness based on the disk size relative to its distance.

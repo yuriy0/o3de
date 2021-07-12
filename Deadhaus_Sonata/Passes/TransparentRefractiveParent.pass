@@ -208,13 +208,13 @@
                         }
                     }
                 },
-				{
+                {
                     "Name": "TransparentRefractiveMergeOutputPass",
                     "TemplateName": "TransparentRefractiveMergeOutputPassTemplate",
                     "ExecuteAfter": [
                         "TransparentRefractivePass"
                     ],
-                    "Enabled": true, 
+                    "Enabled": true,
                     "Connections": [
                         {
                             "LocalSlot": "Background",
@@ -244,9 +244,39 @@
                                 "Attachment": "InputOutput"
                             }
                         }
-					]
-				}
-			]
-		}
-	}
+                    ]
+                },
+                {
+                    "Name": "TransparentRefractiveDepthWritePass",
+                    "TemplateName": "TransparentRefractiveDepthWritePassTemplate",
+                    "ExecuteAfter": [
+                        "TransparentRefractiveMergeOutputPass"
+                    ],
+                    "Connections": [
+                        {
+                            "LocalSlot": "DepthTransparentMin",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DepthTransparentMin"
+                            }
+                        },
+                        {
+                            "LocalSlot": "WeightDistributionTotalOpticalDepth",
+                            "AttachmentRef": {
+                                "Pass": "OITMomentGenerationPass",
+                                "Attachment": "TotalOpticalDepth"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DepthStencil",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DepthStencilResolved"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
 }

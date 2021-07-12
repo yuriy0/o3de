@@ -3569,7 +3569,7 @@ namespace ScriptCanvasEditor
                 {
                     if (scriptCanvasNode->IsDeprecated() && !g_disableDeprecatedNodeUpdates
                      // ApcExt begin
-                         && !azrtti_istypeof<ScriptCanvas::PureData>(scriptCanvasNode)
+                         //&& !azrtti_istypeof<ScriptCanvas::PureData>(scriptCanvasNode)
                      // ApcExt end
                      )
                     {

@@ -528,6 +528,10 @@
                 "Path": "Passes/TransparentRefractiveMergeOutput.pass"
             },
             {
+                "Name": "TransparentRefractiveDepthWritePassTemplate",
+                "Path": "Passes/TransparentRefractiveDepthWrite.pass"
+            },
+            {
                 "Name": "SampleBlurredForTransparentRefractivePassTemplate",
                 "Path": "Passes/SampleBlurredForTransparentRefractive.pass"
             },
@@ -539,6 +543,8 @@
                 "Name": "OITMomentGenerationPassTemplate",
                 "Path": "Passes/OITMomentGeneration.pass"
             },
+
+
             {
                 "Name": "DistortionParentTemplate",
                 "Path": "Passes/DistortionParent.pass"

@@ -5,6 +5,7 @@
 #include <scenesrg.srgi>
 
 #include "DeferredFog_Srg.azsli"
+#include "DeferredFog_LightsCommon.azsli"
 
 ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
@@ -68,11 +69,6 @@ groupshared float4 Input[NumInputsAxis][NumInputsAxis];
 int3 ClampDimXY(int3 p, int2 dim)
 {
     return int3(clamp(p.xy, int2(0,0), dim - 1), p.z);
-}
-
-float GetLuminance( float3 color )
-{
-    return dot( color, float3( 0.2126f, 0.7152f, 0.0722f ) );
 }
 
 float GaussianFactor(float sigma) { return 2 * sigma * sigma; }

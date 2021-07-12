@@ -59,10 +59,16 @@ float hash2d(float2 p) {
 
 #include "DeferredFog_Common.azsli"
 
+float LinearizeDepth(float zDepth)
+{
+    return abs(((ViewSrg::GetFarZTimesNearZ()) / (ViewSrg::GetFarZMinusNearZ() * zDepth - ViewSrg::GetFarZ())));
+}
+
 PSOutput MainPS(VSOutput IN)
 {
     // Sample depth and convert to a Z coordinate into the fog texture
-    const float depth = PassSrg::m_depthStencilTexture.Sample(PassSrg::DepthSampler, IN.m_texCoord).r;
+    const float zDepth = PassSrg::m_depthStencilTexture.Sample(PassSrg::DepthSampler, IN.m_texCoord).r;
+    const float depth = LinearizeDepth(zDepth);
     const float fogTexZCoord = LinearDepthToFogVolumeTexZ(depth);
 
     // Apply jitter to sample location

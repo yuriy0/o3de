@@ -57,19 +57,19 @@ namespace ApcExtScriptCanvas
     using namespace ScriptCanvas;
     using namespace ScriptCanvas::Grammar;
 
-    VariablePtr ConvertPureDataNodeToVariable(const Node& node)
+    VariablePtr ConvertPureDataNodeToVariable(const Node&)
     {
-        if (auto pureDataNode = azrtti_cast<const PureData*>(&node))
-        {
-            if (auto datum = pureDataNode->FindDatum(pureDataNode->GetSlotId(PureData::k_setThis)))
-            {
-                auto variable = AZStd::make_shared<Variable>();
-                variable->m_datum = *datum;
-                variable->m_isMember = true;
-                variable->m_name = "convertedPureData";
-                return variable;
-            }
-        }
+        //if (auto pureDataNode = azrtti_cast<const PureData*>(&node))
+        //{
+        //    if (auto datum = pureDataNode->FindDatum(pureDataNode->GetSlotId(PureData::k_setThis)))
+        //    {
+        //        auto variable = AZStd::make_shared<Variable>();
+        //        variable->m_datum = *datum;
+        //        variable->m_isMember = true;
+        //        variable->m_name = "convertedPureData";
+        //        return variable;
+        //    }
+        //}
 
         return nullptr;
     }
@@ -96,8 +96,9 @@ namespace ApcExtScriptCanvas
         return info.has_value();
     }
 
-    bool IsPureDataNode(const Node& node)
+    bool IsPureDataNode(const Node&)
     {
-        return azrtti_istypeof<const ScriptCanvas::PureData>(&node);
+        return false;
+        //return azrtti_istypeof<const ScriptCanvas::PureData>(&node);
     }    
 }

@@ -479,13 +479,6 @@
                     "Enabled": true,
                     "Connections": [
                         {
-                            "LocalSlot": "InputLinearDepth",
-                            "AttachmentRef": {
-                                "Pass": "DepthPrePass",
-                                "Attachment": "DepthLinear"
-                            }
-                        },
-                        {
                             "LocalSlot": "InputDepthStencil",
                             "AttachmentRef": {
                                 "Pass": "HairParentPass",

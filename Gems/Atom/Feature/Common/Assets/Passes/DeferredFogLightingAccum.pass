@@ -14,12 +14,6 @@
                     "ScopeAttachmentUsage": "Shader"
                 },
                 {
-                    "Name": "InputLinearDepth",
-                    "SlotType": "Input",
-                    "ShaderInputName": "m_linearDepthTexture",
-                    "ScopeAttachmentUsage": "Shader"
-                },
-                {
                     "Name": "InputDepthStencil",
                     "SlotType": "Input",
                     "ShaderInputName": "m_depthStencilTexture",
@@ -100,7 +94,7 @@
                     "SizeSource": {
                         "Source": {
                             "Pass": "This",
-                            "Attachment": "InputLinearDepth"
+                            "Attachment": "InputDepthStencil"
                         },
                         "Multipliers": {
                             "WidthMultiplier": 0.125,

@@ -17,12 +17,6 @@
                     }
                 },
                 {
-                    "Name": "InputLinearDepth",
-                    "SlotType": "Input",
-                    "ShaderInputName": "m_linearDepthTexture",
-                    "ScopeAttachmentUsage": "Shader"
-                },
-                {
                     "Name": "InputDepthStencil",
                     "SlotType": "Input",
                     "ShaderInputName": "m_depthStencilTexture",
@@ -90,13 +84,6 @@
                     "TemplateName": "DeferredFogLightingAccumPassTemplate",
                     "Enabled" : true,
                     "Connections": [
-                        {
-                            "LocalSlot": "InputLinearDepth",
-                            "AttachmentRef": {
-                                "Pass": "Parent",
-                                "Attachment": "InputLinearDepth"
-                            }
-                        },
                         {
                             "LocalSlot": "InputDepthStencil",
                             "AttachmentRef": {
@@ -265,7 +252,7 @@
                             "LocalSlot": "InputDepthStencil",
                             "AttachmentRef": {
                                 "Pass": "Parent",
-                                "Attachment": "InputLinearDepth"
+                                "Attachment": "InputDepthStencil"
                             }
                         }
                     ]

@@ -1,0 +1,13 @@
+#pragma once
+
+float GetLuminance(float3 color)
+{
+    return dot(color, float3(0.299f, 0.587f, 0.114f));
+}
+
+float GetFogLightMinDistanceSqForIntensity(float3 rgbIntensityCandela)
+{
+    static const float MinDistanceBase = 0.003; // 3mm per unit luminosity
+    const float lum = GetLuminance(rgbIntensityCandela);
+    return lum * MinDistanceBase;
+}

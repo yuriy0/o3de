@@ -1,5 +1,7 @@
 #pragma once
 
+#include "DeferredFog_LightsCommon.azsli"
+
 void ApplySimplePointLight(ViewSrg::SimplePointLight light, Surface surface, inout LightingData lightingData)
 {
     float3 posToLight = light.m_position - surface.position;
@@ -14,8 +16,8 @@ void ApplySimplePointLight(ViewSrg::SimplePointLight light, Surface surface, ino
         radiusAttenuation = radiusAttenuation * radiusAttenuation;
 
         // Standard quadratic falloff
-        static const float MinDistanceToLight = 0.25;
-        d2 = max(MinDistanceToLight * MinDistanceToLight, d2); // clamp the light to at least 1mm away to avoid extreme values.
+        const float MinDistanceToLightSq = GetFogLightMinDistanceSqForIntensity(light.m_rgbIntensityCandelas);
+        d2 = max(MinDistanceToLightSq, d2); // clamp the light to at least 1mm away to avoid extreme values.
         float3 lightIntensity = (light.m_rgbIntensityCandelas / d2) * radiusAttenuation;
         float3 posToLightDir = normalize(posToLight);
 
