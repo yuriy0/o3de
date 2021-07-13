@@ -41,6 +41,7 @@ AZ_POP_DISABLE_WARNING
 
 // AzToolsFramework
 #include <AzToolsFramework/Application/Ticker.h>
+#include <AzToolsFramework/API/EditorWindowRequestBus.h>
 #include <AzToolsFramework/API/EditorAnimationSystemRequestBus.h>
 #include <AzToolsFramework/SourceControl/QtSourceControlNotificationHandler.h>
 #include <AzToolsFramework/PythonTerminal/ScriptTermDialog.h>
@@ -92,6 +93,8 @@ AZ_POP_DISABLE_WARNING
 #include "AzAssetBrowser/AzAssetBrowserWindow.h"
 #include "AssetEditor/AssetEditorWindow.h"
 #include "ActionManager.h"
+
+#include <ImGuiBus.h>
 
 using namespace AZ;
 using namespace AzQtComponents;
@@ -489,9 +492,15 @@ void MainWindow::Initialize()
     ActionOverrideRequestBus::Event(
         GetEntityContextId(), &ActionOverrideRequests::SetupActionOverrideHandler, this);
 
-    AzToolsFramework::Ticker* ticker = new AzToolsFramework::Ticker(this);
-    ticker->Start();
-    connect(ticker, &AzToolsFramework::Ticker::Tick, this, &MainWindow::SystemTick);
+    if (auto imGuiManager = AZ::Interface<ImGui::IImGuiManager>::Get())
+    {
+        auto handleImGuiStateChangeFn = [](bool enabled)
+        {
+            EditorWindowUIRequestBus::Broadcast(&EditorWindowUIRequests::SetEditorUiEnabled, enabled);
+        };
+        m_handleImGuiStateChangeHandler = ImGui::IImGuiManager::ImGuiSetEnabledEvent::Handler(handleImGuiStateChangeFn);
+        imGuiManager->ConnectImGuiSetEnabledChangedHandler(m_handleImGuiStateChangeHandler);
+    }
 
     AzToolsFramework::EditorEventsBus::Broadcast(&AzToolsFramework::EditorEvents::NotifyMainWindowInitialized, this);
 }
