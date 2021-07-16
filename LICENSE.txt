@@ -3,6 +3,9 @@ The default license for Open 3D Engine is the Apache License, Version 2.0
 (see LICENSE_APACHE2.TXT); you may elect at your option to use the Open 3D 
 Engine under the MIT License (see LICENSE_MIT.TXT).  Contributions must be 
 made under both licenses.
+
+Contributions made by Apocalypse Studios Inc. licensed under CC BY-NC 4.0
+(see LICENSE_CC_BY-NC_4.0.txt).
  
 THIRD PARTY COMPONENTS
 Open 3D Engine requires the use of (and in some cases makes available to you) 
