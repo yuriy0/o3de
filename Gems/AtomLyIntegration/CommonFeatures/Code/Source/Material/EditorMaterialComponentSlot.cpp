@@ -79,7 +79,7 @@ namespace AZ
             if (AZ::SerializeContext* serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
             {
                 serializeContext->Class<EditorMaterialComponentSlot>()
-                    ->Version(5, &EditorMaterialComponentSlot::ConvertVersion)
+                    ->Version(6, &EditorMaterialComponentSlot::ConvertVersion)
                     ->Field("id", &EditorMaterialComponentSlot::m_id)
                     ->Field("materialAsset", &EditorMaterialComponentSlot::m_materialAsset)
                     ->Field("defaultMaterialAsset", &EditorMaterialComponentSlot::m_defaultMaterialAsset)
