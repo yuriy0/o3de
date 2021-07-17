@@ -23,6 +23,7 @@ namespace AZ
         {
             ModelLodAsset::Reflect(context);
             ModelAsset::Reflect(context);
+            ModelMaterialSlot::Reflect(context);
             MorphTargetMetaAsset::Reflect(context);
             SkinMetaAsset::Reflect(context);
         }
