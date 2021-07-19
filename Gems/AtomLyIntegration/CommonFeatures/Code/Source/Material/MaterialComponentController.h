@@ -40,6 +40,7 @@ namespace AZ
 
             void Activate(AZ::EntityId entityId);
             void Deactivate();
+            void DeactivateNoUpdate();
             void SetConfiguration(const MaterialComponentConfig& config);
             const MaterialComponentConfig& GetConfiguration() const;
 
@@ -66,6 +67,8 @@ namespace AZ
 
             AZ_DISABLE_COPY(MaterialComponentController);
 
+            void DeactivateImpl(bool update);
+
             //! Data::AssetBus interface
             void OnAssetReady(Data::Asset<Data::AssetData> asset) override;
             void OnAssetReloaded(Data::Asset<Data::AssetData> asset) override;
@@ -75,7 +78,7 @@ namespace AZ
 
             void LoadMaterials();
             void InitializeMaterialInstance(const Data::Asset<Data::AssetData>& asset);
-            void ReleaseMaterials();
+            void ReleaseMaterials(bool update = true);
             //! Queue applying property overrides to material instances until tick
             void QueuePropertyChanges(const MaterialAssignmentId& materialAssignmentId);
             //! Queue material instance recreation notifiucations until tick

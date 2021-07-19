@@ -94,6 +94,7 @@ namespace AZ
                 const AzFramework::ViewportInfo& viewportInfo,
                 AzFramework::DebugDisplayRequests& debugDisplay,
                 bool isSelected);
+            void GetBoundingBoxes(Aabb* localBBox, Aabb* worldBBox) const;
 
             void VerifyLightTypeAndShapeComponent();
 

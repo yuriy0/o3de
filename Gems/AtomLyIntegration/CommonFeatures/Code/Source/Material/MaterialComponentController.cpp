@@ -80,14 +80,24 @@ namespace AZ
             LoadMaterials();
         }
 
-        void MaterialComponentController::Deactivate()
+        void MaterialComponentController::DeactivateImpl(bool update)
         {
             MaterialComponentRequestBus::Handler::BusDisconnect();
             TickBus::Handler::BusDisconnect();
-            ReleaseMaterials();
+            ReleaseMaterials(update);
 
             m_queuedMaterialUpdateNotification = false;
             m_entityId = AZ::EntityId(AZ::EntityId::InvalidEntityId);
+        }
+
+        void MaterialComponentController::Deactivate()
+        {
+            DeactivateImpl(true);
+        }
+
+        void MaterialComponentController::DeactivateNoUpdate()
+        {
+            DeactivateImpl(false);
         }
 
         void MaterialComponentController::SetConfiguration(const MaterialComponentConfig& config)
@@ -229,7 +239,7 @@ namespace AZ
             }
         }
 
-        void MaterialComponentController::ReleaseMaterials()
+        void MaterialComponentController::ReleaseMaterials(bool update)
         {
             Data::AssetBus::MultiHandler::BusDisconnect();
 
@@ -242,7 +252,10 @@ namespace AZ
                 }
             }
 
-            MaterialComponentNotificationBus::Event(m_entityId, &MaterialComponentNotifications::OnMaterialsUpdated, m_configuration.m_materials);
+            if (update)
+            {
+                MaterialComponentNotificationBus::Event(m_entityId, &MaterialComponentNotifications::OnMaterialsUpdated, m_configuration.m_materials);
+            }
         }
 
         MaterialAssignmentMap MaterialComponentController::GetOriginalMaterialAssignments() const

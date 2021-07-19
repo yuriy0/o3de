@@ -79,6 +79,7 @@ void MainCS(uint3 dispatch_id: SV_DispatchThreadID)
     }
     
     avgValue = avgValue / max(1.0f, sampleCount);
+    avgValue = max(avgValue, 0.0); // HACK! Gets rid of mysterious NaNs...
 
     float4 output = float4(minValue, avgValue, maxValue, 0.0f);
 

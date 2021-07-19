@@ -9,6 +9,7 @@
 #include <AzCore/PlatformDef.h>
 
 #include <AzFramework/Entity/EntityDebugDisplayBus.h>
+#include <AzFramework/Visibility/BoundsBus.h>
 
 #include <Atom/Feature/Utils/EditorRenderComponentAdapter.h>
 #include <CoreLights/AreaLightComponent.h>
@@ -20,6 +21,7 @@ namespace AZ
         class EditorAreaLightComponent final
             : public EditorRenderComponentAdapter<AreaLightComponentController, AreaLightComponent, AreaLightComponentConfig>
             , private AzFramework::EntityDebugDisplayEventBus::Handler
+            , private AzFramework::BoundsRequestBus::Handler
         {
         public:
 
@@ -46,6 +48,10 @@ namespace AZ
 
             // EditorRenderComponentAdapter overrides...
             bool ShouldActivateController() const override;
+
+            // BoundsRequestBus overrides ...
+            AZ::Aabb GetWorldBounds() override;
+            AZ::Aabb GetLocalBounds() override;
 
             bool HandleLightTypeChange();
 

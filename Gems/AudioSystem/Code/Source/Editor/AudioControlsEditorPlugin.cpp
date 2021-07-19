@@ -25,6 +25,8 @@
 #include <MathConversion.h>
 #include <QtViewPaneManager.h>
 
+#include <AzFramework/Components/CameraBus.h>
+
 
 using namespace AudioControls;
 using namespace PathUtil;
@@ -151,12 +153,13 @@ void CAudioControlsEditorPlugin::ExecuteTrigger(const AZStd::string_view sTrigge
         Audio::AudioSystemRequestBus::BroadcastResult(ms_nAudioTriggerID, &Audio::AudioSystemRequestBus::Events::GetAudioTriggerID, sTriggerName.data());
         if (ms_nAudioTriggerID != INVALID_AUDIO_CONTROL_ID)
         {
-            const CCamera& camera = GetIEditor()->GetSystem()->GetViewCamera();
+            AZ::Transform activeCameraTm = AZ::Transform::CreateIdentity();
+            EBUS_EVENT_RESULT(activeCameraTm, Camera::ActiveCameraRequestBus, GetActiveCameraTransform);
+            const AZ::Matrix3x4 cameraMatrix = AZ::Matrix3x4::CreateFromTransform(activeCameraTm);
 
             Audio::SAudioRequest request;
             request.nFlags = Audio::eARF_PRIORITY_NORMAL;
 
-            const AZ::Matrix3x4 cameraMatrix = LYTransformToAZMatrix3x4(camera.GetMatrix());
 
             Audio::SAudioListenerRequestData<Audio::eALRT_SET_POSITION> requestData(cameraMatrix);
             requestData.oNewPosition.NormalizeForwardVec();

@@ -17,6 +17,8 @@
 #include <Atom/RPI.Reflect/Material/MaterialAsset.h>
 #include <Atom/RPI.Reflect/Material/MaterialTypeAsset.h>
 
+#include <AzToolsFramework/Entity/EditorEntityContextBus.h>
+
 AZ_PUSH_DISABLE_WARNING(4251 4800, "-Wunknown-warning-option") // disable warnings spawned by QT
 #include <QMenu>
 #include <QAction>
@@ -205,7 +207,31 @@ namespace AZ
         {
             MaterialReceiverNotificationBus::Handler::BusDisconnect();
             MaterialComponentNotificationBus::Handler::BusDisconnect();
-            BaseClass::Deactivate();
+
+
+            AzToolsFramework::EditorEntityVisibilityNotificationBus::Handler::BusDisconnect();
+
+            bool isEnteringGameMode = false;
+            AzToolsFramework::EditorEntityContextRequestBus::BroadcastResult(
+                isEnteringGameMode,
+                &AzToolsFramework::EditorEntityContextRequestBus::Events::IsEditorRequestingGame
+            );
+            if (isEnteringGameMode)
+            {
+                // When entering game mode, do the deactivation, but do not restore the default material assignment
+                // Doing so causes a fresh draw packet to be emitted, which will render on the next frame.
+                // However since we're going to destroy this component anyways (we are deactivating an editor component while entering game mode)
+                // we do not need to draw this mesh on the next frame, so we don't need to emit a fresh draw packet for it.
+                m_controller.DeactivateNoUpdate();
+            }
+            else
+            {
+                // When not entering game mode, deactivate the material component, which removes the material
+                // assignment from the mesh and restores the "default" material assignment
+                m_controller.Deactivate();
+            }
+
+            EditorComponentBase::Deactivate();
         }
 
         void EditorMaterialComponent::AddContextMenuActions(QMenu* menu)

@@ -605,7 +605,8 @@ void CGameEngine::SwitchToInGame()
     m_pISystem->GetIMovieSystem()->EnablePhysicsEvents(true);
     m_bInGameMode = true;
 
-    gEnv->pSystem->GetViewCamera().SetMatrix(m_playerViewTM);
+    // TODO: Is this necessary?
+    //gEnv->pSystem->GetViewCamera().SetMatrix(m_playerViewTM);
 
     // Disable accelerators.
     GetIEditor()->EnableAcceleratos(false);
@@ -661,11 +662,12 @@ void CGameEngine::SwitchToInEditor()
     m_bInGameMode = false;
 
     // save the current gameView matrix for editor
-    if (pGameViewport)
-    {
-        Matrix34 gameView = gEnv->pSystem->GetViewCamera().GetMatrix();
-        pGameViewport->SetGameTM(gameView);
-    }
+    // TODO: is this necessary?
+    //if (pGameViewport)
+    //{
+    //    Matrix34 gameView = gEnv->pSystem->GetViewCamera().GetMatrix();
+    //    pGameViewport->SetGameTM(gameView);
+    //}
 
     // Out of game in Editor mode.
     if (pGameViewport)

@@ -94,6 +94,8 @@ namespace AZ
                 }
                 else
                 {
+                    if (!GetDefaultView())
+                    {
                     // If the scene was empty, we should save the default view from this scene as default view for the context.
                     auto renderPipeline = scene->FindRenderPipelineForWindow(m_windowContext->GetWindowHandle());
                     if (renderPipeline)
@@ -103,6 +105,7 @@ namespace AZ
                             SetDefaultView(pipelineView);
                         }
                     }
+                }
                 }
 
                 m_rootScene = scene;

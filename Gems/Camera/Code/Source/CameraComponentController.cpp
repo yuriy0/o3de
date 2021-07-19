@@ -1,3 +1,5 @@
+#include "CameraComponentController.h"
+#include "CameraComponentController.h"
 /*
  * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
  * 
@@ -113,7 +115,10 @@ namespace Camera
 
     void CameraComponentController::DeactivateAtomView()
     {
-        if (!AZ::RPI::ViewportContextNotificationBus::Handler::BusIsConnected()) return;
+        if (!IsActiveView())
+        {
+            return;
+        }
 
         auto atomViewportRequests = AZ::Interface<AZ::RPI::ViewportContextRequestsInterface>::Get();
         if (atomViewportRequests)
@@ -366,6 +371,11 @@ namespace Camera
 
     void CameraComponentController::MakeActiveView()
     {
+        if (IsActiveView())
+        {
+            return;
+        }
+
         // Set Legacy Cry view, if it exists
         if (m_viewSystem)
         {
@@ -384,6 +394,11 @@ namespace Camera
 
         // Notify of active view changed
         CameraNotificationBus::Broadcast(&CameraNotificationBus::Events::OnActiveViewChanged, m_entityId);
+    }
+
+    bool CameraComponentController::IsActiveView() const
+    {
+        return AZ::RPI::ViewportContextNotificationBus::Handler::BusIsConnected();
     }
 
     void CameraComponentController::OnTransformChanged([[maybe_unused]] const AZ::Transform& local, const AZ::Transform& world)
@@ -410,6 +425,17 @@ namespace Camera
     void CameraComponentController::OnViewportSizeChanged([[maybe_unused]] AzFramework::WindowSize size)
     {
         UpdateCamera();
+    }
+
+    void CameraComponentController::OnViewportDefaultViewChanged(AZ::RPI::ViewPtr view)
+    {
+        if (m_atomCamera != view)
+        {
+            // Note that when disconnected from this bus, this signals that we are not the active view
+            // There is nothing else to do here: leave our view on the viewport context stack, don't need
+            // to update properties. The viewport context system should handle it all!
+            AZ::RPI::ViewportContextNotificationBus::Handler::BusDisconnect();
+        }
     }
 
     AZ::RPI::ViewPtr CameraComponentController::GetView() const

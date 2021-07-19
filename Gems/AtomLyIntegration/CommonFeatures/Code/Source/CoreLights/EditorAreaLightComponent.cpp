@@ -206,6 +206,7 @@ namespace AZ
 
             BaseClass::Activate();
             AzFramework::EntityDebugDisplayEventBus::Handler::BusConnect(GetEntityId());
+            AzFramework::BoundsRequestBus::Handler::BusConnect(GetEntityId());
             
             // Override the shape component so that this component controls the color.
             LmbrCentral::EditorShapeComponentRequestsBus::Event(GetEntityId(), &LmbrCentral::EditorShapeComponentRequests::SetShapeColorIsEditable, false);
@@ -215,6 +216,7 @@ namespace AZ
         void EditorAreaLightComponent::Deactivate()
         {
             LmbrCentral::EditorShapeComponentRequestsBus::Event(GetEntityId(), &LmbrCentral::EditorShapeComponentRequests::SetShapeColorIsEditable, true);
+            AzFramework::BoundsRequestBus::Handler::BusDisconnect();
             AzFramework::EntityDebugDisplayEventBus::Handler::BusDisconnect();
             BaseClass::Deactivate();
         }
@@ -391,6 +393,20 @@ namespace AZ
         {
             // Always true since this component needs to activate even when invisible.
             return true;
+        }
+
+        AZ::Aabb EditorAreaLightComponent::GetWorldBounds()
+        {
+            AZ::Aabb bbox;
+            m_controller.GetBoundingBoxes(nullptr, &bbox);
+            return bbox;
+        }
+
+        AZ::Aabb EditorAreaLightComponent::GetLocalBounds()
+        {
+            AZ::Aabb bbox;
+            m_controller.GetBoundingBoxes(&bbox, nullptr);
+            return bbox;
         }
 
     } // namespace Render

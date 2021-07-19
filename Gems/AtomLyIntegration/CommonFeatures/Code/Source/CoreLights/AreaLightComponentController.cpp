@@ -1,3 +1,4 @@
+#include "AreaLightComponentController.h"
 /*
  * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
  * 
@@ -547,6 +548,16 @@ namespace AZ::Render
         if (m_lightShapeDelegate)
         {
             m_lightShapeDelegate->DrawDebugDisplay(transform, m_configuration.m_color, debugDisplay, isSelected);
+        }
+    }
+
+    void AreaLightComponentController::GetBoundingBoxes(Aabb* localBBox, Aabb* worldBBox) const
+    {
+        if (m_lightShapeDelegate)
+        {
+            Transform transform = Transform::CreateIdentity();
+            TransformBus::EventResult(transform, m_entityId, &TransformBus::Events::GetWorldTM);
+            m_lightShapeDelegate->GetBoundingBoxes(transform, localBBox, worldBBox);
         }
     }
     

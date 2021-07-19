@@ -53,6 +53,8 @@ namespace AZ
             virtual float CalculateAttenuationRadius(float lightThreshold) const = 0;
             //! Handle any additional debug display drawing for beyond what the shape already provides.
             virtual void DrawDebugDisplay(const Transform& transform, const Color& color, AzFramework::DebugDisplayRequests& debugDisplay, bool isSelected) const = 0;
+            //! Get local and world bbox
+            virtual void GetBoundingBoxes([[maybe_unused]] const Transform& transform, Aabb* localBBox, Aabb* worldBBox) const;
             //! Turns the visibility of this light on/off.
             virtual void SetVisibility(bool visibility) = 0;
 

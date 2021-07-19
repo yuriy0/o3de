@@ -91,7 +91,6 @@ public:
     void SetGridLineNumbers(bool bShowNumbers) { m_bShowNumbers = bShowNumbers; }
     void SetAutoAdjust(bool bAuto) { m_bAutoAdjustGrids = bAuto; }
 
-
 protected:
     enum EViewportAxis
     {

@@ -1,0 +1,19 @@
+{
+    "description": "Material type which doesn't render its mesh",
+    "propertyLayout": {
+        "version": 3,
+        "groups": [
+        ],
+        "properties": {
+        }
+    },
+    "shaders": [
+    ],
+    "functors": [
+    ],
+    "uvNameMap": {
+        "UV0": "Tiled",
+        "UV1": "Unwrapped"
+    }
+}
+

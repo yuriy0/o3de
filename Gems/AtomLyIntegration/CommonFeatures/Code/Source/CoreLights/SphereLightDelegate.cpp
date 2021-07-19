@@ -126,5 +126,27 @@ namespace AZ
         }
 
 
+        // TODO: move to a better place?
+        void LightDelegateInterface::GetBoundingBoxes(const Transform& transform, Aabb* pLocalBBox, Aabb* pWorldBBox) const
+        {
+            const auto MakeBBox = [&](const AZ::Vector3& pos)
+            {
+                return Aabb::CreateCenterRadius(
+                    pos,
+                    CalculateAttenuationRadius(AreaLightComponentConfig::CutoffIntensity)
+                );
+            };
+
+            if (pLocalBBox)
+            {
+                *pLocalBBox = MakeBBox(AZ::Vector3::CreateZero());
+            }
+
+            if (pWorldBBox)
+            {
+                *pWorldBBox = MakeBBox(transform.GetTranslation());
+            }
+        };
+
     } // namespace Render
 } // namespace AZ

@@ -472,12 +472,13 @@ namespace PhysXDebug
             UseEditorPhysicsScene() && m_settings.m_visualizeCollidersByProximity
            && debug != nullptr)
         {
-            const CCamera& camera = gEnv->pSystem->GetViewCamera();
-            const PhysX::Debug::ColliderProximityVisualization data(
-                m_settings.m_visualizeCollidersByProximity,
-                LYVec3ToAZVec3(camera.GetPosition()),
-                m_culling.m_boxSize * 0.5f);
-            debug->UpdateColliderProximityVisualization(data);
+            AZ_Assert(false, AZ_FUNCTION_SIGNATURE " - not supported");
+            //const CCamera& camera = gEnv->pSystem->GetViewCamera();
+            //const PhysX::Debug::ColliderProximityVisualization data(
+            //    m_settings.m_visualizeCollidersByProximity,
+            //    LYVec3ToAZVec3(camera.GetPosition()),
+            //    m_culling.m_boxSize * 0.5f);
+            //debug->UpdateColliderProximityVisualization(data);
         }
     }
 
@@ -658,30 +659,32 @@ namespace PhysXDebug
 
     void SystemComponent::ConfigureCullingBox()
     {
-        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::Physics);
+        AZ_Assert(false, AZ_FUNCTION_SIGNATURE " - not supported");
 
-        // Currently using the Cry view camera to support Editor, Game and Launcher modes. This will be updated in due course.
-        const CCamera& camera = gEnv->pSystem->GetViewCamera();
-        AZ::Vector3 cameraTranslation = LYVec3ToAZVec3(camera.GetPosition());
+        //AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::Physics);
 
-        if (!cameraTranslation.IsClose(AZ::Vector3::CreateZero()))
-        {
-            const physx::PxVec3 min = PxMathConvert(cameraTranslation - AZ::Vector3(m_culling.m_boxSize));
-            const physx::PxVec3 max = PxMathConvert(cameraTranslation + AZ::Vector3(m_culling.m_boxSize));
-            m_cullingBox = physx::PxBounds3(min, max);
+        //// Currently using the Cry view camera to support Editor, Game and Launcher modes. This will be updated in due course.
+        //const CCamera& camera = gEnv->pSystem->GetViewCamera();
+        //AZ::Vector3 cameraTranslation = LYVec3ToAZVec3(camera.GetPosition());
 
-            if (m_culling.m_boxWireframe)
-            {
-                const AZ::Aabb cullingBoxAabb = AZ::Aabb::CreateFromMinMax(PxMathConvert(min), PxMathConvert(max));
-                DrawDebugCullingBox(cullingBoxAabb);
-            }
+        //if (!cameraTranslation.IsClose(AZ::Vector3::CreateZero()))
+        //{
+        //    const physx::PxVec3 min = PxMathConvert(cameraTranslation - AZ::Vector3(m_culling.m_boxSize));
+        //    const physx::PxVec3 max = PxMathConvert(cameraTranslation + AZ::Vector3(m_culling.m_boxSize));
+        //    m_cullingBox = physx::PxBounds3(min, max);
 
-            if (physx::PxScene* physxScene = GetCurrentPxScene())
-            {
-                PHYSX_SCENE_WRITE_LOCK(physxScene);
-                physxScene->setVisualizationCullingBox(m_cullingBox);
-            }
-        }
+        //    if (m_culling.m_boxWireframe)
+        //    {
+        //        const AZ::Aabb cullingBoxAabb = AZ::Aabb::CreateFromMinMax(PxMathConvert(min), PxMathConvert(max));
+        //        DrawDebugCullingBox(cullingBoxAabb);
+        //    }
+
+        //    if (physx::PxScene* physxScene = GetCurrentPxScene())
+        //    {
+        //        PHYSX_SCENE_WRITE_LOCK(physxScene);
+        //        physxScene->setVisualizationCullingBox(m_cullingBox);
+        //    }
+        //}
     }
 
     void SystemComponent::GatherTriangles(const physx::PxRenderBuffer& rb)
