@@ -33,7 +33,6 @@ namespace AZ
                         ->Method("GetBitangent", &MeshVertexBitangentData::GetBitangent)
                         ->Method("GetBitangentSetIndex", &MeshVertexBitangentData::GetBitangentSetIndex)
                         ->Method("GetTangentSpace", &MeshVertexBitangentData::GetTangentSpace)
-                        ->Enum<(int)SceneAPI::DataTypes::TangentSpace::EMotionFX>("EMotionFX")
                         ->Enum<(int)SceneAPI::DataTypes::TangentSpace::FromSourceScene>("FromSourceScene")
                         ->Enum<(int)SceneAPI::DataTypes::TangentSpace::MikkT>("MikkT");
                 }
