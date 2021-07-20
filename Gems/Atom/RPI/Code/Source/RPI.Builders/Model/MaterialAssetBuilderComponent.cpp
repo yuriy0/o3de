@@ -90,7 +90,7 @@ namespace AZ
             if (auto* serialize = azrtti_cast<SerializeContext*>(context))
             {
                 serialize->Class<MaterialAssetBuilderComponent, SceneAPI::SceneCore::ExportingComponent>()
-                    ->Version(16);  // [ATOM-13410] // APC Version 1
+                    ->Version(17);  // Optional FBX material conversion
             }
         }
 
@@ -107,6 +107,15 @@ namespace AZ
 
         MaterialAssetBuilderComponent::MaterialAssetBuilderComponent()
         {
+            // This setting disables material output (for automated testing purposes) to allow an FBX file to be processed without including
+            // the dozens of dependencies required to process a material.  
+            auto settingsRegistry = AZ::SettingsRegistry::Get();
+            bool skipAtomOutput = false;
+            if (settingsRegistry && settingsRegistry->Get(skipAtomOutput, "/O3DE/SceneAPI/AssetImporter/SkipAtomOutput") && skipAtomOutput)
+            {
+                return;
+            }
+
             BindToCall(&MaterialAssetBuilderComponent::BuildMaterials);
         }
 

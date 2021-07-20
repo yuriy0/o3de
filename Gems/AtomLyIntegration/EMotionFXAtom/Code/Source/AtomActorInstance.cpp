@@ -312,7 +312,7 @@ namespace AZ
             Data::Asset<const RPI::ModelAsset> modelAsset = GetModelAsset();
             if (modelAsset.IsReady())
             {
-                return modelAsset->GetModelMaterialSlots();
+                return modelAsset->GetMaterialSlots();
             }
             else
             {
