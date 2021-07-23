@@ -226,11 +226,9 @@ namespace AZ
                 OnPropertyChanged();
             };
 
-            Data::Asset<RPI::MaterialAsset> assetToEdit = m_materialAsset.GetId().IsValid() ? m_materialAsset : m_defaultMaterialAsset;
-
-            if (assetToEdit.GetId().IsValid())
+            if (m_materialAsset.GetId().IsValid())
             {
-                if (EditorMaterialComponentInspector::OpenInspectorDialog(GetLabel(), assetToEdit.GetId(), m_propertyOverrides, applyPropertyChangedCallback))
+                if (EditorMaterialComponentInspector::OpenInspectorDialog(GetLabel(), m_materialAsset.GetId(), m_propertyOverrides, applyPropertyChangedCallback))
                 {
                     OnMaterialChanged();
                 }
@@ -246,11 +244,9 @@ namespace AZ
                 OnPropertyChanged();
             };
             
-            Data::Asset<RPI::MaterialAsset> assetToEdit = m_materialAsset.GetId().IsValid() ? m_materialAsset : m_defaultMaterialAsset;
-            
-            if (assetToEdit.GetId().IsValid())
+            if (m_materialAsset.GetId().IsValid())
             {
-                if (EditorMaterialComponentInspector::OpenInspectorDialog(assetToEdit.GetId(), m_matModUvOverrides, m_modelUvNames, applyMatModUvOverrideChangedCallback))
+                if (EditorMaterialComponentInspector::OpenInspectorDialog(m_materialAsset.GetId(), m_matModUvOverrides, m_modelUvNames, applyMatModUvOverrideChangedCallback))
                 {
                     OnMaterialChanged();
                 }
