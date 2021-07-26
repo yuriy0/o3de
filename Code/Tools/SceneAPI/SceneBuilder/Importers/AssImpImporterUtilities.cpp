@@ -1,16 +1,18 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
-#include <SceneAPI/SceneBuilder/Importers/AssImpImporterUtilities.h>
-
-#include <AzCore/Debug/Trace.h>
-#include <AzCore/StringFunc/StringFunc.h>
-
 #include <assimp/scene.h>
+#include <AzCore/Debug/Trace.h>
+#include <AzCore/std/containers/unordered_set.h>
+#include <AzCore/std/containers/queue.h>
+#include <AzCore/StringFunc/StringFunc.h>
+#include <SceneAPI/SDKWrapper/AssImpTypeConverter.h>
+#include <SceneAPI/SceneBuilder/Importers/AssImpImporterUtilities.h>
 
 namespace AZ
 {
@@ -103,7 +105,7 @@ namespace AZ
                         nodesWithNoMesh.emplace(currentNode->mName.C_Str());
                     }
 
-                    for (int childIndex = 0; childIndex < currentNode->mNumChildren; ++childIndex)
+                    for (unsigned int childIndex = 0; childIndex < currentNode->mNumChildren; ++childIndex)
                     {
                         queue.push(currentNode->mChildren[childIndex]);
                     }
@@ -169,7 +171,7 @@ namespace AZ
                     return true;
                 }
 
-                for (int childIndex = 0; childIndex < node->mNumChildren; ++childIndex)
+                for (unsigned int childIndex = 0; childIndex < node->mNumChildren; ++childIndex)
                 {
                     const aiNode* childNode = node->mChildren[childIndex];
                     if (RecursiveHasChildBone(childNode, boneByNameMap))
