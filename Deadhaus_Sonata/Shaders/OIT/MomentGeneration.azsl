@@ -52,6 +52,11 @@ float GetMatAlpha(VSOutput IN)
     static const float cutoutMipScale = 1; // NB: unused, as this pass only occurs in Blended, and this parameter is used only in Cutout
     float alpha = GetAlphaInputAndClip(MaterialSrg::m_baseColorMap, MaterialSrg::m_opacityMap, baseColorUV, opacityUV, MaterialSrg::m_sampler, MaterialSrg::m_opacityFactor, o_opacity_source, cutoutMipScale);
 
+    // Disintegrate effect
+    DisintegrateClipParams disintegrateEffect;
+    disintegrateEffect.uv = opacityUV;
+    DisintegratePostClipState disintegrateState = ClipDisintegrateEffect(disintegrateEffect);
+
     return alpha;
 }
 

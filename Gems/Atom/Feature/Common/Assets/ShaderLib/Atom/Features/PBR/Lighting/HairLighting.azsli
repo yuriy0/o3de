@@ -120,7 +120,7 @@ float3 N_TT(Surface surface, float n2, float cos_O, float cos_O2, float3 cos_Ld,
     return absorption * (fresnel * distribution);
 }
 
-float N_TRT(Surface surface, float cos_O, float3 cos_Ld, float f0)
+float3 N_TRT(Surface surface, float cos_O, float3 cos_Ld, float f0)
 {
     // Helper variables (see papers)
     float h = sqrt(3) * 0.5;
@@ -130,7 +130,7 @@ float N_TRT(Surface surface, float cos_O, float3 cos_Ld, float f0)
     fresnel = Pow2(1 - fresnel) * fresnel;
 
     // How much light the hair will absorb. Part of the attenuation term (A in the papers)
-    float3 absorption = pow(surface.albedo, 0.8 * cos_Ld);
+    float3 absorption = pow(surface.albedo, 0.8 / cos_Ld);
 
     // Distribution term
     float distribution = exp(17 * cos_O - 16.78);

@@ -10,6 +10,8 @@
 #include <AzCore/Component/Component.h>
 #include <AzCore/Component/TransformBus.h>
 
+#include <AzFramework/Components/CameraBus.h>
+
 #include <AtomLyIntegration/CommonFeatures/PostProcess/DepthOfField/DepthOfFieldBus.h>
 #include <AtomLyIntegration/CommonFeatures/PostProcess/DepthOfField/DepthOfFieldComponentConfig.h>
 
@@ -23,6 +25,7 @@ namespace AZ
     {
         class DepthOfFieldComponentController final
             : public DepthOfFieldRequestBus::Handler
+            , private Camera::CameraNotificationBus::Handler
         {
         public:
             friend class EditorDepthOfFieldComponent;
@@ -52,6 +55,10 @@ namespace AZ
         private:
             AZ_DISABLE_COPY(DepthOfFieldComponentController);
 
+            // CameraNotificationBus
+            void OnActiveViewChanged(const AZ::EntityId&) override;
+
+            void CheckSetEnabled();
             void OnConfigChanged();
 
             PostProcessSettingsInterface* m_postProcessInterface = nullptr;

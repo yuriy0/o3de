@@ -61,6 +61,36 @@ namespace AzToolsFramework
             void filterUpdatedSlot();
 
         protected:
+            void invalidateFilter();
+
+        private:
+
+            bool filterAcceptsRowImpl(int source_row, const QModelIndex& source_parent) const;
+            AZStd::optional<bool> filterAcceptsRowCached(int source_row, const QModelIndex& source_parent) const;
+            void continueIncrementalFilterRebuild();
+
+            struct FilterKey
+            {
+                FilterKey() = default;
+                FilterKey(const QModelIndex& ix);
+
+                QPersistentModelIndex m_ix;
+
+                operator size_t() const;
+                bool operator==(const FilterKey& other) const;
+                bool operator!=(const FilterKey& other) const;
+                bool operator<(const FilterKey& other) const;
+            };
+
+            struct InvalidateFilterIncrementallyState
+            {
+                AZStd::unordered_map<FilterKey, bool> m_filterCache;
+                int m_remainingThisUpdate = 0;
+                bool m_active = false;
+            };
+
+        protected:
+
             //set for filtering columns
             //if the column is in the set the column is not filtered and is shown
             AZStd::fixed_unordered_set<int, 3, static_cast<int>(AssetBrowserEntry::Column::Count)> m_showColumn;
@@ -73,6 +103,7 @@ namespace AzToolsFramework
             QCollator m_collator;  // cache the collator as its somewhat expensive to constantly create and destroy one.
             AZ_POP_DISABLE_WARNING
             bool m_invalidateFilter = false;
+            mutable InvalidateFilterIncrementallyState m_invalidateFilterIncrementally;
         };
     } // namespace AssetBrowser
 } // namespace AzToolsFramework

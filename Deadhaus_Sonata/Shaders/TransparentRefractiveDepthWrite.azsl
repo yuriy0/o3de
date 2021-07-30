@@ -7,8 +7,13 @@
 
 ShaderResourceGroup PassSrg : SRG_PerPass
 {
-    Texture2D<float> m_oitOpticalDepth;
-    Texture2D<float2> m_depthMin; // float4?
+    Texture2D<uint> m_transparentDepth;
+}
+
+float DecodeIntegerDepth(uint d)
+{
+    // remap [0, 4294967295] -> [0,1]
+    return (float)(d) / 4294967295.0f;
 }
 
 struct PSOutput
@@ -16,32 +21,12 @@ struct PSOutput
     float m_depth : SV_Depth;
 };
 
-float AlphaToOpticalDepth(float alpha)
-{
-    return -log(max(1.0 - alpha, 1e-5));
-}
-
 PSOutput MainPS(VSOutput IN)
 {
     PSOutput OUT;
 
     int2 intTexelPos = int2(IN.m_position.xy);
-    const float totalOpticalDepth = PassSrg::m_oitOpticalDepth.Load(int3(intTexelPos,0));
-
-    // TODO: make this configurable
-    static const float alphaThreshold = 0.5;
-    static const float opticalDepthThreshold = AlphaToOpticalDepth(alphaThreshold);
-
-    if (totalOpticalDepth > opticalDepthThreshold)
-    {
-        // Exceeds depth threshold - write depth
-        OUT.m_depth = PassSrg::m_depthMin.Load(int3(intTexelPos,0)).r;
-    }
-    else
-    {
-        // Does not exceed depth threshold - do nothing
-        clip(-1);
-    }
+    OUT.m_depth = DecodeIntegerDepth(PassSrg::m_transparentDepth.Load(int3(intTexelPos,0)));
 
     return OUT;
 }

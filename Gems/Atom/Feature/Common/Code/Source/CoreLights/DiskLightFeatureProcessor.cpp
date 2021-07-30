@@ -201,7 +201,9 @@ namespace AZ
             if (shadowId.IsValid())
             {
                 m_shadowFeatureProcessor->SetNearFarPlanes(ShadowId(light.m_shadowIndex),
-                    light.m_bulbPositionOffset, attenuationRadius + light.m_bulbPositionOffset);
+                    light.m_bulbPositionOffset,
+                    attenuationRadius + light.m_bulbPositionOffset
+                );
             }
         }
 
@@ -301,8 +303,8 @@ namespace AZ
             }
         }
 
-        template <typename Functor, typename ParamType>
-        void DiskLightFeatureProcessor::SetShadowSetting(LightHandle handle, Functor&& functor, ParamType&& param)
+        template <typename Functor, typename... ParamTypes>
+        void DiskLightFeatureProcessor::SetShadowSetting(LightHandle handle, Functor&& functor, ParamTypes&&... param)
         {
             AZ_Assert_Return(, handle.IsValid(), "Invalid LightHandle passed to DiskLightFeatureProcessor::SetShadowSetting().");
             
@@ -312,7 +314,7 @@ namespace AZ
             AZ_Assert_Return(, shadowId.IsValid(), "Attempting to set a shadow property when shadows are not enabled.");
             if (shadowId.IsValid())
             {
-                AZStd::invoke(AZStd::forward<Functor>(functor), m_shadowFeatureProcessor, shadowId, AZStd::forward<ParamType>(param));
+                AZStd::invoke(AZStd::forward<Functor>(functor), m_shadowFeatureProcessor, shadowId, AZStd::forward<ParamTypes>(param)...);
             }
         }
 
@@ -349,6 +351,41 @@ namespace AZ
         void DiskLightFeatureProcessor::SetEsmExponent(LightHandle handle, float exponent)
         {
             SetShadowSetting(handle, &ProjectedShadowFeatureProcessor::SetEsmExponent, exponent);
+        }
+
+        void DiskLightFeatureProcessor::SetNearFarPlaneOffsets(LightHandle handle, float nearPlaneOffset, float farPlaneOffset)
+        {
+            DiskLightData& diskLight = m_diskLightData.GetData(handle.GetIndex());
+            ShadowId shadowId = ShadowId(diskLight.m_shadowIndex);
+            if (shadowId.IsNull())
+            {
+                // Early out if shadows are disabled.
+                return;
+            }
+
+            ProjectedShadowFeatureProcessorInterface::ProjectedShadowDescriptor desc = m_shadowFeatureProcessor->GetShadowProperties(shadowId);
+
+            desc.m_nearPlaneOffset = nearPlaneOffset;
+            desc.m_farPlaneOffset = farPlaneOffset;
+
+            m_shadowFeatureProcessor->SetShadowProperties(shadowId, desc);
+        }
+
+        void DiskLightFeatureProcessor::SetShadowBiasMultiplier(LightHandle handle, float multiplier)
+        {
+            DiskLightData& diskLight = m_diskLightData.GetData(handle.GetIndex());
+            ShadowId shadowId = ShadowId(diskLight.m_shadowIndex);
+            if (shadowId.IsNull())
+            {
+                // Early out if shadows are disabled.
+                return;
+            }
+
+            ProjectedShadowFeatureProcessorInterface::ProjectedShadowDescriptor desc = m_shadowFeatureProcessor->GetShadowProperties(shadowId);
+
+            desc.m_biasMultiplier = multiplier;
+
+            m_shadowFeatureProcessor->SetShadowProperties(shadowId, desc);
         }
 
         void DiskLightFeatureProcessor::UpdateShadow(LightHandle handle)

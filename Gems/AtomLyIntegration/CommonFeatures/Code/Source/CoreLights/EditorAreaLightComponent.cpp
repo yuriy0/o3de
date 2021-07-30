@@ -186,6 +186,43 @@ namespace AZ
                             ->Attribute(Edit::Attributes::ChangeNotify, Edit::PropertyRefreshLevels::ValuesOnly)
                             ->Attribute(Edit::Attributes::Visibility, &AreaLightComponentConfig::SupportsShadows)
                             ->Attribute(Edit::Attributes::ReadOnly, &AreaLightComponentConfig::IsEsmDisabled)
+
+                        ->ClassElement(Edit::ClassElements::Group, "Shadow (ADVANCED)")
+                        ->DataElement(
+                            Edit::UIHandlers::Slider, &AreaLightComponentConfig::m_shadowNearPlaneOffset, "Shadow near plane offset",
+                            "Offset the near plane by this amount"
+                             )
+                            ->Attribute(Edit::Attributes::SoftMin, -50.0f)
+                            ->Attribute(Edit::Attributes::SoftMax, 50.0f)
+                            ->Attribute(Edit::Attributes::Min, -10000.f) // Min/max required when softmin/softmax are present
+                            ->Attribute(Edit::Attributes::Max, 10000.f)
+                            ->Attribute(Edit::Attributes::Suffix, " m")
+                            ->Attribute(Edit::Attributes::ChangeNotify, Edit::PropertyRefreshLevels::ValuesOnly)
+                            ->Attribute(Edit::Attributes::Visibility, &AreaLightComponentConfig::SupportsShadows)
+
+                        ->DataElement(
+                            Edit::UIHandlers::Slider, &AreaLightComponentConfig::m_shadowFarPlaneOffset, "Shadow far plane offset",
+                            "Offset the far plane by this amount"
+                             )
+                            ->Attribute(Edit::Attributes::SoftMin, -50.0f)
+                            ->Attribute(Edit::Attributes::SoftMax, 50.0f)
+                            ->Attribute(Edit::Attributes::Min, -10000.f) // Min/max required when softmin/softmax are present
+                            ->Attribute(Edit::Attributes::Max, 10000.f)
+                            ->Attribute(Edit::Attributes::Suffix, " m")
+                            ->Attribute(Edit::Attributes::ChangeNotify, Edit::PropertyRefreshLevels::ValuesOnly)
+                            ->Attribute(Edit::Attributes::Visibility, &AreaLightComponentConfig::SupportsShadows)
+                            
+                        ->DataElement(
+                            Edit::UIHandlers::Slider, &AreaLightComponentConfig::m_shadowBiasMultiplier, "Shadow bias multiplier",
+                            "Multiplies the shadow bias by this amount"
+                             )
+                            ->Attribute(Edit::Attributes::SoftMin, 0.0f)
+                            ->Attribute(Edit::Attributes::SoftMax, 0.1f)
+                            ->Attribute(Edit::Attributes::Min, 0.f) // Min/max required when softmin/softmax are present
+                            ->Attribute(Edit::Attributes::Max, 10000.f)
+                            ->Attribute(Edit::Attributes::ChangeNotify, Edit::PropertyRefreshLevels::ValuesOnly)
+                            ->Attribute(Edit::Attributes::Visibility, &AreaLightComponentConfig::SupportsShadows)
+
                             ;
                 }
             }

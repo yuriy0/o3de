@@ -84,6 +84,10 @@ namespace AZ
             virtual void SetPcfMethod(PcfMethod method) = 0;
             //! Sets the Esm exponent to use. Higher values produce a steeper falloff between light and shadow.
             virtual void SetEsmExponent(float exponent) = 0;
+            //! Sets near/far plane offsets
+            virtual void SetNearFarPlaneOffsets(float nearPlaneOffset, float farPlaneOffset) = 0;
+            //! Set shadow bias multiplier
+            virtual void SetShadowBiasMultiplier([[maybe_unused]] float multiplier) = 0;
         };
     } //  namespace Render
 } // namespace AZ

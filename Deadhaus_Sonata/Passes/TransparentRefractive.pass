@@ -61,7 +61,25 @@
                         },
                         "LoadAction": "Clear"
                     }
-                },/*
+                },
+                {
+                    "Name": "TransparentDepthOut",
+                    "ShaderInputName": "m_transparentDepth",
+                    "SlotType": "Output",
+                    "ScopeAttachmentUsage": "Shader",
+                    "LoadStoreAction": {
+                        "ClearValue": {
+                            "Value": [
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0
+                            ]
+                        },
+                        "LoadAction": "Clear"
+                    }
+                },
+                /*
                 {
                     "Name": "RTForTesting",
                     "SlotType": "InputOutput",
@@ -190,6 +208,19 @@
                         "Pass": "This",
                         "Attachment": "DepthStencilMS"
                     }
+                },
+                {
+                    "Name": "TransparentDepthOutImage",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "InputReference"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R32_UINT",
+                        "SharedQueueMask": "Graphics"
+                    }
                 }/*,
                 {
                     "Name": "RTForTestingImage",
@@ -230,6 +261,13 @@
                         "Pass": "This",
                         "Attachment": "BetaAndDiffusionRTImage"
                     }
+                },
+                {
+                    "LocalSlot": "TransparentDepthOut",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "TransparentDepthOutImage"
+                    }
                 }/*,
                 {
                     "LocalSlot": "RTForTesting",
@@ -238,7 +276,18 @@
                         "Attachment": "RTForTestingImage"
                     }
                 }*/
-            ]
+            ],
+            "PassData": {
+                "$type": "RasterPassData",
+                "ShaderDataMappings": {
+                    "FloatMappings": [
+                        {
+                            "Name": "m_transparentDepthWriteAlphaThreshold",
+                            "Value": 0.95
+                        }
+                    ]
+                }
+            }
         }
     }
 }

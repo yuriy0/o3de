@@ -59,6 +59,8 @@ namespace AZ
             void SetFilteringSampleCount([[maybe_unused]] uint32_t count) override {};
             void SetPcfMethod([[maybe_unused]] PcfMethod method) override {};
             void SetEsmExponent([[maybe_unused]] float esmExponent) override{};
+            void SetNearFarPlaneOffsets([[maybe_unused]] float nearPlaneOffset, [[maybe_unused]] float farPlaneOffset) override{};
+            void SetShadowBiasMultiplier([[maybe_unused]] float multiplier) override{};
 
         protected:
             void InitBase(EntityId entityId);

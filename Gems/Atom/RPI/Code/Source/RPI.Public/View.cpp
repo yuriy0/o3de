@@ -368,7 +368,8 @@ namespace AZ
 
         void View::UpdateSrg()
         {
-            if (m_needBuildSrg)
+            // antonmic: This is a quick fix for Depth of Field issues, will remove this fully in the O3DE dev branch
+            //if (m_needBuildSrg)
             {
                 if (m_clipSpaceOffset.IsZero())
                 {

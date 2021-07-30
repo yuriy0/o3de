@@ -33,6 +33,9 @@ namespace AZ::Render
             float m_farPlaneDistance = 10000.0f;
             float m_aspectRatio = 1.0f;
             float m_fieldOfViewYRadians = DegToRad(90.0f);
+            float m_nearPlaneOffset = 0.f;
+            float m_farPlaneOffset = 0.f;
+            float m_biasMultiplier = 0.1f;
         };
 
         //! Creates a new projected shadow and returns a handle that can be used to reference it later.

@@ -254,17 +254,10 @@
                     ],
                     "Connections": [
                         {
-                            "LocalSlot": "DepthTransparentMin",
+                            "LocalSlot": "TransparentDepth",
                             "AttachmentRef": {
-                                "Pass": "Parent",
-                                "Attachment": "DepthTransparentMin"
-                            }
-                        },
-                        {
-                            "LocalSlot": "WeightDistributionTotalOpticalDepth",
-                            "AttachmentRef": {
-                                "Pass": "OITMomentGenerationPass",
-                                "Attachment": "TotalOpticalDepth"
+                                "Pass": "TransparentRefractivePass",
+                                "Attachment": "TransparentDepthOut"
                             }
                         },
                         {

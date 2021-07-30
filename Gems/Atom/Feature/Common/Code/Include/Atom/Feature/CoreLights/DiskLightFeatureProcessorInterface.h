@@ -97,6 +97,10 @@ namespace AZ
             virtual void SetPcfMethod(LightHandle handle, PcfMethod method) = 0;
             //! Sets the Esm exponent to use. Higher values produce a steeper falloff in the border areas between light and shadow.
             virtual void SetEsmExponent(LightHandle handle, float exponent) = 0;
+            //! Sets near/far plane offsets
+            virtual void SetNearFarPlaneOffsets(LightHandle handle, float nearPlaneOffset, float farPlaneOffset) = 0;
+
+            virtual void SetShadowBiasMultiplier(LightHandle handle, float multiplier) = 0;
 
             //! Sets all of the the disk data for the provided LightHandle.
             virtual void SetDiskData(LightHandle handle, const DiskLightData& data) = 0;

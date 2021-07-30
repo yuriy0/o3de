@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
+
+#include <AzCore/Console/IConsole.h>
+
 #include <AzToolsFramework/AssetBrowser/Search/Filter.h>
 #include <AzToolsFramework/AssetBrowser/Entries/FolderAssetBrowserEntry.h>
 #include <AzToolsFramework/AssetBrowser/Entries/SourceAssetBrowserEntry.h>
@@ -59,7 +62,7 @@ namespace AzToolsFramework
             }
         }
 
-        bool AssetBrowserFilterModel::filterAcceptsRow(int source_row, const QModelIndex& source_parent) const
+        bool AssetBrowserFilterModel::filterAcceptsRowImpl(int source_row, const QModelIndex& source_parent) const
         {
             //get the source idx, if invalid early out
             QModelIndex idx = sourceModel()->index(source_row, 0, source_parent);
@@ -82,6 +85,110 @@ namespace AzToolsFramework
                 return true;
             }
             return m_filter->Match(entry);
+        }
+
+        AZ_CVAR(
+            int,
+            editor_assetBrowserIncrementalFilterRowsPerUpdate,
+            100,
+            nullptr,
+            AZ::ConsoleFunctorFlags::Null,
+            ""
+        );
+
+        AZStd::optional<bool> AssetBrowserFilterModel::filterAcceptsRowCached(int source_row, const QModelIndex& source_parent) const
+        {
+            const auto& cache = m_invalidateFilterIncrementally.m_filterCache;
+            QModelIndex ix = sourceModel()->index(source_row, 0, source_parent);
+            if (auto it = cache.find(FilterKey(ix)); it != cache.end())
+            {
+                return { it->second };
+            }
+            else
+            {
+                return {};
+            }
+        }
+
+        bool AssetBrowserFilterModel::filterAcceptsRow(int source_row, const QModelIndex& source_parent) const
+        {
+            if (m_invalidateFilterIncrementally.m_active)
+            {
+                if (m_invalidateFilterIncrementally.m_remainingThisUpdate <= 0)
+                {
+                    // We're done this step of the incremental update; reject ALL remaining rows
+                    return false;
+                }
+                else
+                {
+                    if (auto res = filterAcceptsRowCached(source_row, source_parent))
+                    {
+                        // First check cache for results
+                        return *res;
+                    }
+                    else
+                    {
+                        // Performing a check, increment counter
+                        m_invalidateFilterIncrementally.m_remainingThisUpdate--;
+
+                        // Compute result and store in cache
+                        auto& cache = m_invalidateFilterIncrementally.m_filterCache;
+                        QModelIndex ix = sourceModel()->index(source_row, 0, source_parent);
+                        return cache.emplace(FilterKey(ix), filterAcceptsRowImpl(source_row, source_parent)).first->second;
+                    }
+                }
+            }
+            else
+            {
+                // Not currently incrementally updating, do a cache lookup, which should always succeed
+                // but fall back to actually checking the filter if it doesn't
+                if (auto res = filterAcceptsRowCached(source_row, source_parent))
+                {
+                    return *res;
+                }
+                else
+                {
+                    return filterAcceptsRowImpl(source_row, source_parent);
+                }
+            }
+        }
+
+        void AssetBrowserFilterModel::invalidateFilter()
+        {
+            // Reset cache
+            m_invalidateFilterIncrementally.m_filterCache.clear();
+            m_invalidateFilterIncrementally.m_active = true;
+
+            continueIncrementalFilterRebuild();
+        }
+
+        void AssetBrowserFilterModel::continueIncrementalFilterRebuild()
+        {
+            if (!m_invalidateFilterIncrementally.m_active)
+            {
+                // shouldn't happen anyways
+                return;
+            }
+
+            // Store number of rows to update this time
+            m_invalidateFilterIncrementally.m_remainingThisUpdate = AZ::GetMax((int)editor_assetBrowserIncrementalFilterRowsPerUpdate, 100);
+
+            // Call base class method, which (synchronously) starts to recompute filter data
+            QSortFilterProxyModel::invalidateFilter();
+
+            // Check if a further incremental update is needed
+            const bool active = m_invalidateFilterIncrementally.m_active = m_invalidateFilterIncrementally.m_remainingThisUpdate <= 0;
+            if (active)
+            {
+                // Schedule to resume the filter rebuild some short time later
+                QTimer::singleShot(10, this, [this]()
+                {
+                    continueIncrementalFilterRebuild();
+                });
+            }
+
+            // Emit events
+            Q_EMIT filterChanged();
         }
 
         bool AssetBrowserFilterModel::filterAcceptsColumn(int source_column, const QModelIndex&) const
@@ -143,8 +250,22 @@ namespace AzToolsFramework
                     m_stringFilter = qobject_cast<QSharedPointer<const StringFilter> >(*it);
                 }
             }
+
+            const auto t0 = AZStd::chrono::system_clock::now();
+
             invalidateFilter();
-            Q_EMIT filterChanged();
+
+            const auto t1 = AZStd::chrono::system_clock::now();
+            const auto dt = AZStd::chrono::duration<float>(t1 - t0).count();
+
+            if (dt > 0.1)
+            {
+                AZ_Warning("Editor", false, "Updating asset browser search filter took %f seconds", dt);
+            }
+            else
+            {
+                AZ_Printf("Editor", "Updating asset browser search filter took %f seconds", dt);
+            }
         }
 
         void AssetBrowserFilterModel::filterUpdatedSlot()
@@ -162,7 +283,32 @@ namespace AzToolsFramework
             }
         }
 
-    } // namespace AssetBrowser
+        AssetBrowserFilterModel::FilterKey::FilterKey(const QModelIndex& ix)
+            : m_ix(ix)
+        {
+        }
+
+        AssetBrowserFilterModel::FilterKey::operator size_t() const
+        {
+            return qHash(m_ix);
+        }
+
+        bool AssetBrowserFilterModel::FilterKey::operator==(const FilterKey& other) const
+        {
+            return m_ix == other.m_ix;
+        }
+
+        bool AssetBrowserFilterModel::FilterKey::operator!=(const FilterKey& other) const
+        {
+            return !(*this == other);
+        }
+
+        bool AssetBrowserFilterModel::FilterKey::operator<(const FilterKey& other) const
+        {
+            return m_ix < other.m_ix;
+        }
+
+} // namespace AssetBrowser
 } // namespace AzToolsFramework// namespace AssetBrowser
 
 #include "AssetBrowser/moc_AssetBrowserFilterModel.cpp"

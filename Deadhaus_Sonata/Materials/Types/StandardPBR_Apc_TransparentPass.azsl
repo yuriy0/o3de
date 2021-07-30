@@ -146,6 +146,7 @@ struct IOTBlendInput
 	float3 m_ssPos;
     float m_thicknessToGap;
     float3 m_worldPosition;
+    float m_depth;
 };
 
 struct IOTBlendOutput
@@ -154,7 +155,7 @@ struct IOTBlendOutput
 	float3 m_beta;
 	float m_diffusion;
 	float2 m_pixelOffset;
-	
+    
 	float4 m_test;
 };
 
@@ -163,6 +164,12 @@ float2 GetRefractionPixelOffset(float3 surfaceNormal, float3 wsPos, float ior)
 {
 	// TODO
 	return float2(0,0);
+}
+
+uint EncodeDepthAsInteger(float d)
+{
+    // remap [0,1] -> [0, 4294967295]
+    return (uint)(d * 4294967295);
 }
 
 /*
@@ -201,7 +208,7 @@ IOTBlendOutput IOTBlend(IOTBlendInput IN)
     }
 
     // Equation 4: `alpha_i * (1 - hat(t_i))' is named net coverage
-    float netCoverage = sourceAlphaIsOne ? 1.0 : alpha * (1.0 - dot(IN.m_transmittanceTint, f3_unit(1.0/3.0)));
+    const float netCoverage = sourceAlphaIsOne ? 1.0 : alpha * (1.0 - dot(IN.m_transmittanceTint, f3_unit(1.0/3.0)));
 
     // Equation 5: distance based weighting factor
     // Not physical, only requirements are: monotonic and superlinear wrt depth
@@ -209,12 +216,12 @@ IOTBlendOutput IOTBlend(IOTBlendInput IN)
     // The alpha term is eventually divided out of the RGB color term, so any fixed multiple
     // of the weight gives the same analytic result    
     float weight = 1.0;
+
+    float2 momentDim;
+    PassSrg::m_oitMoments.GetDimensions(momentDim.x, momentDim.y);
+    const int3 coord = int3(int2(momentDim * ssUV), 0);
+
     {
-        float2 momentDim;
-        PassSrg::m_oitMoments.GetDimensions(momentDim.x, momentDim.y);
-
-        int3 coord = int3(int2(momentDim * ssUV), 0);
-
         float totalOpticalDepth = PassSrg::m_oitOpticalDepth.Load(coord);
         clip(totalOpticalDepth - 0.00100050033f); // avoids divide by zero
 
@@ -278,17 +285,16 @@ IOTBlendOutput IOTBlend(IOTBlendInput IN)
         OUT.m_pixelOffset = f2_unit(0.0);
     }
 
-    // float minTranspZ = LinerizeDepth(PassSrg::m_depthMin.Sample(PassSrg::LinearSampler, ssUV).x);
-    // OUT.m_test = float4(0,0,0,0);
-    // OUT.m_test.x = fragZ - minTranspZ;
-    // OUT.m_test.y = OUT.m_test.x / ViewSrg::GetFarZ();
-    // OUT.m_test.z = OUT.m_test.x / ViewSrg::GetNearZ();
-    // OUT.m_test.w = exp(-max(OUT.m_test.x, 0.0));
+    // Transparent depth write
+    if (netCoverage <= PassSrg::m_transparentDepthWriteAlphaThreshold)
+    {
+        InterlockedMax(PassSrg::m_transparentDepth[coord.xy], EncodeDepthAsInteger(IN.m_depth));
+    }
 
 	return OUT;
 }
 
-IOTBlendInput MakeIOTBlendInput(VSOutput IN, PbrLightingOutput lightingOutput, float3 wsNormal)
+IOTBlendInput MakeIOTBlendInput(VSOutput IN, PbrLightingOutput lightingOutput, float depth, float3 wsNormal)
 {
 	IOTBlendInput iotBlendInput;
 	iotBlendInput.m_diffuseColor        = lightingOutput.m_diffuseColor;
@@ -301,6 +307,7 @@ IOTBlendInput MakeIOTBlendInput(VSOutput IN, PbrLightingOutput lightingOutput, f
 	iotBlendInput.m_ssPos               = IN.m_ssUV;
     iotBlendInput.m_thicknessToGap      = MaterialSrg::m_thicknessToGap;
     iotBlendInput.m_worldPosition       = IN.m_worldPosition;
+    iotBlendInput.m_depth               = depth;
     return iotBlendInput;
 }
 
@@ -312,7 +319,7 @@ ForwardPassOutputWithDepth StandardPbr_ForwardPassPS(VSOutput IN, bool isFrontFa
 
     PbrLightingOutput lightingOutput = ForwardPassPS_Common(IN, isFrontFace, depth, wsNormal);
 	
-	IOTBlendOutput iotBlendOutput = IOTBlend(MakeIOTBlendInput(IN, lightingOutput, wsNormal));
+	IOTBlendOutput iotBlendOutput = IOTBlend(MakeIOTBlendInput(IN, lightingOutput, depth, wsNormal));
     
     OUT.m_alpha = iotBlendOutput.m_alpha;
     OUT.m_beta.rgb = iotBlendOutput.m_beta;
@@ -320,6 +327,7 @@ ForwardPassOutputWithDepth StandardPbr_ForwardPassPS(VSOutput IN, bool isFrontFa
 	OUT.m_test = iotBlendOutput.m_test;
 	
     OUT.m_depth = depth;
+
     return OUT;
 }
 
@@ -332,7 +340,7 @@ ForwardPassOutput StandardPbr_ForwardPassPS_EDS(VSOutput IN, bool isFrontFace : 
 
     PbrLightingOutput lightingOutput = ForwardPassPS_Common(IN, isFrontFace, depth, wsNormal);
 	
-	IOTBlendOutput iotBlendOutput = IOTBlend(MakeIOTBlendInput(IN, lightingOutput, wsNormal));
+	IOTBlendOutput iotBlendOutput = IOTBlend(MakeIOTBlendInput(IN, lightingOutput, depth, wsNormal));
     
     OUT.m_alpha = iotBlendOutput.m_alpha;
     OUT.m_beta.rgb = iotBlendOutput.m_beta;

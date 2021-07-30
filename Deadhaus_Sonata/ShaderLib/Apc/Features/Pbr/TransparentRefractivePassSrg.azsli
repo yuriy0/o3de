@@ -61,5 +61,9 @@ ShaderResourceGroup PassSrg : SRG_PerPass
     Texture2D<float4> m_oitMoments;
     Texture2D<float> m_oitOpticalDepth;
 
+    // Transparent depth writes
+    float m_transparentDepthWriteAlphaThreshold;
+    RWTexture2D<uint> m_transparentDepth;
+
 	// APC END
 }

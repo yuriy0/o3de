@@ -47,6 +47,9 @@ namespace AZ
             void SetFilteringSampleCount(uint32_t count) override;
             void SetPcfMethod(PcfMethod method) override;
             void SetEsmExponent(float exponent) override;
+            void SetNearFarPlaneOffsets(float nearPlaneOffset, float farPlaneOffset) override;
+            void SetShadowBiasMultiplier(float multiplier) override;
+
 
         private:
 

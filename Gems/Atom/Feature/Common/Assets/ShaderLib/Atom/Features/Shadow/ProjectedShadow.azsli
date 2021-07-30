@@ -117,7 +117,7 @@ float ProjectedShadow::UnprojectDepth(uint shadowIndex, float depthBufferValue)
     // unprojectConstants contains the A and B values
     
     const float2 unprojectConstants = ViewSrg::m_projectedShadows[shadowIndex].m_unprojectConstants;
-    return -unprojectConstants.y / (depthBufferValue + unprojectConstants.x);
+    return abs(-unprojectConstants.y / (depthBufferValue + unprojectConstants.x));
 }
 
 float ProjectedShadow::GetThickness(uint shadowIndex, float3 worldPosition)
@@ -326,7 +326,7 @@ float ProjectedShadow::GetThickness()
             /*LOD=*/0
             ).r;
             
-        const float viewSpaceThickness = abs(UnprojectDepth(m_shadowIndex, m_shadowPosition.z) - UnprojectDepth(m_shadowIndex, depthValue)); 
+        const float viewSpaceThickness = max(UnprojectDepth(m_shadowIndex, m_shadowPosition.z) - UnprojectDepth(m_shadowIndex, depthValue), 0); 
         return viewSpaceThickness;    
     }
 

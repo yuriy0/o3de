@@ -243,12 +243,12 @@ namespace AZ::Render
     void ProjectedShadowFeatureProcessor::UpdateShadowView(ShadowProperty& shadowProperty)
     {
         const ProjectedShadowDescriptor& desc = shadowProperty.m_desc;
-        float nearDist = desc.m_nearPlaneDistance;
-        float farDist = desc.m_farPlaneDistance;
+        float nearDist = desc.m_nearPlaneDistance + desc.m_nearPlaneOffset;
+        float farDist = desc.m_farPlaneDistance + desc.m_farPlaneOffset;
 
         // Adjust the near plane if it's too close to ensure accuracy.
         constexpr float NearFarRatio = 1000.0f;
-        const float minDist = desc.m_farPlaneDistance / NearFarRatio;
+        const float minDist = farDist / NearFarRatio;
         nearDist = GetMax(minDist, nearDist); 
 
         Matrix4x4 viewToClipMatrix;
@@ -264,7 +264,7 @@ namespace AZ::Render
         view->SetCameraTransform(Matrix3x4::CreateFromTransform(desc.m_transform));
 
         ShadowData& shadowData = m_shadowData.GetElement<ShadowDataIndex>(shadowProperty.m_shadowId.GetIndex());
-        shadowData.m_bias = (nearDist / farDist) * 0.1f;
+        shadowData.m_bias = (nearDist / farDist) * desc.m_biasMultiplier;
         
         FilterParameter& esmData = m_shadowData.GetElement<FilterParamIndex>(shadowProperty.m_shadowId.GetIndex());
         if (FilterMethodIsEsm(shadowData))

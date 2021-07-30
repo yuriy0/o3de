@@ -178,5 +178,21 @@ namespace AZ::Render
         }
     }
 
+    void DiskLightDelegate::SetNearFarPlaneOffsets(float nearPlaneOffset, float farPlaneOffset)
+    {
+        if (GetShadowsEnabled() && GetLightHandle().IsValid())
+        {
+            GetFeatureProcessor()->SetNearFarPlaneOffsets(GetLightHandle(), nearPlaneOffset, farPlaneOffset);
+        }
+    }
+
+    void DiskLightDelegate::SetShadowBiasMultiplier(float multiplier)
+    {
+        if (GetShadowsEnabled() && GetLightHandle().IsValid())
+        {
+            GetFeatureProcessor()->SetShadowBiasMultiplier(GetLightHandle(), multiplier);
+        }
+    }
+
     
 } // namespace AZ::Render

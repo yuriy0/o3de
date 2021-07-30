@@ -8,21 +8,10 @@
             "PassClass": "FullScreenTriangle",
             "Slots": [
                 {
-                    "Name": "WeightDistributionTotalOpticalDepth",
-                    "ShaderInputName": "m_oitOpticalDepth",
+                    "Name": "TransparentDepth",
+                    "ShaderInputName": "m_transparentDepth",
                     "SlotType": "Input",
                     "ScopeAttachmentUsage": "Shader"
-                },
-                {
-                    "Name": "DepthTransparentMin",
-                    "ShaderInputName": "m_depthMin",
-                    "SlotType": "Input",
-                    "ScopeAttachmentUsage": "Shader",
-                    "ImageViewDesc": {
-                        "AspectFlags": [
-                            "Depth"
-                        ]
-                    }
                 },
                 {
                     "Name": "DepthStencil",

@@ -554,6 +554,17 @@ void EditorViewportWidget::PostCameraSet()
     // CryLegacy notify
     GetIEditor()->Notify(eNotify_CameraChanged);
 
+    // Special case in the editor; if the camera is the default editor camera,
+    // notify that the active view changed. In game mode, it is a hard error to not have
+    // any cameras on the view stack!
+    if (m_viewSourceType == ViewSourceType::None)
+    {
+        m_sendingOnActiveChanged = true;
+        Camera::CameraNotificationBus::Broadcast(
+            &Camera::CameraNotificationBus::Events::OnActiveViewChanged, AZ::EntityId());
+        m_sendingOnActiveChanged = false;
+    }
+
     // Notify about editor camera change
     Camera::EditorCameraNotificationBus::Broadcast(
         &Camera::EditorCameraNotificationBus::Events::OnViewportViewEntityChanged, m_viewEntityId);
@@ -2317,6 +2328,12 @@ float EditorViewportWidget::GetFOV() const
 
 void EditorViewportWidget::OnActiveViewChanged(const AZ::EntityId& viewEntityId)
 {
+    // Avoid re-entry
+    if (m_sendingOnActiveChanged)
+    {
+        return;
+    }
+
     // Ignore any changes in simulation mode
     if (m_playInEditorState != PlayInEditorState::Editor)
     {
@@ -2339,13 +2356,13 @@ void EditorViewportWidget::OnActiveViewChanged(const AZ::EntityId& viewEntityId)
         AZStd::string entityName;
         AZ::ComponentApplicationBus::BroadcastResult(entityName, &AZ::ComponentApplicationRequests::GetEntityName, viewEntityId);
         SetName(QString("Camera entity: %1").arg(entityName.c_str()));
+
+        PostCameraSet();
     }
     else
     {
         SetDefaultCamera();
     }
-
-    PostCameraSet();
 }
 
 //////////////////////////////////////////////////////////////////////////

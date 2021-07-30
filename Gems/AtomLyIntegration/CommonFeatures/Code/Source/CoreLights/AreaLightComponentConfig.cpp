@@ -17,7 +17,7 @@ namespace AZ
             if (auto serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
             {
                 serializeContext->Class<AreaLightComponentConfig, ComponentConfig>()
-                    ->Version(6) // ATOM-15654
+                    ->Version(8) // ATOM-15654 // APC v3
                     ->Field("LightType", &AreaLightComponentConfig::m_lightType)
                     ->Field("Color", &AreaLightComponentConfig::m_color)
                     ->Field("IntensityMode", &AreaLightComponentConfig::m_intensityMode)
@@ -39,6 +39,9 @@ namespace AZ
                     ->Field("Filtering Sample Count", &AreaLightComponentConfig::m_filteringSampleCount)
                     ->Field("Pcf Method", &AreaLightComponentConfig::m_pcfMethod)
                     ->Field("Esm Exponent", &AreaLightComponentConfig::m_esmExponent)
+                    ->Field("Shadow Near Plane Offset", &AreaLightComponentConfig::m_shadowNearPlaneOffset)
+                    ->Field("Shadow Far Plane Offset", &AreaLightComponentConfig::m_shadowFarPlaneOffset)
+                    ->Field("Shadow Bias Multiplier", &AreaLightComponentConfig::m_shadowBiasMultiplier)
                     ;
             }
         }

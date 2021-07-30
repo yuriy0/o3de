@@ -314,6 +314,8 @@ namespace AZ::Render
                 m_lightShapeDelegate->SetFilteringSampleCount(m_configuration.m_filteringSampleCount);
                 m_lightShapeDelegate->SetPcfMethod(m_configuration.m_pcfMethod);
                 m_lightShapeDelegate->SetEsmExponent(m_configuration.m_esmExponent);
+                m_lightShapeDelegate->SetNearFarPlaneOffsets(m_configuration.m_shadowNearPlaneOffset, m_configuration.m_shadowFarPlaneOffset);
+                m_lightShapeDelegate->SetShadowBiasMultiplier(m_configuration.m_shadowBiasMultiplier);
             }
         }
     }

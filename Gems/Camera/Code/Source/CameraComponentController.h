@@ -92,7 +92,7 @@ namespace Camera
         void SetFrustumWidth(float width) override;
         void SetFrustumHeight(float height) override;
         void MakeActiveView() override;
-        bool IsActiveView() const /*override*/;
+        bool IsActiveView() override;
 
         // AZ::TransformNotificationBus::Handler interface
         void OnTransformChanged(const AZ::Transform& local, const AZ::Transform& world) override;

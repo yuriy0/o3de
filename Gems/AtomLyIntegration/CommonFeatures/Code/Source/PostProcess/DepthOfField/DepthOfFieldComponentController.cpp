@@ -75,11 +75,14 @@ namespace AZ
                     OnConfigChanged();
                 }
             }
+
             DepthOfFieldRequestBus::Handler::BusConnect(m_entityId);
+            Camera::CameraNotificationBus::Handler::BusConnect();
         }
 
         void DepthOfFieldComponentController::Deactivate()
         {
+            Camera::CameraNotificationBus::Handler::BusDisconnect();
             DepthOfFieldRequestBus::Handler::BusDisconnect(m_entityId);
 
             if (m_postProcessInterface)
@@ -105,11 +108,33 @@ namespace AZ
             return m_configuration;
         }
 
+        void DepthOfFieldComponentController::OnActiveViewChanged(const AZ::EntityId&)
+        {
+            OnConfigChanged();
+        }
+
+        void DepthOfFieldComponentController::CheckSetEnabled()
+        {
+            AZ_Assert(m_depthOfFieldSettingsInterface != nullptr, "Internal error, call only when settings interface exists");
+
+            const bool enabled =
+                m_configuration.m_enabled &&
+                [&]() {
+                    bool isActive = false;
+                    EBUS_EVENT_ID_RESULT(isActive, m_configuration.m_cameraEntityId, Camera::CameraRequestBus, IsActiveView);
+                    return isActive;
+                }()
+                ;
+
+            m_depthOfFieldSettingsInterface->SetEnabled(enabled);
+        }
+
         void DepthOfFieldComponentController::OnConfigChanged()
         {
             if (m_depthOfFieldSettingsInterface)
             {
                 m_configuration.CopySettingsTo(m_depthOfFieldSettingsInterface);
+                CheckSetEnabled();
                 m_depthOfFieldSettingsInterface->OnConfigChanged();
                 UpdateInferredParams();
             }
@@ -134,6 +159,7 @@ namespace AZ
             if(m_depthOfFieldSettingsInterface)                                                         \
             {                                                                                           \
                 m_depthOfFieldSettingsInterface->Set##Name(val);                                        \
+                CheckSetEnabled();                                                                      \
                 m_depthOfFieldSettingsInterface->OnConfigChanged();                                     \
                 m_configuration.MemberName = m_depthOfFieldSettingsInterface->Get##Name();              \
                 UpdateInferredParams();                                                                 \
@@ -155,6 +181,7 @@ namespace AZ
             if(m_depthOfFieldSettingsInterface)                                                         \
             {                                                                                           \
                 m_depthOfFieldSettingsInterface->Set##Name##Override(val);                              \
+                CheckSetEnabled();                                                                      \
                 m_depthOfFieldSettingsInterface->OnConfigChanged();                                     \
             }                                                                                           \
         }                                                                                               \

@@ -72,7 +72,8 @@ namespace AZ
                             "Aperture F",
                             "The higher the value, the larger the opening.")
                         ->Attribute(Edit::Attributes::Min, 0.0f)
-                        ->Attribute(Edit::Attributes::Max, 1.0f)
+                        ->Attribute(Edit::Attributes::Max, 100.0f)
+                        ->Attribute(Edit::Attributes::SoftMax, 1.0f)
                         ->Attribute(Edit::Attributes::ChangeNotify, Edit::PropertyRefreshLevels::ValuesOnly)
                         ->Attribute(Edit::Attributes::ReadOnly, &DepthOfFieldComponentConfig::ArePropertiesReadOnly)
 

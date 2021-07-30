@@ -396,7 +396,7 @@ namespace Camera
         CameraNotificationBus::Broadcast(&CameraNotificationBus::Events::OnActiveViewChanged, m_entityId);
     }
 
-    bool CameraComponentController::IsActiveView() const
+    bool CameraComponentController::IsActiveView()
     {
         return AZ::RPI::ViewportContextNotificationBus::Handler::BusIsConnected();
     }

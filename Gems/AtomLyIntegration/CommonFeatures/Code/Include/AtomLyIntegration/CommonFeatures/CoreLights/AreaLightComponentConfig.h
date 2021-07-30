@@ -62,6 +62,9 @@ namespace AZ
             uint16_t m_predictionSampleCount = 4;
             uint16_t m_filteringSampleCount = 12;
             float m_esmExponent = 87.0f;
+            float m_shadowNearPlaneOffset = 0.f;
+            float m_shadowFarPlaneOffset = 0.f;
+            float m_shadowBiasMultiplier = 0.1f;
 
             // The following functions provide information to an EditContext...
 

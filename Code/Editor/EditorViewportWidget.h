@@ -322,6 +322,9 @@ private:
     // Determines if the viewport needs updating (false when out of focus for example)
     bool m_bUpdateViewport = false;
 
+    // Avoid re-entering PostCameraSet->OnActiveViewChanged->PostCameraSet
+    bool m_sendingOnActiveChanged = false;
+
     // Legacy...
     KeyPressedState m_pressedKeyState = KeyPressedState::AllUp;
 

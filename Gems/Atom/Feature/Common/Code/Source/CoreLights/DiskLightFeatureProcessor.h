@@ -56,6 +56,8 @@ namespace AZ
             void SetFilteringSampleCount(LightHandle handle, uint16_t count) override;
             void SetPcfMethod(LightHandle handle, PcfMethod method) override;
             void SetEsmExponent(LightHandle handle, float esmExponent) override;
+            void SetNearFarPlaneOffsets(LightHandle handle, float nearPlaneOffset, float farPlaneOffset) override;
+            void SetShadowBiasMultiplier(LightHandle handle, float multiplier) override;
 
             void SetDiskData(LightHandle handle, const DiskLightData& data) override;
 
@@ -77,8 +79,8 @@ namespace AZ
             void UpdateShadow(LightHandle handle);
 
             // Convenience function for forwarding requests to the ProjectedShadowFeatureProcessor
-            template <typename Functor, typename ParamType>
-            void SetShadowSetting(LightHandle handle, Functor&&, ParamType&& param);
+            template <typename Functor, typename... ParamTypes>
+            void SetShadowSetting(LightHandle handle, Functor&&, ParamTypes&&... param);
 
             ProjectedShadowFeatureProcessor* m_shadowFeatureProcessor = nullptr;
 

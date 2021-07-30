@@ -99,7 +99,7 @@ namespace AZ::SceneGenerationComponents
     MeshOptimizerComponent::MeshOptimizerComponent()
     {
         // APC BEGIN: disable mesh optimization
-        // BindToCall(&MeshOptimizerComponent::OptimizeMeshes);
+        BindToCall(&MeshOptimizerComponent::OptimizeMeshes);
         // APC END
     }
 
