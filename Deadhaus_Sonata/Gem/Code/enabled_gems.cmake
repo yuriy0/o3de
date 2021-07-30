@@ -36,6 +36,7 @@ set(ENABLED_GEMS
     AWSCore
     AWSClientAuth
     AWSMetrics
+    PopcornFX
     
     # Apc Gems
     ApcAtomExt

@@ -17,6 +17,7 @@
 #include <SceneAPI/SDKWrapper/AssImpTypeConverter.h>
 #include <SceneAPI/SceneData/GraphData/MeshData.h>
 #include <SceneAPI/SceneData/GraphData/MeshVertexColorData.h>
+#include <SceneAPI/SceneCore/Utilities/Reporting.h>
 
 #include <assimp/scene.h>
 #include <assimp/mesh.h>
