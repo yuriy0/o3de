@@ -165,7 +165,7 @@ namespace AZ
         }
 
         MaterialAssignmentId FindMaterialAssignmentIdInLod(
-            const Data::Instance<AZ::RPI::Model> model,
+            const Data::Instance<AZ::RPI::Model>& model,
             const Data::Instance<AZ::RPI::ModelLod>& lod,
             const MaterialAssignmentLodIndex lodIndex,
             const AZStd::string& labelFilter)
@@ -182,7 +182,7 @@ namespace AZ
         }
 
         MaterialAssignmentId FindMaterialAssignmentIdInModel(
-            const Data::Instance<AZ::RPI::Model> model, const MaterialAssignmentLodIndex lodFilter, const AZStd::string& labelFilter)
+            const Data::Instance<AZ::RPI::Model>& model, const MaterialAssignmentLodIndex lodFilter, const AZStd::string& labelFilter)
         {
             if (model && !labelFilter.empty())
             {
