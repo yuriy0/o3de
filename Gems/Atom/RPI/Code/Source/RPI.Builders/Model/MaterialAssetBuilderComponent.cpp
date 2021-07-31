@@ -10,6 +10,7 @@
 #include <AzCore/Asset/AssetCommon.h>
 #include <AzCore/Serialization/EditContext.h>
 #include <AzCore/Math/Color.h>
+#include <AzCore/Settings/SettingsRegistry.h>
 
 #include <AzToolsFramework/API/EditorAssetSystemAPI.h>
 #include <AzToolsFramework/Debug/TraceContext.h>
