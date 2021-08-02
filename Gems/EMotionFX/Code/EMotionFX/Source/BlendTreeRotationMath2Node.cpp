@@ -104,7 +104,6 @@ namespace EMotionFX
         }
 
         // If both x and y inputs have connections
-        //MCore::Quaternion x = MCore::AzQuatToEmfxQuat(m_defaultValue);
         AZ::Quaternion x = m_defaultValue;
         AZ::Quaternion y = x;
         if (mConnections.size() == 2)

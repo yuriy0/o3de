@@ -5,11 +5,10 @@
  *
  */
 
-#ifndef __EMSTUDIO_RENDERWIDGET_H
-#define __EMSTUDIO_RENDERWIDGET_H
+#pragma once
 
-//
 #if !defined(Q_MOC_RUN)
+#include <AzCore/Math/Aabb.h>
 #include <MCore/Source/StandardHeaders.h>
 #include "../EMStudioConfig.h"
 #include <EMotionFX/Rendering/Common/Camera.h>
@@ -116,7 +115,7 @@ namespace EMStudio
         MCORE_INLINE MCommon::Camera* GetCamera() const                                                     { return mCamera; }
         MCORE_INLINE CameraMode GetCameraMode() const                                                       { return mCameraMode; }
         MCORE_INLINE void SetSkipFollowCalcs(bool skipFollowCalcs)                                          { mSkipFollowCalcs = skipFollowCalcs; }
-        void ViewCloseup(const MCore::AABB& aabb, float flightTime, uint32 viewCloseupWaiting = 5);
+        void ViewCloseup(const AZ::Aabb& aabb, float flightTime, uint32 viewCloseupWaiting = 5);
         void ViewCloseup(bool selectedInstancesOnly, float flightTime, uint32 viewCloseupWaiting = 5);
         void SwitchCamera(CameraMode mode);
 
@@ -160,7 +159,7 @@ namespace EMStudio
 
         // used for closeup camera flights
         uint32                                  mViewCloseupWaiting;
-        MCore::AABB                             mViewCloseupAABB;
+        AZ::Aabb                                mViewCloseupAABB;
         float                                   mViewCloseupFlightTime;
 
         // manipulator helper data
@@ -174,6 +173,3 @@ namespace EMStudio
         int32                                   mPixelsMovedSinceRightClick;
     };
 } // namespace EMStudio
-
-
-#endif

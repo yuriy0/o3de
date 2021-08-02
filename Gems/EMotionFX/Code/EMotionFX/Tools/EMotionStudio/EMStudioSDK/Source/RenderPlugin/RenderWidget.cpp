@@ -71,9 +71,8 @@ namespace EMStudio
     }
 
     // start view closeup flight
-    void RenderWidget::ViewCloseup(const MCore::AABB& aabb, float flightTime, uint32 viewCloseupWaiting)
+    void RenderWidget::ViewCloseup(const AZ::Aabb& aabb, float flightTime, uint32 viewCloseupWaiting)
     {
-        //LogError("ViewCloseup: AABB: Pos=(%.3f, %.3f, %.3f), Width=%.3f, Height=%.3f, Depth=%.3f", aabb.CalcMiddle().x, aabb.CalcMiddle().y, aabb.CalcMiddle().z, aabb.CalcWidth(), aabb.CalcHeight(), aabb.CalcDepth());
         mViewCloseupWaiting     = viewCloseupWaiting;
         mViewCloseupAABB        = aabb;
         mViewCloseupFlightTime  = flightTime;
@@ -81,9 +80,8 @@ namespace EMStudio
 
     void RenderWidget::ViewCloseup(bool selectedInstancesOnly, float flightTime, uint32 viewCloseupWaiting)
     {
-        //LogError("ViewCloseup: AABB: Pos=(%.3f, %.3f, %.3f), Width=%.3f, Height=%.3f, Depth=%.3f", aabb.CalcMiddle().x, aabb.CalcMiddle().y, aabb.CalcMiddle().z, aabb.CalcWidth(), aabb.CalcHeight(), aabb.CalcDepth());
         mViewCloseupWaiting     = viewCloseupWaiting;
-        mViewCloseupAABB        = mPlugin->GetSceneAABB(selectedInstancesOnly);
+        mViewCloseupAABB        = mPlugin->GetSceneAabb(selectedInstancesOnly);
         mViewCloseupFlightTime  = flightTime;
     }
 
@@ -602,14 +600,15 @@ namespace EMStudio
                             if (actor->CheckIfHasMeshes(actorInstance->GetLODLevel()) == false)
                             {
                                 // calculate the node based AABB
-                                MCore::AABB box;
-                                actorInstance->CalcNodeBasedAABB(&box);
+                                AZ::Aabb box;
+                                actorInstance->CalcNodeBasedAabb(&box);
 
                                 // render the aabb
-                                if (box.CheckIfIsValid())
+                                if (box.IsValid())
                                 {
+                                    const MCore::AABB mcoreAabb(box.GetMin(), box.GetMax());
                                     AZ::Vector3 ii, n;
-                                    if (ray.Intersects(box, &ii, &n))
+                                    if (ray.Intersects(mcoreAabb, &ii, &n))
                                     {
                                         selectedActorInstance = actorInstance;
                                         oldIntersectionPoint = ii;
@@ -1168,8 +1167,7 @@ namespace EMStudio
             mViewCloseupWaiting--;
             if (mViewCloseupWaiting == 0)
             {
-                mCamera->ViewCloseup(mViewCloseupAABB, mViewCloseupFlightTime);
-                //mViewCloseupWaiting = 0;
+                mCamera->ViewCloseup(MCore::AABB(mViewCloseupAABB.GetMin(), mViewCloseupAABB.GetMax()), mViewCloseupFlightTime);
             }
         }
 
