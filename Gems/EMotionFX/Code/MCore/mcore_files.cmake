@@ -100,9 +100,6 @@ set(FILES
     Source/MemoryTracker.cpp
     Source/MemoryTracker.h
     Source/MultiThreadManager.h
-    Source/OBB.cpp
-    Source/OBB.h
-    Source/OBB.inl
     Source/PlaneEq.cpp
     Source/PlaneEq.h
     Source/PlaneEq.inl
