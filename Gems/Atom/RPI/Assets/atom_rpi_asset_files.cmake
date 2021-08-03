@@ -6,11 +6,6 @@
 # 
 
 set(FILES
-    Materials/Default.materialtype
-    Materials/DefaultMaterial.azsl
-    Materials/DefaultMaterial.shader
-    Materials/DefaultMaterial_DepthPass.azsl
-    Materials/DefaultMaterial_DepthPass.shader
     Shader/DecomposeMsImage.azsl
     Shader/DecomposeMsImage.shader
     Shader/ImagePreview.azsl

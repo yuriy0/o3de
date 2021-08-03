@@ -12,6 +12,7 @@
 #include <Atom/RPI.Public/Material/Material.h>
 #include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentBus.h>
 #include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentConfig.h>
+#include <AtomLyIntegration/CommonFeatures/Mesh/MeshComponentBus.h>
 
 namespace AZ
 {
@@ -21,6 +22,7 @@ namespace AZ
         //! to provide material overrides on a per-entity basis.
         class MaterialComponentController final
             : MaterialComponentRequestBus::Handler
+            , MeshComponentNotificationBus::Handler
             , Data::AssetBus::MultiHandler
             , TickBus::Handler
         {
@@ -46,6 +48,7 @@ namespace AZ
 
             //! MaterialComponentRequestBus overrides...
             MaterialAssignmentMap GetOriginalMaterialAssignments() const override;
+            MaterialAssignmentId FindMaterialAssignmentId(const MaterialAssignmentLodIndex lod, const AZStd::string& label) const override;
             void SetMaterialOverrides(const MaterialAssignmentMap& materials) override;
             const MaterialAssignmentMap& GetMaterialOverrides() const override;
             void ClearAllMaterialOverrides() override;
@@ -69,12 +72,15 @@ namespace AZ
 
             void DeactivateImpl(bool update);
 
-            //! Data::AssetBus interface
+            //! Data::AssetBus overrides...
             void OnAssetReady(Data::Asset<Data::AssetData> asset) override;
             void OnAssetReloaded(Data::Asset<Data::AssetData> asset) override;
 
-            //! AZ::TickBus interface implementation
+            // AZ::TickBus overrides...
             void OnTick(float deltaTime, AZ::ScriptTimePoint time) override;
+
+            // MeshComponentNotificationBus overrides...
+            void OnModelReady(const Data::Asset<RPI::ModelAsset>& modelAsset, const Data::Instance<RPI::Model>& model) override;
 
             void LoadMaterials();
             void InitializeMaterialInstance(const Data::Asset<Data::AssetData>& asset);

@@ -119,6 +119,9 @@ namespace AZ
 
             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             // MaterialReceiverRequestBus::Handler overrides...
+            virtual MaterialAssignmentId FindMaterialAssignmentId(
+                const MaterialAssignmentLodIndex lod, const AZStd::string& label) const override;
+            RPI::ModelMaterialSlotMap GetModelMaterialSlots() const override;
             MaterialAssignmentMap GetMaterialAssignments() const override;
             AZStd::unordered_set<AZ::Name> GetModelUvNames() const override;
 
