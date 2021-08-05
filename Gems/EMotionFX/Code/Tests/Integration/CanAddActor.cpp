@@ -39,7 +39,7 @@ namespace EMotionFX
         }
 
         // Ensure the Actor is correct
-        ASSERT_TRUE(GetActorManager().FindActorByName("rinactor"));
+        ASSERT_TRUE(GetActorManager().FindActorByName("rinActor"));
         EXPECT_EQ(GetActorManager().GetNumActors(), 1);
     }
 } // namespace EMotionFX

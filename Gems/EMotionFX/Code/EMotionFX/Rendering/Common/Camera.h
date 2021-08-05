@@ -10,6 +10,7 @@
 
 #include <AzCore/Math/Matrix4x4.h>
 #include <AzCore/Math/Vector2.h>
+#include <MCore/Source/AABB.h>
 #include <MCore/Source/Vector.h>
 #include <MCore/Source/Ray.h>
 #include "MCommonConfig.h"

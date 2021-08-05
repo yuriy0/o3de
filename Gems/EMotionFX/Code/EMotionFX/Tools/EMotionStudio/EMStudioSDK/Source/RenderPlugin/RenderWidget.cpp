@@ -5,7 +5,6 @@
  *
  */
 
-// include the required headers
 #include "RenderWidget.h"
 #include "RenderPlugin.h"
 #include <EMotionFX/Rendering/Common/OrbitCamera.h>
@@ -20,6 +19,7 @@
 #include "../EMStudioManager.h"
 #include "../MainWindow.h"
 #include <MCore/Source/AzCoreConversions.h>
+#include <MCore/Source/AABB.h>
 
 
 namespace EMStudio
