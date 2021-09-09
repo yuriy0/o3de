@@ -13,6 +13,7 @@
 #include <AzCore/Math/Vector3.h>
 #include <AzQtComponents/Components/Widgets/ToolBar.h>
 #include <AzToolsFramework/Editor/EditorSettingsAPIBus.h>
+#include <AzToolsFramework/Prefab/PrefabLoaderInterface.h>
 #include <QIcon>
 
 #include "Settings.h"
@@ -55,6 +56,12 @@ private:
         bool m_enableSceneInspector;
     };
 
+    struct LevelSaveSettings
+    {
+        AZ_TYPE_INFO(LevelSaveSettings, "{E297DAE3-3985-4BC2-8B43-45F3B1522F6B}");
+        AzToolsFramework::Prefab::SaveAllPrefabsPreference m_saveAllPrefabsPreference;
+    };
+
     struct Messaging
     {
         AZ_TYPE_INFO(Messaging, "{A6AD87CB-E905-409B-A2BF-C43CDCE63B0C}")
@@ -87,6 +94,7 @@ private:
     };
 
     GeneralSettings m_generalSettings;
+    LevelSaveSettings m_levelSaveSettings;
     Messaging m_messaging;
     Undo m_undo;
     DeepSelection m_deepSelection;
