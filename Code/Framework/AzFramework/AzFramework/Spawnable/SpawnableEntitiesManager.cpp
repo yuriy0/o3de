@@ -84,6 +84,35 @@ namespace AzFramework
         QueueRequest(ticket, optionalArgs.m_priority, AZStd::move(queueEntry));
     }
 
+    void SpawnableEntitiesManager::DespawnEntity(AZ::EntityId entityId, EntitySpawnTicket& ticket, DespawnEntityOptionalArgs optionalArgs)
+    {
+        AZ_Assert(ticket.IsValid(), "Ticket provided to DespawnEntity hasn't been initialized.");
+
+        DespawnEntityCommand queueEntry;
+        queueEntry.m_ticketId = ticket.GetId();
+        queueEntry.m_entityId = entityId;
+        queueEntry.m_completionCallback = AZStd::move(optionalArgs.m_completionCallback);
+        QueueRequest(ticket, optionalArgs.m_priority, AZStd::move(queueEntry));
+    }
+
+    void SpawnableEntitiesManager::RetrieveEntitySpawnTicket(EntitySpawnTicket::Id entitySpawnTicketId, RetrieveEntitySpawnTicketCallback callback)
+    {
+        if (entitySpawnTicketId == 0)
+        {
+            AZ_Assert(false, "Ticket id provided to RetrieveEntitySpawnTicket is invalid.");
+            return;
+        }
+
+        AZStd::scoped_lock lock(m_entitySpawnTicketMapMutex);
+        auto entitySpawnTicketIterator = m_entitySpawnTicketMap.find(entitySpawnTicketId);
+        if (entitySpawnTicketIterator == m_entitySpawnTicketMap.end())
+        {
+            AZ_Assert(false, "The EntitySpawnTicket corresponding to id '%lu' cannot be found", entitySpawnTicketId);
+            return;
+        }
+        callback(entitySpawnTicketIterator->second);
+    }
+
     void SpawnableEntitiesManager::ReloadSpawnable(
         EntitySpawnTicket& ticket, AZ::Data::Asset<Spawnable> spawnable, ReloadSpawnableOptionalArgs optionalArgs)
     {
@@ -222,12 +251,13 @@ namespace AzFramework
         return queue.m_delayed.empty() ? CommandQueueStatus::NoCommandsLeft : CommandQueueStatus::HasCommandsLeft;
     }
 
-    AZStd::pair<uint64_t, void*> SpawnableEntitiesManager::CreateTicket(AZ::Data::Asset<Spawnable>&& spawnable)
+    AZStd::pair<EntitySpawnTicket::Id, void*> SpawnableEntitiesManager::CreateTicket(AZ::Data::Asset<Spawnable>&& spawnable)
     {
-        static AZStd::atomic_uint64_t idCounter { 1 };
+        static AZStd::atomic_uint32_t idCounter { 1 };
 
         auto result = aznew Ticket();
         result->m_spawnable = AZStd::move(spawnable);
+        
         return AZStd::make_pair<EntitySpawnTicket::Id, void*>(idCounter++, result);
     }
 
@@ -338,6 +368,7 @@ namespace AzFramework
             // Add to the game context, now the entities are active
             for (auto it = ticket.m_spawnedEntities.begin() + spawnedEntitiesInitialCount; it != ticket.m_spawnedEntities.end(); ++it)
             {
+                (*it)->SetSpawnTicketId(request.m_ticketId);
                 GameEntityContextRequestBus::Broadcast(&GameEntityContextRequestBus::Events::AddGameEntity, *it);
             }
 
@@ -419,6 +450,7 @@ namespace AzFramework
             // Add to the game context, now the entities are active
             for (auto it = ticket.m_spawnedEntities.begin() + spawnedEntitiesInitialCount; it != ticket.m_spawnedEntities.end(); ++it)
             {
+                (*it)->SetSpawnTicketId(request.m_ticketId);
                 GameEntityContextRequestBus::Broadcast(&GameEntityContextRequestBus::Events::AddGameEntity, *it);
             }
 
@@ -446,13 +478,49 @@ namespace AzFramework
             {
                 if (entity != nullptr)
                 {
+                    // Setting it to 0 is needed to avoid the infite loop between GameEntityContext and SpawnableEntitiesManager.
+                    entity->SetSpawnTicketId(0);
                     GameEntityContextRequestBus::Broadcast(
-                        &GameEntityContextRequestBus::Events::DestroyGameEntityAndDescendants, entity->GetId());
+                        &GameEntityContextRequestBus::Events::DestroyGameEntity, entity->GetId());
                 }
             }
 
             ticket.m_spawnedEntities.clear();
             ticket.m_spawnedEntityIndices.clear();
+
+            if (request.m_completionCallback)
+            {
+                request.m_completionCallback(request.m_ticketId);
+            }
+
+            ticket.m_currentRequestId++;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    bool SpawnableEntitiesManager::ProcessRequest(DespawnEntityCommand& request)
+    {
+        Ticket& ticket = *request.m_ticket;
+        if (request.m_requestId == ticket.m_currentRequestId)
+        {
+            AZStd::vector<AZ::Entity*>& spawnedEntities = request.m_ticket->m_spawnedEntities;
+            for (auto entityIterator = spawnedEntities.begin(); entityIterator != spawnedEntities.end(); ++entityIterator)
+            {
+                if (*entityIterator != nullptr && (*entityIterator)->GetId() == request.m_entityId)
+                {
+                    // Setting it to 0 is needed to avoid the infite loop between GameEntityContext and SpawnableEntitiesManager.
+                    (*entityIterator)->SetSpawnTicketId(0);
+                    GameEntityContextRequestBus::Broadcast(
+                        &GameEntityContextRequestBus::Events::DestroyGameEntity, (*entityIterator)->GetId());
+                    AZStd::iter_swap(entityIterator, spawnedEntities.rbegin());
+                    spawnedEntities.pop_back();
+                    break;
+                }
+            }
 
             if (request.m_completionCallback)
             {
@@ -481,8 +549,10 @@ namespace AzFramework
             {
                 if (entity != nullptr)
                 {
+                    // Setting it to 0 is needed to avoid the infite loop between GameEntityContext and SpawnableEntitiesManager.
+                    entity->SetSpawnTicketId(0);
                     GameEntityContextRequestBus::Broadcast(
-                        &GameEntityContextRequestBus::Events::DestroyGameEntityAndDescendants, entity->GetId());
+                        &GameEntityContextRequestBus::Events::DestroyGameEntity, entity->GetId());
                 }
             }
 
@@ -635,8 +705,10 @@ namespace AzFramework
             {
                 if (entity != nullptr)
                 {
+                    // Setting it to 0 is needed to avoid the infite loop between GameEntityContext and SpawnableEntitiesManager.
+                    entity->SetSpawnTicketId(0);
                     GameEntityContextRequestBus::Broadcast(
-                        &GameEntityContextRequestBus::Events::DestroyGameEntityAndDescendants, entity->GetId());
+                        &GameEntityContextRequestBus::Events::DestroyGameEntity, entity->GetId());
                 }
             }
             delete request.m_ticket;

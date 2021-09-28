@@ -56,6 +56,8 @@ namespace AzFramework
         void SpawnEntities(
             EntitySpawnTicket& ticket, AZStd::vector<size_t> entityIndices, SpawnEntitiesOptionalArgs optionalArgs = {}) override;
         void DespawnAllEntities(EntitySpawnTicket& ticket, DespawnAllEntitiesOptionalArgs optionalArgs = {}) override;
+        void DespawnEntity(AZ::EntityId entityId, EntitySpawnTicket& ticket, DespawnEntityOptionalArgs optionalArgs = {}) override;
+        void RetrieveEntitySpawnTicket(EntitySpawnTicket::Id entitySpawnTicketId, RetrieveEntitySpawnTicketCallback callback) override;
         void ReloadSpawnable(
             EntitySpawnTicket& ticket, AZ::Data::Asset<Spawnable> spawnable, ReloadSpawnableOptionalArgs optionalArgs = {}) override;
 
@@ -131,6 +133,14 @@ namespace AzFramework
             EntitySpawnTicket::Id m_ticketId;
             uint32_t m_requestId;
         };
+        struct DespawnEntityCommand
+        {
+            EntityDespawnCallback m_completionCallback;
+            Ticket* m_ticket;
+            AZ::EntityId m_entityId;
+            EntitySpawnTicket::Id m_ticketId;
+            uint32_t m_requestId;
+        };
         struct ReloadSpawnableCommand
         {
             AZ::Data::Asset<Spawnable> m_spawnable;
@@ -175,8 +185,16 @@ namespace AzFramework
         };
 
         using Requests = AZStd::variant<
-            SpawnAllEntitiesCommand, SpawnEntitiesCommand, DespawnAllEntitiesCommand, ReloadSpawnableCommand, ListEntitiesCommand,
-            ListIndicesEntitiesCommand, ClaimEntitiesCommand, BarrierCommand, DestroyTicketCommand>;
+            SpawnAllEntitiesCommand,
+            SpawnEntitiesCommand,
+            DespawnAllEntitiesCommand,
+            DespawnEntityCommand,
+            ReloadSpawnableCommand,
+            ListEntitiesCommand,
+            ListIndicesEntitiesCommand,
+            ClaimEntitiesCommand,
+            BarrierCommand,
+            DestroyTicketCommand>;
 
         struct Queue
         {
@@ -198,6 +216,7 @@ namespace AzFramework
         bool ProcessRequest(SpawnAllEntitiesCommand& request);
         bool ProcessRequest(SpawnEntitiesCommand& request);
         bool ProcessRequest(DespawnAllEntitiesCommand& request);
+        bool ProcessRequest(DespawnEntityCommand& request);
         bool ProcessRequest(ReloadSpawnableCommand& request);
         bool ProcessRequest(ListEntitiesCommand& request);
         bool ProcessRequest(ListIndicesEntitiesCommand& request);
