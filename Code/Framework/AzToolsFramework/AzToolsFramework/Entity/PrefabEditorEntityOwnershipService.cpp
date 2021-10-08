@@ -71,15 +71,8 @@ namespace AzToolsFramework
 
         if (m_rootInstance != nullptr)
         {
-            // Need to save off the template id to remove the template after the instance is deleted.
-            Prefab::TemplateId templateId = m_rootInstance->GetTemplateId();
             m_rootInstance.reset();
-            if (templateId != Prefab::InvalidTemplateId)
-            {
-                // Remove the template here so that if we're in a Deactivate/Activate cycle, it can recreate the template/rootInstance
-                // correctly
-                m_prefabSystemComponent->RemoveTemplate(templateId);
-            }
+            m_prefabSystemComponent->RemoveAllTemplates();
         }
     }
 
@@ -94,7 +87,7 @@ namespace AzToolsFramework
             if (templateId != Prefab::InvalidTemplateId)
             {
                 m_rootInstance->SetTemplateId(Prefab::InvalidTemplateId);
-                m_prefabSystemComponent->RemoveTemplate(templateId);
+                m_prefabSystemComponent->RemoveAllTemplates();
             }
             m_rootInstance->SetContainerEntityName("Level");
         }
@@ -395,6 +388,12 @@ namespace AzToolsFramework
         }
 
         return AZStd::nullopt;
+    }
+
+    Prefab::TemplateId PrefabEditorEntityOwnershipService::GetRootPrefabTemplateId()
+    {
+        AZ_Assert(m_rootInstance, "A valid root prefab instance couldn't be found in PrefabEditorEntityOwnershipService.");
+        return m_rootInstance ? m_rootInstance->GetTemplateId() : Prefab::InvalidTemplateId;
     }
 
     const AZStd::vector<AZ::Data::Asset<AZ::Data::AssetData>>& PrefabEditorEntityOwnershipService::GetPlayInEditorAssetData()
