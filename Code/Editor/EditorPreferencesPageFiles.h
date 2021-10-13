@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -68,10 +69,17 @@ private:
         int m_remindTime;
     };
 
+    struct AssetBrowserSearch
+    {
+        AZ_TYPE_INFO(AssetBrowserSearch, "{9FBFCD24-9452-49DF-99F4-2711443CEAAE}")
+
+        int m_maxNumberOfItemsShownInSearch;
+    };
 
     Files m_files;
     ExternalEditors m_editors;
     AutoBackup m_autoBackup;
+    AssetBrowserSearch m_assetBrowserSearch;
     QIcon m_icon;
 };
 

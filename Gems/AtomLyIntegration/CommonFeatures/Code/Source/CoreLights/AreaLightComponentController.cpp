@@ -1,7 +1,8 @@
 #include "AreaLightComponentController.h"
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -68,18 +69,16 @@ namespace AZ::Render
 
                 ->Event("GetEnableShadow", &AreaLightRequestBus::Events::GetEnableShadow)
                 ->Event("SetEnableShadow", &AreaLightRequestBus::Events::SetEnableShadow)
+                ->Event("GetShadowBias", &AreaLightRequestBus::Events::GetShadowBias)
+                ->Event("SetShadowBias", &AreaLightRequestBus::Events::SetShadowBias)
                 ->Event("GetShadowmapMaxSize", &AreaLightRequestBus::Events::GetShadowmapMaxSize)
                 ->Event("SetShadowmapMaxSize", &AreaLightRequestBus::Events::SetShadowmapMaxSize)
                 ->Event("GetShadowFilterMethod", &AreaLightRequestBus::Events::GetShadowFilterMethod)
                 ->Event("SetShadowFilterMethod", &AreaLightRequestBus::Events::SetShadowFilterMethod)
                 ->Event("GetSofteningBoundaryWidthAngle", &AreaLightRequestBus::Events::GetSofteningBoundaryWidthAngle)
                 ->Event("SetSofteningBoundaryWidthAngle", &AreaLightRequestBus::Events::SetSofteningBoundaryWidthAngle)
-                ->Event("GetPredictionSampleCount", &AreaLightRequestBus::Events::GetPredictionSampleCount)
-                ->Event("SetPredictionSampleCount", &AreaLightRequestBus::Events::SetPredictionSampleCount)
                 ->Event("GetFilteringSampleCount", &AreaLightRequestBus::Events::GetFilteringSampleCount)
                 ->Event("SetFilteringSampleCount", &AreaLightRequestBus::Events::SetFilteringSampleCount)
-                ->Event("GetPcfMethod", &AreaLightRequestBus::Events::GetPcfMethod)
-                ->Event("SetPcfMethod", &AreaLightRequestBus::Events::SetPcfMethod)
                 ->Event("GetEsmExponent", &AreaLightRequestBus::Events::GetEsmExponent)
                 ->Event("SetEsmExponent", &AreaLightRequestBus::Events::SetEsmExponent)
 
@@ -94,12 +93,11 @@ namespace AZ::Render
                 ->VirtualProperty("OuterShutterAngle", "GetOuterShutterAngle", "SetOuterShutterAngle")
 
                 ->VirtualProperty("ShadowsEnabled", "GetEnableShadow", "SetEnableShadow")
+                ->VirtualProperty("ShadowBias", "GetShadowBias", "SetShadowBias")
                 ->VirtualProperty("ShadowmapMaxSize", "GetShadowmapMaxSize", "SetShadowmapMaxSize")
                 ->VirtualProperty("ShadowFilterMethod", "GetShadowFilterMethod", "SetShadowFilterMethod")
                 ->VirtualProperty("SofteningBoundaryWidthAngle", "GetSofteningBoundaryWidthAngle", "SetSofteningBoundaryWidthAngle")
-                ->VirtualProperty("PredictionSampleCount", "GetPredictionSampleCount", "SetPredictionSampleCount")
                 ->VirtualProperty("FilteringSampleCount", "GetFilteringSampleCount", "SetFilteringSampleCount")
-                ->VirtualProperty("PcfMethod", "GetPcfMethod", "SetPcfMethod")
                 ->VirtualProperty("EsmExponent", "GetEsmExponent", "SetEsmExponent");
             ;
         }
@@ -307,12 +305,11 @@ namespace AZ::Render
             m_lightShapeDelegate->SetEnableShadow(m_configuration.m_enableShadow);
             if (m_configuration.m_enableShadow)
             {
+                m_lightShapeDelegate->SetShadowBias(m_configuration.m_bias);
                 m_lightShapeDelegate->SetShadowmapMaxSize(m_configuration.m_shadowmapMaxSize);
                 m_lightShapeDelegate->SetShadowFilterMethod(m_configuration.m_shadowFilterMethod);
                 m_lightShapeDelegate->SetSofteningBoundaryWidthAngle(m_configuration.m_boundaryWidthInDegrees);
-                m_lightShapeDelegate->SetPredictionSampleCount(m_configuration.m_predictionSampleCount);
                 m_lightShapeDelegate->SetFilteringSampleCount(m_configuration.m_filteringSampleCount);
-                m_lightShapeDelegate->SetPcfMethod(m_configuration.m_pcfMethod);
                 m_lightShapeDelegate->SetEsmExponent(m_configuration.m_esmExponent);
                 m_lightShapeDelegate->SetNearFarPlaneOffsets(m_configuration.m_shadowNearPlaneOffset, m_configuration.m_shadowFarPlaneOffset);
                 m_lightShapeDelegate->SetShadowBiasMultiplier(m_configuration.m_shadowBiasMultiplier);
@@ -469,6 +466,20 @@ namespace AZ::Render
             m_lightShapeDelegate->SetEnableShadow(enabled);
         }
     }
+    
+    float AreaLightComponentController::GetShadowBias() const
+    {
+        return m_configuration.m_bias;
+    }
+
+    void AreaLightComponentController::SetShadowBias(float bias)
+    {
+        m_configuration.m_bias = bias;
+        if (m_lightShapeDelegate)
+        {
+            m_lightShapeDelegate->SetShadowBias(bias);
+        }
+    }
 
     ShadowmapSize AreaLightComponentController::GetShadowmapMaxSize() const
     {
@@ -512,20 +523,6 @@ namespace AZ::Render
         }
     }
 
-    uint32_t AreaLightComponentController::GetPredictionSampleCount() const
-    {
-        return m_configuration.m_predictionSampleCount;
-    }
-
-    void AreaLightComponentController::SetPredictionSampleCount(uint32_t count)
-    {
-        m_configuration.m_predictionSampleCount = count;
-        if (m_lightShapeDelegate)
-        {
-            m_lightShapeDelegate->SetPredictionSampleCount(count);
-        }
-    }
-
     uint32_t AreaLightComponentController::GetFilteringSampleCount() const
     {
         return m_configuration.m_filteringSampleCount;
@@ -533,7 +530,7 @@ namespace AZ::Render
 
     void AreaLightComponentController::SetFilteringSampleCount(uint32_t count)
     {
-        m_configuration.m_filteringSampleCount = count;
+        m_configuration.m_filteringSampleCount = static_cast<uint16_t>(count);
         if (m_lightShapeDelegate)
         {
             m_lightShapeDelegate->SetFilteringSampleCount(count);
@@ -550,30 +547,6 @@ namespace AZ::Render
         if (m_lightShapeDelegate)
         {
             m_lightShapeDelegate->DrawDebugDisplay(transform, m_configuration.m_color, debugDisplay, isSelected);
-        }
-    }
-
-    void AreaLightComponentController::GetBoundingBoxes(Aabb* localBBox, Aabb* worldBBox) const
-    {
-        if (m_lightShapeDelegate)
-        {
-            Transform transform = Transform::CreateIdentity();
-            TransformBus::EventResult(transform, m_entityId, &TransformBus::Events::GetWorldTM);
-            m_lightShapeDelegate->GetBoundingBoxes(transform, localBBox, worldBBox);
-        }
-    }
-    
-    PcfMethod AreaLightComponentController::GetPcfMethod() const
-    {
-        return m_configuration.m_pcfMethod;
-    }
-
-    void AreaLightComponentController::SetPcfMethod(PcfMethod method)
-    {
-        m_configuration.m_pcfMethod = method;
-        if (m_lightShapeDelegate)
-        {
-            m_lightShapeDelegate->SetPcfMethod(method);
         }
     }
 

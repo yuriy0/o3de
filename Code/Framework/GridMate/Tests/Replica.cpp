@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -3686,7 +3687,7 @@ public:
 
         void Touch()
         {
-            string randomStr;
+            AZStd::string randomStr;
             for (unsigned i = 0; i < k_strSize; ++i)
             {
                 randomStr += 'a' + (rand() % 26);
@@ -3697,7 +3698,7 @@ public:
         bool IsReplicaMigratable() override { return false; }
 
         static const unsigned k_strSize = 64;
-        DataSet<string> m_value;
+        DataSet<AZStd::string> m_value;
     };
 
     void run()

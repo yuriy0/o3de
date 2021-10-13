@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -654,7 +655,7 @@ namespace AZ
                 static void Validate() {}
             };
 
-            template <class Function, bool IsBindExpression = AZStd::is_bind_expression_v<Function>>
+            template <class Function>
             struct ArgumentValidatorHelper
             {
                 constexpr static void Validate()
@@ -671,13 +672,6 @@ namespace AZ
                     static_assert(!AZStd::disjunction_v<is_non_const_lvalue_reference<AZStd::function_traits_get_arg_t<Function, ArgIndices>>...>,
                         "It is not safe to queue a function call with non-const lvalue ref arguments");
                 }
-            };
-
-            // bind has already copied/bound its arguments, we can't validate them further in any reasonable way
-            template <class Function>
-            struct ArgumentValidatorHelper<Function, true>
-            {
-                constexpr static void Validate() {}
             };
 
             template <class Function>

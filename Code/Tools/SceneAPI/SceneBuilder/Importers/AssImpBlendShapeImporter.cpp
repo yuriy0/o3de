@@ -1,11 +1,13 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
 #include <AzCore/Serialization/SerializeContext.h>
+#include <AzCore/std/containers/bitset.h>
 #include <AzCore/std/smart_ptr/make_shared.h>
 #include <AzCore/std/string/conversions.h>
 #include <AzToolsFramework/Debug/TraceContext.h>
@@ -111,7 +113,7 @@ namespace AZ
                 {
                     int sceneMeshIdx = context.m_sourceNode.GetAssImpNode()->mMeshes[nodeMeshIdx];
                     const aiMesh* aiMesh = context.m_sourceScene.GetAssImpScene()->mMeshes[sceneMeshIdx];
-                    for (int animIdx = 0; animIdx < aiMesh->mNumAnimMeshes; animIdx++)
+                    for (unsigned int animIdx = 0; animIdx < aiMesh->mNumAnimMeshes; animIdx++)
                     {
                         aiAnimMesh* aiAnimMesh = aiMesh->mAnimMeshes[animIdx];
 
@@ -192,7 +194,7 @@ namespace AZ
                         blendShapeData->ReserveData(
                             aiAnimMesh->mNumVertices, aiAnimMesh->HasTangentsAndBitangents(), uvSetUsedFlags, colorSetUsedFlags);
 
-                        for (int vertIdx = 0; vertIdx < aiAnimMesh->mNumVertices; ++vertIdx)
+                        for (unsigned int vertIdx = 0; vertIdx < aiAnimMesh->mNumVertices; ++vertIdx)
                         {
                             AZ::Vector3 vertex(AssImpSDKWrapper::AssImpTypeConverter::ToVector3(aiAnimMesh->mVertices[vertIdx]));
                    
@@ -246,7 +248,7 @@ namespace AZ
                         }
 
                         // aiAnimMesh just has a list of positions for vertices. The face indices are on the original mesh.
-                        for (int faceIdx = 0; faceIdx < aiMesh->mNumFaces; ++faceIdx)
+                        for (unsigned int faceIdx = 0; faceIdx < aiMesh->mNumFaces; ++faceIdx)
                         {
                             aiFace face = aiMesh->mFaces[faceIdx];
                             DataTypes::IBlendShapeData::Face blendFace;

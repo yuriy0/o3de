@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -248,6 +249,14 @@ namespace AZ::Render
         {
             return;
         }
+        displayMapperLut = it->second;
+    }
+
+    void AcesDisplayMapperFeatureProcessor::GetLutFromAssetLocation(DisplayMapperAssetLut& displayMapperAssetLut, const AZStd::string& assetPath)
+    {
+        Data::AssetId assetId = RPI::AssetUtils::GetAssetIdForProductPath(assetPath.c_str(), RPI::AssetUtils::TraceLevel::Error);
+        GetLutFromAssetId(displayMapperAssetLut, assetId);
+    }
 
         // Check first if this already exists
         auto it = m_assetLuts.find(assetId.ToString<AZStd::string>());

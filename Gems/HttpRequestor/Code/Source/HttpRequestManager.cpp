@@ -1,12 +1,13 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
-#include "HttpRequestor_precompiled.h"
 
 #include <AzFramework/AzFramework_Traits_Platform.h>
+#include <AzCore/PlatformDef.h>
 
 // The AWS Native SDK AWSAllocator triggers a warning due to accessing members of std::allocator directly.
 // AWSAllocator.h(70): warning C4996: 'std::allocator<T>::pointer': warning STL4010: Various members of std::allocator are deprecated in C++17.
@@ -34,22 +35,20 @@ namespace HttpRequestor
         desc.m_name = s_loggingName;
         desc.m_cpuId = AFFINITY_MASK_USERTHREADS;
         m_runThread = true;
-        // Shutdown will be handled by the InitializationManager - no need to call in the destructor
         AWSNativeSDKInit::InitializationManager::InitAwsApi();
         auto function = AZStd::bind(&Manager::ThreadFunction, this);
-        m_thread = AZStd::thread(function, &desc);
+        m_thread = AZStd::thread(desc, function);
     }
 
     Manager::~Manager()
     {
-        // NativeSDK Shutdown does not need to be called here - will be taken care of by the InitializationManager
+        AWSNativeSDKInit::InitializationManager::Shutdown();
         m_runThread = false;
         m_requestConditionVar.notify_all();
         if (m_thread.joinable())
         {
             m_thread.join();
         }
-
     }
 
     void Manager::AddRequest(Parameters && httpRequestParameters)

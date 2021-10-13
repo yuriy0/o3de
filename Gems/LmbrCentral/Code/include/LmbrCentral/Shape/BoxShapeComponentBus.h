@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -20,13 +21,16 @@ namespace LmbrCentral
     /// Type ID for the EditorBoxShapeComponent
     static const AZ::Uuid EditorBoxShapeComponentTypeId = "{2ADD9043-48E8-4263-859A-72E0024372BF}";
 
+    /// Type ID for the BoxShapeConfig
+    static const AZ::Uuid BoxShapeConfigTypeId = "{F034FBA2-AC2F-4E66-8152-14DFB90D6283}";
+
     /// Configuration data for BoxShapeComponent
     class BoxShapeConfig
         : public ShapeComponentConfig
     {
     public:
         AZ_CLASS_ALLOCATOR(BoxShapeConfig, AZ::SystemAllocator, 0)
-        AZ_RTTI(BoxShapeConfig, "{F034FBA2-AC2F-4E66-8152-14DFB90D6283}", ShapeComponentConfig)
+        AZ_RTTI(BoxShapeConfig, BoxShapeConfigTypeId, ShapeComponentConfig)
 
         static void Reflect(AZ::ReflectContext* context);
 

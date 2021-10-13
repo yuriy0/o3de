@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -61,10 +62,10 @@ namespace O3DE::ProjectManager
         hLayout->addWidget(m_gemInspector);
     }
 
-    void GemCatalogScreen::ReinitForProject(const QString& projectPath, bool isNewProject)
+    void GemCatalogScreen::ReinitForProject(const QString& projectPath)
     {
         m_gemModel->clear();
-        FillModel(projectPath, isNewProject);
+        FillModel(projectPath);
 
         if (m_filterWidget)
         {
@@ -87,18 +88,9 @@ namespace O3DE::ProjectManager
             });
     }
 
-    void GemCatalogScreen::FillModel(const QString& projectPath, bool isNewProject)
+    void GemCatalogScreen::FillModel(const QString& projectPath)
     {
-        AZ::Outcome<QVector<GemInfo>, AZStd::string> allGemInfosResult;
-        if (isNewProject)
-        {
-            allGemInfosResult = PythonBindingsInterface::Get()->GetEngineGemInfos();
-        }
-        else
-        {
-            allGemInfosResult = PythonBindingsInterface::Get()->GetAllGemInfos(projectPath);
-        }
-
+        AZ::Outcome<QVector<GemInfo>, AZStd::string> allGemInfosResult = PythonBindingsInterface::Get()->GetAllGemInfos(projectPath);
         if (allGemInfosResult.IsSuccess())
         {
             // Add all available gems to the model.
@@ -107,6 +99,8 @@ namespace O3DE::ProjectManager
             {
                 m_gemModel->AddGem(gemInfo);
             }
+
+            m_gemModel->UpdateGemDependencies();
 
             // Gather enabled gems for the given project.
             auto enabledGemNamesResult = PythonBindingsInterface::Get()->GetEnabledGemNames(projectPath);
@@ -164,7 +158,7 @@ namespace O3DE::ProjectManager
             if (!result.IsSuccess())
             {
                 QMessageBox::critical(nullptr, "Operation failed",
-                    QString("Cannot add gem %1 to project.\n\nError:\n%2").arg(GemModel::GetName(modelIndex), result.GetError().c_str()));
+                    QString("Cannot add gem %1 to project.\n\nError:\n%2").arg(GemModel::GetDisplayName(modelIndex), result.GetError().c_str()));
 
                 return false;
             }
@@ -177,7 +171,7 @@ namespace O3DE::ProjectManager
             if (!result.IsSuccess())
             {
                 QMessageBox::critical(nullptr, "Operation failed",
-                    QString("Cannot remove gem %1 from project.\n\nError:\n%2").arg(GemModel::GetName(modelIndex), result.GetError().c_str()));
+                    QString("Cannot remove gem %1 from project.\n\nError:\n%2").arg(GemModel::GetDisplayName(modelIndex), result.GetError().c_str()));
 
                 return false;
             }

@@ -6,6 +6,7 @@
  */
 
 #include <Atom/RPI.Reflect/Model/ModelMaterialSlot.h>
+#include <AzCore/Asset/AssetSerializer.h>
 #include <AzCore/RTTI/ReflectContext.h>
 #include <AzCore/Serialization/SerializeContext.h>
 
@@ -13,6 +14,10 @@ namespace AZ
 {
     namespace RPI
     {
+        // Normally this would be defined in the header file and substituted by the compiler, but for
+        // some reason clang doesn't accept it.
+        const ModelMaterialSlot::StableId ModelMaterialSlot::InvalidStableId = std::numeric_limits<ModelMaterialSlot::StableId>::max();
+
         void ModelMaterialSlot::Reflect(AZ::ReflectContext* context)
         {
             if (auto* serializeContext = azrtti_cast<AZ::SerializeContext*>(context))

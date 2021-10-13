@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -32,14 +33,6 @@ namespace AZ
             Pcf, // Percentage Closer Filtering
             Esm, // Exponential Shadow Maps
             EsmPcf, // ESM with PCF fallback
-
-            Count
-        };
-
-        enum class PcfMethod : uint16_t
-        {
-            BoundarySearch = 0, // Performs a variable number of taps, first to determine if we are on a shadow boundary, then the remaining taps are to find the occlusion amount
-            Bicubic,            // Uses a fixed size Pcf kernel with kernel weights set to approximate bicubic filtering
 
             Count
         };

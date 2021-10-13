@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -109,9 +110,8 @@ namespace EMotionFX
             void SetMediaRoot(const char* alias);
 
 #if defined (EMOTIONFXANIMATION_EDITOR)
-            void UpdateAnimationEditorPlugins(float delta);
             void NotifyRegisterViews() override;
-            bool IsSystemActive(EditorAnimationSystemRequests::AnimationSystem systemType);
+            bool IsSystemActive(EditorAnimationSystemRequests::AnimationSystem systemType) override;
 
             //////////////////////////////////////////////////////////////////////////////////////
             // AzToolsFramework::AssetBrowser::AssetBrowserInteractionNotificationBus::Handler

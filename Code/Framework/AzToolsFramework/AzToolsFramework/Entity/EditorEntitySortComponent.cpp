@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -129,7 +130,7 @@ namespace AzToolsFramework
 
         bool EditorEntitySortComponent::SetChildEntityOrderArray(const EntityOrderArray& entityOrderArray)
         {
-            AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+            AZ_PROFILE_FUNCTION(AzToolsFramework);
             if (m_childEntityOrderArray != entityOrderArray)
             {
                 m_childEntityOrderArray = entityOrderArray;
@@ -142,7 +143,7 @@ namespace AzToolsFramework
 
         bool EditorEntitySortComponent::AddChildEntityInternal(const AZ::EntityId& entityId, bool addToBack, EntityOrderArray::iterator insertPosition)
         {
-            AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+            AZ_PROFILE_FUNCTION(AzToolsFramework);
             auto entityItr = m_childEntityOrderCache.find(entityId);
             if (entityItr == m_childEntityOrderCache.end())
             {
@@ -196,7 +197,7 @@ namespace AzToolsFramework
 
         bool EditorEntitySortComponent::RemoveChildEntity(const AZ::EntityId& entityId)
         {
-            AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+            AZ_PROFILE_FUNCTION(AzToolsFramework);
             auto entityItr = m_childEntityOrderCache.find(entityId);
             if (entityItr != m_childEntityOrderCache.end())
             {
@@ -221,7 +222,7 @@ namespace AzToolsFramework
 
         void EditorEntitySortComponent::OnEntityStreamLoadSuccess()
         {
-            AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+            AZ_PROFILE_FUNCTION(AzToolsFramework);
 
             m_childEntityOrderCache.clear();
             if (!m_childEntityOrderArray.empty())
@@ -319,7 +320,7 @@ namespace AzToolsFramework
 
         void EditorEntitySortComponent::RebuildEntityOrderCache()
         {
-            AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+            AZ_PROFILE_FUNCTION(AzToolsFramework);
             m_childEntityOrderCache.clear();
             for (auto entityId : m_childEntityOrderArray)
             {

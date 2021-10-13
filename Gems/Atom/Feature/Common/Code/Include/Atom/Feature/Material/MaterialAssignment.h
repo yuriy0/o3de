@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -38,13 +39,24 @@ namespace AZ
             //! Otherwise an attempt will be made to find or create a shared instance.
             void RebuildInstance();
 
+            //! Release asset and instance references
+            void Release();
+
+            //! Return true if contained assets have not been loaded
+            bool RequiresLoading() const;
+
+            //! Applies property overrides to material instance
+            bool ApplyProperties();
+
             //! Returns a string composed of the asset path.
             AZStd::string ToString() const;
 
             Data::Asset<RPI::MaterialAsset> m_materialAsset;
+            Data::Asset<RPI::MaterialAsset> m_defaultMaterialAsset;
             Data::Instance<RPI::Material> m_materialInstance;
             MaterialPropertyOverrideMap m_propertyOverrides;
             RPI::MaterialModelUvOverrideMap m_matModUvOverrides;
+            bool m_materialInstancePreCreated = false;
         };
 
         using MaterialAssignmentMap = AZStd::unordered_map<MaterialAssignmentId, MaterialAssignment>;

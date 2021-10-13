@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -17,8 +18,9 @@
 #include <AzToolsFramework/API/ToolsApplicationAPI.h>
 #include <AzToolsFramework/Entity/PrefabEditorEntityOwnershipService.h>
 #include <AzToolsFramework/Prefab/EditorPrefabComponent.h>
-#include <AzToolsFramework/Prefab/Instance/InstanceEntityMapperInterface.h>
 #include <AzToolsFramework/Prefab/Instance/Instance.h>
+#include <AzToolsFramework/Prefab/Instance/InstanceEntityIdMapper.h>
+#include <AzToolsFramework/Prefab/Instance/InstanceEntityMapperInterface.h>
 #include <AzToolsFramework/Prefab/PrefabDomUtils.h>
 #include <AzToolsFramework/Prefab/PrefabLoader.h>
 #include <AzToolsFramework/Prefab/PrefabSystemComponentInterface.h>
@@ -78,6 +80,8 @@ namespace AzToolsFramework
 
     void PrefabEditorEntityOwnershipService::Reset()
     {
+        m_isRootPrefabAssigned = false;
+
         if (m_rootInstance)
         {
             AzToolsFramework::ToolsApplicationRequestBus::Broadcast(
@@ -202,6 +206,7 @@ namespace AzToolsFramework
         m_rootInstance->SetTemplateSourcePath(m_loaderInterface->GenerateRelativePath(filename));
         m_rootInstance->SetContainerEntityName("Level");
         m_prefabSystemComponent->PropagateTemplateChanges(templateId);
+        m_isRootPrefabAssigned = true;
 
         return true;
     }
@@ -218,42 +223,11 @@ namespace AzToolsFramework
     bool PrefabEditorEntityOwnershipService::SaveToStream(AZ::IO::GenericStream& stream, AZStd::string_view filename)
     {
         AZ::IO::Path relativePath = m_loaderInterface->GenerateRelativePath(filename);
-        AzToolsFramework::Prefab::TemplateId templateId = m_prefabSystemComponent->GetTemplateIdFromFilePath(relativePath);
 
         m_rootInstance->SetTemplateSourcePath(relativePath);
-
-        if (templateId == AzToolsFramework::Prefab::InvalidTemplateId)
-        {
-            m_rootInstance->m_containerEntity->AddComponent(aznew Prefab::EditorPrefabComponent());
-            HandleEntitiesAdded({ m_rootInstance->m_containerEntity.get() });
-
-            AzToolsFramework::Prefab::PrefabDom dom;
-            bool success = AzToolsFramework::Prefab::PrefabDomUtils::StoreInstanceInPrefabDom(*m_rootInstance, dom);
-            if (!success)
-            {
-                AZ_Error("Prefab", false, "Failed to convert current root instance into a DOM when saving file '%.*s'", AZ_STRING_ARG(filename));
-                return false;
-            }
-            templateId = m_prefabSystemComponent->AddTemplate(relativePath, AZStd::move(dom));
-
-            if (templateId == AzToolsFramework::Prefab::InvalidTemplateId)
-            {
-                AZ_Error("Prefab", false, "Couldn't add new template id '%i' when saving file '%.*s'", templateId, AZ_STRING_ARG(filename));
-                return false;
-            }
-        }
-
-        Prefab::TemplateId prevTemplateId = m_rootInstance->GetTemplateId();
-        m_rootInstance->SetTemplateId(templateId);
-
-        if (prevTemplateId != Prefab::InvalidTemplateId && templateId != prevTemplateId)
-        {
-            // Make sure we only have one level template loaded at a time
-            m_prefabSystemComponent->RemoveTemplate(prevTemplateId);
-        }
+        m_prefabSystemComponent->UpdateTemplateFilePath(m_rootInstance->GetTemplateId(), relativePath);
 
         AZStd::string out;
-
         if (!m_loaderInterface->SaveTemplateToString(m_rootInstance->GetTemplateId(), out))
         {
             return false;
@@ -265,7 +239,7 @@ namespace AzToolsFramework
         {
             return false;
         }
-        m_prefabSystemComponent->SetTemplateDirtyFlag(templateId, false);
+        m_prefabSystemComponent->SetTemplateDirtyFlag(m_rootInstance->GetTemplateId(), false);
         return true;
     }
 
@@ -332,23 +306,30 @@ namespace AzToolsFramework
         }
 
         m_prefabSystemComponent->PropagateTemplateChanges(templateId);
+        m_isRootPrefabAssigned = true;
+    }
+
+    bool PrefabEditorEntityOwnershipService::IsRootPrefabAssigned() const
+    {
+        return m_isRootPrefabAssigned;
     }
 
     Prefab::InstanceOptionalReference PrefabEditorEntityOwnershipService::CreatePrefab(
         const AZStd::vector<AZ::Entity*>& entities, AZStd::vector<AZStd::unique_ptr<Prefab::Instance>>&& nestedPrefabInstances,
         AZ::IO::PathView filePath, Prefab::InstanceOptionalReference instanceToParentUnder)
     {
-        AZStd::unique_ptr<Prefab::Instance> createdPrefabInstance =
-            m_prefabSystemComponent->CreatePrefab(entities, AZStd::move(nestedPrefabInstances), filePath, nullptr, false);
+        if (!instanceToParentUnder)
+        {
+            instanceToParentUnder = *m_rootInstance;
+        }
+
+        AZStd::unique_ptr<Prefab::Instance> createdPrefabInstance = m_prefabSystemComponent->CreatePrefab(
+            entities, AZStd::move(nestedPrefabInstances), filePath, nullptr, instanceToParentUnder, false);
 
         if (createdPrefabInstance)
         {
-            if (!instanceToParentUnder)
-            {
-                instanceToParentUnder = *m_rootInstance;
-            }
-
-            Prefab::Instance& addedInstance = instanceToParentUnder->get().AddInstance(AZStd::move(createdPrefabInstance));
+            Prefab::Instance& addedInstance = instanceToParentUnder->get().AddInstance(
+                AZStd::move(createdPrefabInstance));
             AZ::Entity* containerEntity = addedInstance.m_containerEntity.get();
             containerEntity->AddComponent(aznew Prefab::EditorPrefabComponent());
             HandleEntitiesAdded({containerEntity});
@@ -362,16 +343,18 @@ namespace AzToolsFramework
     Prefab::InstanceOptionalReference PrefabEditorEntityOwnershipService::InstantiatePrefab(
         AZ::IO::PathView filePath, Prefab::InstanceOptionalReference instanceToParentUnder)
     {
-        AZStd::unique_ptr<Prefab::Instance> createdPrefabInstance = m_prefabSystemComponent->InstantiatePrefab(filePath);
-
-        if (createdPrefabInstance)
+        if (!instanceToParentUnder)
         {
-            if (!instanceToParentUnder)
-            {
-                instanceToParentUnder = *m_rootInstance;
-            }
+            instanceToParentUnder = *m_rootInstance;
+        }
 
-            Prefab::Instance& addedInstance = instanceToParentUnder->get().AddInstance(AZStd::move(createdPrefabInstance));
+        AZStd::unique_ptr<Prefab::Instance> instantiatedPrefabInstance =
+            m_prefabSystemComponent->InstantiatePrefab(filePath, instanceToParentUnder);
+
+        if (instantiatedPrefabInstance)
+        {
+            Prefab::Instance& addedInstance = instanceToParentUnder->get().AddInstance(
+                AZStd::move(instantiatedPrefabInstance));
             HandleEntitiesAdded({addedInstance.m_containerEntity.get()});
             return addedInstance;
         }
@@ -598,22 +581,23 @@ namespace AzToolsFramework
     {
         if (m_rootInstance && m_playInEditorData.m_isEnabled)
         {
-            auto end = m_playInEditorData.m_deactivatedEntities.rend();
-            for (auto it = m_playInEditorData.m_deactivatedEntities.rbegin(); it != end; ++it)
-            {
-                AZ_Assert(*it, "Invalid entity added to list for re-activation after play-in-editor stopped.");
-                (*it)->Activate();
-            }
-            m_playInEditorData.m_deactivatedEntities.clear();
-
             AZ_Assert(m_playInEditorData.m_entities.IsSet(),
                 "Invalid Game Mode Entities Container encountered after play-in-editor stopped. "
                 "Confirm that the container was initialized correctly");
 
             m_playInEditorData.m_entities.DespawnAllEntities();
             m_playInEditorData.m_entities.Alert(
-                [assets = AZStd::move(m_playInEditorData.m_assets)]([[maybe_unused]]uint32_t generation) mutable
+                [assets = AZStd::move(m_playInEditorData.m_assets),
+                 deactivatedEntities = AZStd::move(m_playInEditorData.m_deactivatedEntities)]
+                ([[maybe_unused]]uint32_t generation) mutable
                 {
+                    auto end = deactivatedEntities.rend();
+                    for (auto it = deactivatedEntities.rbegin(); it != end; ++it)
+                    {
+                        AZ_Assert(*it, "Invalid entity added to list for re-activation after play-in-editor stopped.");
+                        (*it)->Activate();
+                    }
+
                     for (auto& asset : assets)
                     {
                         if (asset)
@@ -625,12 +609,20 @@ namespace AzToolsFramework
                         }
                     }
                     AZ::ScriptSystemRequestBus::Broadcast(&AZ::ScriptSystemRequests::GarbageCollect);
+
+                    // This is a workaround until the replacement for GameEntityContext is done
+                    AzFramework::GameEntityContextEventBus::Broadcast(&AzFramework::GameEntityContextEventBus::Events::OnGameEntitiesReset);
                 });
             m_playInEditorData.m_entities.Clear();
-
-            // This is a workaround until the replacement for GameEntityContext is done
-            AzFramework::GameEntityContextEventBus::Broadcast(&AzFramework::GameEntityContextEventBus::Events::OnGameEntitiesReset);
         }
+
+        // Game entity cleanup is queued onto the next tick via the DespawnEntities call.
+        // To avoid both game entities and Editor entities active at the same time
+        // we flush the tick queue to ensure the game entities are cleared first.
+        // The Alert callback that follows the DespawnEntities call will then reactivate the editor entities
+        // This should be considered temporary as a move to a less rigid event sequence that supports async entity clean up
+        // is the desired direction forward.
+        AZ::TickBus::ExecuteQueuedEvents();
 
         m_playInEditorData.m_isEnabled = false;
     }

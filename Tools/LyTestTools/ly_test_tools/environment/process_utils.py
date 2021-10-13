@@ -1,5 +1,6 @@
 """
-Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
+Copyright (c) Contributors to the Open 3D Engine Project.
+For complete copyright and license terms please see the LICENSE at the root of this distribution.
 
 SPDX-License-Identifier: Apache-2.0 OR MIT
 
@@ -11,8 +12,8 @@ import psutil
 import subprocess
 import ctypes
 
+import ly_test_tools
 import ly_test_tools.environment.waiter as waiter
-from ly_test_tools import WINDOWS, MAC
 
 logger = logging.getLogger(__name__)
 _PROCESS_OUTPUT_ENCODING = 'utf-8'
@@ -181,7 +182,7 @@ def process_is_unresponsive(name):
     :param name: the name of the process to check
     :return: True if the specified process is unresponsive and False otherwise
     """
-    if WINDOWS:
+    if ly_test_tools.WINDOWS:
         output = check_output(['tasklist',
                                '/FI', f'IMAGENAME eq {name}',
                                '/FI', 'STATUS eq NOT RESPONDING'])
@@ -193,7 +194,7 @@ def process_is_unresponsive(name):
                 return True
         logger.debug(f"Process '{name}' was not unresponsive.")
         return False
-    elif MAC:
+    else:
         cmd = ["ps", "-axc", "-o", "command,state"]
         output = check_output(cmd)
         for line in output.splitlines()[1:]:
@@ -208,8 +209,6 @@ def process_is_unresponsive(name):
                     return True
         logger.debug(f"Process '{name}' was not unresponsive.")
         return False
-    else:
-        raise NotImplementedError('Only Windows and Mac hosts are supported.')
 
 
 def check_output(command, **kwargs):
@@ -405,7 +404,7 @@ def close_windows_process(pid, timeout=20, raise_on_missing=False):
     :param pid: the pid of the process to kill
     :param raise_on_missing: if set to True, raise RuntimeError if the process does not already exist
     """
-    if not WINDOWS:
+    if not ly_test_tools.WINDOWS:
         raise NotImplementedError("close_windows_process() is only implemented on Windows.")
 
     if pid is None:

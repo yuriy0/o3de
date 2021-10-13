@@ -1,6 +1,7 @@
 #
-# Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
-# 
+# Copyright (c) Contributors to the Open 3D Engine Project.
+# For complete copyright and license terms please see the LICENSE at the root of this distribution.
+#
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 #
 #
@@ -17,10 +18,10 @@ include(${pal_dir}/PAL_traits_${PAL_PLATFORM_NAME_LOWERCASE}.cmake)
 add_subdirectory(assetpipeline)
 
 ## Atom Renderer ##
-add_subdirectory(atom_renderer)
+add_subdirectory(Atom)
 
 ## Physics ##
-add_subdirectory(physics)
+add_subdirectory(Physics)
 
 ## ScriptCanvas ##
 add_subdirectory(scripting)

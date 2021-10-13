@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -23,7 +24,6 @@
 
 #include <AzFramework/Asset/AssetCatalogComponent.h>
 #include <AzFramework/Asset/AssetSystemComponent.h>
-#include <AzFramework/Driller/RemoteDrillerInterface.h>
 #include <AzFramework/Entity/GameEntityContextComponent.h>
 #include <AzFramework/FileTag/FileTagComponent.h>
 #include <AzFramework/Input/System/InputSystemComponent.h>
@@ -175,7 +175,6 @@ namespace AssetBundler
             if (*iter == azrtti_typeid<AzFramework::GameEntityContextComponent>() ||
                 *iter == azrtti_typeid<AzFramework::AzFrameworkConfigurationSystemComponent>() ||
                 *iter == azrtti_typeid<AzFramework::InputSystemComponent>() ||
-                *iter == azrtti_typeid<AzFramework::DrillerNetworkAgentComponent>() ||
                 *iter == azrtti_typeid<AZ::SliceSystemComponent>())
             {
                 // Asset Bundler does not require the above components to be active
@@ -1425,7 +1424,7 @@ namespace AssetBundler
             AZStd::string_view{ AZ::Utils::GetEnginePath() },
             AZStd::string_view{ AZ::Utils::GetEnginePath() },
             AZStd::string_view{ AZ::Utils::GetProjectPath() });
-        auto platformsString = AzFramework::PlatformHelper::GetCommaSeparatedPlatformList(platformFlags);
+        [[maybe_unused]] auto platformsString = AzFramework::PlatformHelper::GetCommaSeparatedPlatformList(platformFlags);
 
         AZ_TracePrintf(AppWindowName, "No platform specified, defaulting to platforms ( %s ).\n", platformsString.c_str());
         return platformFlags;

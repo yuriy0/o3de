@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -51,7 +52,7 @@ namespace AzToolsFramework
             AZ::Interface<InstanceUpdateExecutorInterface>::Unregister(this);
         }
 
-        void InstanceUpdateExecutor::AddTemplateInstancesToQueue(TemplateId instanceTemplateId, InstanceOptionalReference instanceToExclude)
+        void InstanceUpdateExecutor::AddTemplateInstancesToQueue(TemplateId instanceTemplateId, bool immediate, InstanceOptionalReference instanceToExclude)
         {
             auto findInstancesResult =
                 m_templateInstanceMapperInterface->FindInstancesOwnedByTemplate(instanceTemplateId);
@@ -78,6 +79,11 @@ namespace AzToolsFramework
                     m_instancesUpdateQueue.emplace_back(instance);
                 }
             }
+
+            if (immediate)
+            {
+                UpdateTemplateInstancesInQueue();
+            }
         }
 
         void InstanceUpdateExecutor::RemoveTemplateInstanceFromQueue(const Instance* instance)
@@ -96,7 +102,7 @@ namespace AzToolsFramework
                 m_updatingTemplateInstancesInQueue = true;
 
                 const int instanceCountToUpdateInBatch =
-                    m_instanceCountToUpdateInBatch == 0 ? m_instancesUpdateQueue.size() : m_instanceCountToUpdateInBatch;
+                    m_instanceCountToUpdateInBatch == 0 ? static_cast<int>(m_instancesUpdateQueue.size()) : m_instanceCountToUpdateInBatch;
                 TemplateId currentTemplateId = InvalidTemplateId;
                 TemplateReference currentTemplateReference = AZStd::nullopt;
 

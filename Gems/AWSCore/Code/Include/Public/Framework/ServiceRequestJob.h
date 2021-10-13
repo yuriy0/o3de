@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -390,7 +391,7 @@ namespace AWSCore
                     int offset = 0;
                     while (offset < message.size())
                     {
-                        int count = (offset + MAX_MESSAGE_LENGTH < message.size()) ? MAX_MESSAGE_LENGTH : message.size() - offset;
+                        int count = static_cast<int>((offset + MAX_MESSAGE_LENGTH < message.size()) ? MAX_MESSAGE_LENGTH : message.size() - offset);
                         AZ_Warning(ServiceClientJobType::COMPONENT_DISPLAY_NAME, false, message.substr(offset, count).c_str());
                         offset += MAX_MESSAGE_LENGTH;
                     }

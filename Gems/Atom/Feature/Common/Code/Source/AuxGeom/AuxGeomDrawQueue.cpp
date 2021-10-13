@@ -1,14 +1,13 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
 
 #include "AuxGeomDrawQueue.h"
-
-#include <Atom/RHI/CpuProfiler.h>
 
 #include <Atom/RPI.Public/Scene.h>
 
@@ -564,7 +563,7 @@ namespace AZ
 
         AuxGeomBufferData* AuxGeomDrawQueue::Commit()
         {
-            AZ_ATOM_PROFILE_FUNCTION("AuxGeom", "AuxGeomDrawQueue: Commit");
+            AZ_PROFILE_SCOPE(AzRender, "AuxGeomDrawQueue: Commit");
             // get a mutually exclusive lock and then switch to the next buffer, returning a pointer to the current buffer (before the switch)
 
             // grab the lock
@@ -584,7 +583,7 @@ namespace AZ
 
         void AuxGeomDrawQueue::ClearCurrentBufferData()
         {
-            AZ_ATOM_PROFILE_FUNCTION("AuxGeom", "AuxGeomDrawQueue: ClearCurrentBufferData");
+            AZ_PROFILE_SCOPE(AzRender, "AuxGeomDrawQueue: ClearCurrentBufferData");
             // no need for mutex here, this function is only called from a function holding a lock
             AuxGeomBufferData& data = m_buffers[m_currentBufferIndex];
 
@@ -648,7 +647,7 @@ namespace AZ
             AZ::u8 width,
             int32_t viewProjOverrideIndex)
         {
-            AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzRender);
+            AZ_PROFILE_SCOPE(AzRender, "AuxGeomDrawQueue: DrawPrimitiveWithSharedVerticesCommon");
 
             // grab a mutex lock for the rest of this function so that a commit cannot happen during it and
             // other threads can't add geometry during it
@@ -719,8 +718,7 @@ namespace AZ
             AZ::u8 width,
             int32_t viewProjOverrideIndex)
         {
-            AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzRender);
-            AZ_ATOM_PROFILE_FUNCTION("AuxGeom", "AuxGeomDrawQueue: DrawPrimitiveWithSharedVerticesCommon");
+            AZ_PROFILE_SCOPE(AzRender, "AuxGeomDrawQueue: DrawPrimitiveWithSharedVerticesCommon");
 
             AZ_Assert(indexCount >= verticesPerPrimitiveType && (indexCount % verticesPerPrimitiveType == 0),
                 "Index count must be at least %d and must be a multiple of %d",

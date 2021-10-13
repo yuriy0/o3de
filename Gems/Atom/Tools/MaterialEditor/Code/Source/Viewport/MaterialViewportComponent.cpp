@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -24,7 +25,7 @@
 #include <Atom/ImageProcessing/ImageObject.h>
 #include <Atom/ImageProcessing/ImageProcessingBus.h>
 
-#include <AtomCore/Serialization/Json/JsonUtils.h>
+#include <AzCore/Serialization/Json/JsonUtils.h>
 
 #include <Atom/RPI.Reflect/Asset/AssetUtils.h>
 #include <Atom/RPI.Reflect/System/AnyAsset.h>
@@ -189,7 +190,7 @@ namespace MaterialEditor
 
     void MaterialViewportComponent::ReloadContent()
     {
-        AZ_TracePrintf("Material Editor", "Started loading viewport configurtions.\n");
+        AZ_TracePrintf("Material Editor", "Started loading viewport configurations.\n");
 
         MaterialViewportNotificationBus::Broadcast(&MaterialViewportNotificationBus::Events::OnBeginReloadContent);
 
@@ -238,7 +239,7 @@ namespace MaterialEditor
                     {
                         auto presetPtr = AddLightingPreset(*preset);
                         m_lightingPresetLastSavePathMap[presetPtr] = AZ::RPI::AssetUtils::GetSourcePathByAssetId(info.m_assetId);
-                        AZ_TracePrintf("Material Editor", "Loaded viewport configurtion: %s.\n", info.m_relativePath.c_str());
+                        AZ_TracePrintf("Material Editor", "Loaded viewport configuration: %s.\n", info.m_relativePath.c_str());
                     }
                 }
             }
@@ -257,7 +258,7 @@ namespace MaterialEditor
                     {
                         auto presetPtr = AddModelPreset(*preset);
                         m_modelPresetLastSavePathMap[presetPtr] = AZ::RPI::AssetUtils::GetSourcePathByAssetId(info.m_assetId);
-                        AZ_TracePrintf("Material Editor", "Loaded viewport configurtion: %s.\n", info.m_relativePath.c_str());
+                        AZ_TracePrintf("Material Editor", "Loaded viewport configuration: %s.\n", info.m_relativePath.c_str());
                     }
                 }
             }
@@ -270,7 +271,7 @@ namespace MaterialEditor
 
         MaterialViewportNotificationBus::Broadcast(&MaterialViewportNotificationBus::Events::OnEndReloadContent);
 
-        AZ_TracePrintf("Material Editor", "Finished loading viewport configurtions.\n");
+        AZ_TracePrintf("Material Editor", "Finished loading viewport configurations.\n");
     }
 
     AZ::Render::LightingPresetPtr MaterialViewportComponent::AddLightingPreset(const AZ::Render::LightingPreset& preset)

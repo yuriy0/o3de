@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -69,7 +70,6 @@ namespace ImageProcessingAtom
         virtual AZ::u32 GetPixelCount(AZ::u32 mip) const = 0;
         virtual AZ::u32 GetWidth(AZ::u32 mip) const = 0;
         virtual AZ::u32 GetHeight(AZ::u32 mip) const = 0;
-        virtual bool IsCubemap() const = 0;
         virtual AZ::u32 GetMipCount() const = 0;
 
         //get pixel data buffer

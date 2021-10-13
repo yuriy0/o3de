@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -8,6 +9,7 @@
 #include "FileIOBaseTestTypes.h"
 
 #include <AzCore/Asset/AssetManager.h>
+#include <AzCore/Asset/AssetSerializer.h>
 #include <AzCore/Component/ComponentApplicationBus.h>
 
 #include <AzCore/Serialization/SerializeContext.h>
@@ -1241,7 +1243,6 @@ namespace UnitTest
         const char* GetAppRoot() const override { return nullptr; }
         const char* GetEngineRoot() const override { return nullptr; }
         const char* GetExecutableFolder() const override { return nullptr; }
-        Debug::DrillerManager* GetDrillerManager() override { return nullptr; }
         void EnumerateEntities(const EntityCallback& /*callback*/) override {}
         void QueryApplicationType(AZ::ApplicationTypeQuery& /*appType*/) const override {}
         //////////////////////////////////////////////////////////////////////////
@@ -2006,6 +2007,10 @@ TEST_F(SerializeBasicTest, BasicTypeTest_Succeed)
     }
 
 
+    /*
+        This test will dynamic cast (azrtti_cast) between incompatible types, which should always result in nullptr.
+        If this test fails, the RTTI declaration for the relevant type is incorrect.
+    */
     TEST_F(Serialization, AttributeRTTI)
     {
         {
@@ -2013,13 +2018,6 @@ TEST_F(SerializeBasicTest, BasicTypeTest_Succeed)
             Attribute* fnDownCast = &fn;
             auto fnUpCast = azrtti_cast<AttributeInvocable<AZStd::function<int(int)>>*>(fnDownCast);
             EXPECT_EQ(fnUpCast, nullptr);
-
-            // If test fails, this would crash:
-            //if (fnUpCast)
-            //{
-            //    int val = (*fnUpCast)(0);
-            //    AZ_TracePrintf("AttributeRTTITest", "Oops: %d", val);
-            //}
         }
 
         {
@@ -2027,13 +2025,6 @@ TEST_F(SerializeBasicTest, BasicTypeTest_Succeed)
             Attribute* fnDownCast = &fn;
             auto fnUpCast = azrtti_cast<AttributeFunction<int(int)>*>(fnDownCast);
             EXPECT_EQ(fnUpCast, nullptr);
-
-            // If test fails, this would crash:
-            //if (fnUpCast)
-            //{
-            //    int val = fnUpCast->Invoke(nullptr, 0);
-            //    AZ_TracePrintf("AttributeRTTITest", "Oops: %d", val);
-            //}
         }
     }
 
@@ -2241,7 +2232,7 @@ TEST_F(SerializeBasicTest, BasicTypeTest_Succeed)
                 (void)classId;
                 DeprecationTestClass* obj = reinterpret_cast<DeprecationTestClass*>(classPtr);
                 EXPECT_EQ( 0, obj->m_deprecated.m_data );
-                EXPECT_EQ( NULL, obj->m_deprecatedPtr );
+                EXPECT_EQ( nullptr, obj->m_deprecatedPtr );
                 EXPECT_EQ( 0, obj->m_oldClassData );
                 EXPECT_EQ( 0.f, obj->m_newClassData );
                 EXPECT_EQ( 0, obj->m_missingMember );
@@ -4067,7 +4058,7 @@ namespace UnitTest
 
                 if (strcmp(classData->m_name, "MyEditStruct") == 0)
                 {
-                    EXPECT_TRUE(classData->m_editData != NULL);
+                    EXPECT_TRUE(classData->m_editData != nullptr);
                     EXPECT_EQ( 0, strcmp(classData->m_editData->m_name, "MyEditStruct") );
                     EXPECT_EQ( 0, strcmp(classData->m_editData->m_description, "My edit struct class used for ...") );
                     EXPECT_EQ( 2, classData->m_editData->m_elements.size() );
@@ -4081,12 +4072,12 @@ namespace UnitTest
                     // Number of options attribute
                     EXPECT_EQ(classElement->m_editData->m_attributes[0].first, AZ_CRC("NumOptions", 0x90274abc));
                     Edit::AttributeData<int>* intData = azrtti_cast<Edit::AttributeData<int>*>(classElement->m_editData->m_attributes[0].second);
-                    EXPECT_TRUE(intData != NULL);
+                    EXPECT_TRUE(intData != nullptr);
                     EXPECT_EQ( 3, intData->Get(instance) );
                     // Get options attribute
                     EXPECT_EQ( classElement->m_editData->m_attributes[1].first, AZ_CRC("Options", 0xd035fa87));
                     Edit::AttributeFunction<int(int)>* funcData = azrtti_cast<Edit::AttributeFunction<int(int)>*>(classElement->m_editData->m_attributes[1].second);
-                    EXPECT_TRUE(funcData != NULL);
+                    EXPECT_TRUE(funcData != nullptr);
                     EXPECT_EQ( 20, funcData->Invoke(instance, 10) );
                 }
                 return true;

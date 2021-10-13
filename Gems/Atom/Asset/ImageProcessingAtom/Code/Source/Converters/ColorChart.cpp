@@ -1,11 +1,11 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
-#include <ImageProcessing_precompiled.h>
 
 #include <Processing/ImageObjectImpl.h>
 #include <Processing/ImageToProcess.h>
@@ -76,9 +76,9 @@ namespace ImageProcessingAtom
                 for (int r = 0; r < ePS_Red; ++r)
                 {
                     SColor col;
-                    col.r = 255 * r / (ePS_Red);
-                    col.g = 255 * g / (ePS_Green);
-                    col.b = 255 * b / (ePS_Blue);
+                    col.r = static_cast<unsigned char>(255 * r / (ePS_Red));
+                    col.g = static_cast<unsigned char>(255 * g / (ePS_Green));
+                    col.b = static_cast<unsigned char>(255 * b / (ePS_Blue));
                     int l = 255 - (col.r * 3 + col.g * 6 + col.b) / 10;
                     col.r = col.g = col.b = (unsigned char)l;
                     m_mapping.push_back(col);
@@ -133,7 +133,6 @@ namespace ImageProcessingAtom
 
     IImageObjectPtr C3dLutColorChart::GenerateChartImage()
     {
-        const AZ::u32 mipCount = 1;
         IImageObjectPtr image(IImageObject::CreateImage(ePS_Red* ePS_Blue, ePS_Green, 1, ePixelFormat_R8G8B8A8));
 
         {

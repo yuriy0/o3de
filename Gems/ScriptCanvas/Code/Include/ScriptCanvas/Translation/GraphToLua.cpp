@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -247,8 +248,7 @@ namespace ScriptCanvas
             }
             else
             {
-                ErrorList errors = { AZStd::string("provide translation failure details") };
-                return AZ::Failure(errors);
+                return AZ::Failure(translation.MoveErrors());
             }
         }
 
@@ -883,7 +883,13 @@ namespace ScriptCanvas
                 AZStd::optional<size_t> eventIndex = ebusHandling->m_node->GetEventIndex(nameAndEventThread.first);
                 if (!eventIndex)
                 {
-                    AddError(nullptr, aznew Internal::ParseError(ebusHandling->m_node->GetEntityId(), AZStd::string::format("EBus handler did not return a valid index for event %s", nameAndEventThread.first.c_str())));
+                    AddError(nullptr,
+                        aznew Internal::ParseError(
+                            ebusHandling->m_node->GetEntityId()
+                            , AZStd::string::format
+                                ( "EBus Handler %s did not return a valid index for event %s"
+                                , ebusHandling->m_ebusName.c_str()
+                                , nameAndEventThread.first.c_str())));
                     return;
                 }
 
@@ -1952,7 +1958,8 @@ namespace ScriptCanvas
                 {
                     const auto requirement = ParseConstructionRequirement(variable);
 
-                    if (requirement == Grammar::VariableConstructionRequirement::None || (requirement != Grammar::VariableConstructionRequirement::Static && !execution->IsStartCall()))
+                    if (requirement == Grammar::VariableConstructionRequirement::None
+                    || requirement != Grammar::VariableConstructionRequirement::Static && execution != m_model.GetStart())
                     {
                         m_dotLua.WriteLineIndented("local %s = %s", variable->m_name.data(), ToValueString(variable->m_datum, m_configuration).data());
                     }

@@ -1,6 +1,7 @@
 #
-# Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
-# 
+# Copyright (c) Contributors to the Open 3D Engine Project.
+# For complete copyright and license terms please see the LICENSE at the root of this distribution.
+#
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 #
 #
@@ -73,6 +74,7 @@ set(FILES
     Include/ScriptCanvas/Core/NodeableNodeOverloaded.cpp
     Include/ScriptCanvas/Core/NodeableNodeOverloaded.h
     Include/ScriptCanvas/Core/NodeFunctionGeneric.h
+    Include/ScriptCanvas/Core/SerializationListener.h
     Include/ScriptCanvas/Core/Slot.cpp
     Include/ScriptCanvas/Core/Slot.h
     Include/ScriptCanvas/Core/SlotConfigurationDefaults.h
@@ -299,7 +301,6 @@ set(FILES
     Include/ScriptCanvas/Libraries/Core/UnaryOperator.h
     Include/ScriptCanvas/Libraries/Entity/Entity.cpp
     Include/ScriptCanvas/Libraries/Entity/Entity.h
-    Include/ScriptCanvas/Libraries/Entity/EntityIDNodes.h
     Include/ScriptCanvas/Libraries/Entity/EntityNodes.h
     Include/ScriptCanvas/Libraries/Entity/RotateMethod.cpp
     Include/ScriptCanvas/Libraries/Entity/RotateMethod.h
@@ -542,8 +543,12 @@ set(FILES
     Include/ScriptCanvas/Profiler/Aggregator.cpp
     Include/ScriptCanvas/Profiler/DrillerEvents.h
     Include/ScriptCanvas/Profiler/DrillerEvents.cpp
-    Include/ScriptCanvas/Serialization/ScriptUserDataSerializer.h
-    Include/ScriptCanvas/Serialization/ScriptUserDataSerializer.cpp
+    Include/ScriptCanvas/Serialization/BehaviorContextObjectSerializer.h
+    Include/ScriptCanvas/Serialization/BehaviorContextObjectSerializer.cpp
+    Include/ScriptCanvas/Serialization/DatumSerializer.h
+    Include/ScriptCanvas/Serialization/DatumSerializer.cpp
+    Include/ScriptCanvas/Serialization/RuntimeVariableSerializer.h
+    Include/ScriptCanvas/Serialization/RuntimeVariableSerializer.cpp
     Include/ScriptCanvas/Data/DataTrait.cpp
     Include/ScriptCanvas/Data/DataTrait.h
     Include/ScriptCanvas/Data/PropertyTraits.cpp

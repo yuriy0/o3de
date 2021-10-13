@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -21,22 +22,6 @@
 #include <AzCore/JSON/document.h>
 
 #include <AzQtComponents/Components/Widgets/ToolBar.h>
-
-struct SGizmoSettings
-{
-    float axisGizmoSize;
-    bool axisGizmoText;
-    int axisGizmoMaxCount;
-
-    float helpersScale;
-    float tagpointScaleMulti;
-
-    // Scale size and transparency for debug spheres when using Ruler tool
-    float rulerSphereScale;
-    float rulerSphereTrans;
-
-    SGizmoSettings();
-};
 
 //////////////////////////////////////////////////////////////////////////
 // Settings for snapping in the viewports.
@@ -294,6 +279,7 @@ AZ_POP_DISABLE_DLL_EXPORT_BASECLASS_WARNING
     SettingOutcome GetValue(const AZStd::string_view path) override;
     SettingOutcome SetValue(const AZStd::string_view path, const AZStd::any& value) override;
     AzToolsFramework::ConsoleColorTheme GetConsoleColorTheme() const override;
+    int GetMaxNumberOfItemsShownInSearchView() const override;
 
     void ConvertPath(const AZStd::string_view sourcePath, AZStd::string& category, AZStd::string& attribute);
 
@@ -354,8 +340,6 @@ AZ_POP_DISABLE_DLL_EXPORT_BASECLASS_WARNING
     //! how many save backups to keep
     int backupOnSaveMaxCount;
 
-    int useLowercasePaths;
-
     //////////////////////////////////////////////////////////////////////////
     // Autobackup.
     //////////////////////////////////////////////////////////////////////////
@@ -369,6 +353,13 @@ AZ_POP_DISABLE_DLL_EXPORT_BASECLASS_WARNING
     int autoRemindTime;
     //////////////////////////////////////////////////////////////////////////
 
+    //////////////////////////////////////////////////////////////////////////
+    // Asset Browser Search View.
+    //////////////////////////////////////////////////////////////////////////
+    //! Current maximum number of items that can be displayed in the AssetBrowser Search View.
+    int maxNumberOfItemsShownInSearch;
+    //////////////////////////////////////////////////////////////////////////
+
 
     //! If true preview windows is displayed when browsing geometries.
     bool bPreviewGeometryWindow;
@@ -378,13 +369,12 @@ AZ_POP_DISABLE_DLL_EXPORT_BASECLASS_WARNING
     //! Keeps the editor active even if no focus is set
     int keepEditorActive;
 
-    SGizmoSettings gizmo;
-
     // Settings of the snapping.
     SSnapSettings snap;
 
     //! Source Control Enabling.
     bool enableSourceControl;
+    bool clearConsoleOnGameModeStart;
 
     //! Text editor.
     QString textEditorForScript;

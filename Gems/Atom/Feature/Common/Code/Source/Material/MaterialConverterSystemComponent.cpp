@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -22,12 +23,13 @@ namespace AZ
     {
         void MaterialConverterSettings::Reflect(AZ::ReflectContext* context)
         {
-            if (auto serializeContext = azrtti_cast<AZ::SerializeContext*>(context); serializeContext)
+            if (auto serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
             {
                 serializeContext->Class<MaterialConverterSettings>()
-                                ->Version(1)
-                                ->Field("Enable", &MaterialConverterSettings::m_enable)
-                                ->Field("DefaultMaterial", &MaterialConverterSettings::m_defaultMaterial);
+                    ->Version(2)
+                    ->Field("Enable", &MaterialConverterSettings::m_enable)
+                    ->Field("DefaultMaterial", &MaterialConverterSettings::m_defaultMaterial)
+                    ->Field("IncludeMaterialPropertyNames", &MaterialConverterSettings::m_includeMaterialPropertyNames);
             }
         }
 
@@ -66,6 +68,11 @@ namespace AZ
         bool MaterialConverterSystemComponent::IsEnabled() const
         {
             return m_settings.m_enable;
+        }
+
+        bool MaterialConverterSystemComponent::ShouldIncludeMaterialPropertyNames() const
+        {
+            return m_settings.m_includeMaterialPropertyNames;
         }
 
         bool MaterialConverterSystemComponent::ConvertMaterial(
@@ -175,7 +182,7 @@ namespace AZ
             return true;
         }
 
-        const char* MaterialConverterSystemComponent::GetMaterialTypePath() const
+        AZStd::string MaterialConverterSystemComponent::GetMaterialTypePath() const
         {
             if (m_settings.m_enable)
             {
@@ -185,6 +192,17 @@ namespace AZ
             {
                 return nullptr;
             }
+        }
+
+        AZStd::string MaterialConverterSystemComponent::GetDefaultMaterialPath() const
+        {
+            if (m_settings.m_defaultMaterial.empty())
+            {
+                AZ_Error("MaterialConverterSystemComponent", m_settings.m_enable,
+                    "Material conversion is disabled but a default material not specified in registry /O3DE/SceneAPI/MaterialConverter/DefaultMaterial");
+            }
+
+            return m_settings.m_defaultMaterial;
         }
 
         AZStd::string MaterialConverterSystemComponent::GetDefaultMaterialPath() const

@@ -1,13 +1,13 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
 #include <AzToolsFramework/UI/Prefab/LevelRootUiHandler.h>
 
-#include <AzToolsFramework/UI/Prefab/PrefabEditInterface.h>
 #include <AzToolsFramework/Prefab/PrefabPublicInterface.h>
 #include <AzToolsFramework/UI/Outliner/EntityOutlinerListModel.hxx>
 
@@ -23,14 +23,6 @@ namespace AzToolsFramework
 
     LevelRootUiHandler::LevelRootUiHandler()
     {
-        m_prefabEditInterface = AZ::Interface<Prefab::PrefabEditInterface>::Get();
-
-        if (m_prefabEditInterface == nullptr)
-        {
-            AZ_Assert(false, "LevelRootUiHandler - could not get PrefabEditInterface on LevelRootUiHandler construction.");
-            return;
-        }
-
         m_prefabPublicInterface = AZ::Interface<Prefab::PrefabPublicInterface>::Get();
 
         if (m_prefabPublicInterface == nullptr)
@@ -40,9 +32,9 @@ namespace AzToolsFramework
         }
     }
 
-    QPixmap LevelRootUiHandler::GenerateItemIcon(AZ::EntityId /*entityId*/) const
+    QIcon LevelRootUiHandler::GenerateItemIcon(AZ::EntityId /*entityId*/) const
     {
-        return QPixmap(m_levelRootIconPath);
+        return QIcon(m_levelRootIconPath);
     }
 
     QString LevelRootUiHandler::GenerateItemInfoString(AZ::EntityId entityId) const
@@ -98,5 +90,6 @@ namespace AzToolsFramework
         
         // Draw border at the bottom
         painter->drawLine(rect.bottomLeft(), rect.bottomRight());
+        painter->restore();
     }
 }

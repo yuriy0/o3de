@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -30,6 +31,7 @@ namespace O3DE::ProjectManager
 
         // PythonBindings overrides
         bool PythonStarted() override;
+        bool StartPython() override;
 
         // Engine
         AZ::Outcome<EngineInfo> GetEngineInfo() override;
@@ -55,16 +57,20 @@ namespace O3DE::ProjectManager
         // ProjectTemplate
         AZ::Outcome<QVector<ProjectTemplateInfo>> GetProjectTemplates(const QString& projectPath = {}) override;
 
+        // Gem Repos
+        AZ::Outcome<void, AZStd::string> AddGemRepo(const QString& repoUri) override;
+        AZ::Outcome<QVector<GemRepoInfo>, AZStd::string> GetAllGemRepoInfos() override;
+
     private:
         AZ_DISABLE_COPY_MOVE(PythonBindings);
 
         AZ::Outcome<void, AZStd::string> ExecuteWithLockErrorHandling(AZStd::function<void()> executionCallback);
         bool ExecuteWithLock(AZStd::function<void()> executionCallback);
         GemInfo GemInfoFromPath(pybind11::handle path, pybind11::handle pyProjectPath);
+        GemRepoInfo GemRepoInfoFromPath(pybind11::handle path, pybind11::handle pyEnginePath);
         ProjectInfo ProjectInfoFromPath(pybind11::handle path);
         ProjectTemplateInfo ProjectTemplateInfoFromPath(pybind11::handle path, pybind11::handle pyProjectPath);
         bool RegisterThisEngine();
-        bool StartPython();
         bool StopPython();
 
 

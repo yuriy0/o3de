@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -365,7 +366,7 @@ namespace AzFramework
             AZStd::set<AZStd::string> tags;
             AZStd::string resolvedFilePath = ResolveFilePath(filePath);
 
-            auto found = AZStd::find_if(m_fileTagsMap.begin(), m_fileTagsMap.end(), [filePath, resolvedFilePath, this](auto& entry) -> bool
+            auto found = AZStd::find_if(m_fileTagsMap.begin(), m_fileTagsMap.end(), [resolvedFilePath](auto& entry) -> bool
             {
                 return resolvedFilePath == ResolveFilePath(entry.first);
             });

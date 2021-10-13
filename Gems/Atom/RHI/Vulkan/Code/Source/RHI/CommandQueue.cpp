@@ -1,10 +1,10 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
-#include "Atom_RHI_Vulkan_precompiled.h"
 #include <AzCore/Debug/EventTraceDrillerBus.h>
 #include <RHI/CommandList.h>
 #include <RHI/CommandQueue.h>
@@ -45,7 +45,7 @@ namespace AZ
             const ExecuteWorkRequest& request = static_cast<const ExecuteWorkRequest&>(rhiRequest);
             QueueCommand([=](void* queue) 
             {
-                AZ_PROFILE_SCOPE(AZ::Debug::ProfileCategory::AzRender, "ExecuteWork");
+                AZ_PROFILE_SCOPE(RHI, "ExecuteWork");
                 AZ_PROFILE_RHI_VARIABLE(m_lastExecuteDuration);
 
                 Queue* vulkanQueue = static_cast<Queue*>(queue);
@@ -100,7 +100,7 @@ namespace AZ
         {
             // The queue doesn't have an explicit way to signal a fence, so
             // we submit an empty work batch with only a fence to signal.
-            QueueCommand([this, &fence](void* queue)
+            QueueCommand([&fence](void* queue)
             {
                 Queue* vulkanQueue = static_cast<Queue*>(queue);
                 vulkanQueue->SubmitCommandBuffers(

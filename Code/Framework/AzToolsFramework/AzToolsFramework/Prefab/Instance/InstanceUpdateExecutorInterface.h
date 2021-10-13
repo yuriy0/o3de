@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -22,7 +23,7 @@ namespace AzToolsFramework
             virtual ~InstanceUpdateExecutorInterface() = default;
 
             // Add all Instances of Template with given Id into a queue for updating them later.
-            virtual void AddTemplateInstancesToQueue(TemplateId instanceTemplateId, InstanceOptionalReference instanceToExclude = AZStd::nullopt) = 0;
+            virtual void AddTemplateInstancesToQueue(TemplateId instanceTemplateId, bool immediate = false, InstanceOptionalReference instanceToExclude = AZStd::nullopt) = 0;
 
             // Update Instances in the waiting queue.
             virtual bool UpdateTemplateInstancesInQueue() = 0;

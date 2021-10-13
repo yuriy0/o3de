@@ -1,18 +1,19 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
-#include <Source/Multiplayer_precompiled.h>
+#include <AzNetworking/Framework/NetworkingSystemComponent.h>
+#include <Multiplayer/Components/NetBindComponent.h>
+#include <Multiplayer/Components/NetworkHierarchyChildComponent.h>
+#include <Multiplayer/Components/NetworkHierarchyRootComponent.h>
 #include <Source/MultiplayerGem.h>
 #include <Source/MultiplayerSystemComponent.h>
 #include <Source/AutoGen/AutoComponentTypes.h>
-#include <Source/Pipeline/NetBindMarkerComponent.h>
 #include <Source/Pipeline/NetworkSpawnableHolderComponent.h>
-#include <Multiplayer/Components/NetBindComponent.h>
-#include <AzNetworking/Framework/NetworkingSystemComponent.h>
 
 namespace Multiplayer
 {
@@ -23,7 +24,6 @@ namespace Multiplayer
             AzNetworking::NetworkingSystemComponent::CreateDescriptor(),
             MultiplayerSystemComponent::CreateDescriptor(),
             NetBindComponent::CreateDescriptor(),
-            NetBindMarkerComponent::CreateDescriptor(),
             NetworkSpawnableHolderComponent::CreateDescriptor(),
         });
 

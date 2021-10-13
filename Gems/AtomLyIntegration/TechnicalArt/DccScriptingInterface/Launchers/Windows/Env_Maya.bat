@@ -1,7 +1,8 @@
 @echo off
 REM 
-REM Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
-REM 
+REM Copyright (c) Contributors to the Open 3D Engine Project.
+REM For complete copyright and license terms please see the LICENSE at the root of this distribution.
+REM
 REM SPDX-License-Identifier: Apache-2.0 OR MIT
 REM
 REM
@@ -26,7 +27,7 @@ IF "%DCCSI_PY_VERSION_MINOR%"=="" (set DCCSI_PY_VERSION_MINOR=7)
 IF "%DCCSI_PY_VERSION_RELEASE%"=="" (set DCCSI_PY_VERSION_RELEASE=11)
 
 :: Default Maya Version
-IF "%DCCSI_MAYA_VERSION%"=="" (set DCCSI_MAYA_VERSION=2020)
+IF "%DCCSI_MAYA_VERSION%"=="" (set DCCSI_MAYA_VERSION=%MAYA_VERSION%)
 
 :: Initialize env
 CALL %~dp0\Env_Core.bat

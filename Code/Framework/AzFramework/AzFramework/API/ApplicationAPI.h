@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -17,6 +18,7 @@
 #include <AzCore/std/functional.h>
 #include <AzCore/std/parallel/thread.h>
 #include <AzCore/std/string/string.h>
+#include <AzCore/PlatformIncl.h>
 
 #include <AzFramework/CommandLine/CommandLine.h>
 
@@ -71,11 +73,8 @@ namespace AzFramework
         /// Retrieves the app root path for the application.
         virtual const char* GetAppRoot() const { return nullptr; }
 
-#pragma push_macro("GetCommandLine")
-#undef GetCommandLine
         /// Get the Command Line arguments passed in.
         virtual const CommandLine* GetCommandLine() { return nullptr; }
-#pragma pop_macro("GetCommandLine")
 
         /// Get the Command Line arguments passed in. (Avoids collisions with platform specific macros.)
         virtual const CommandLine* GetApplicationCommandLine() { return nullptr; }

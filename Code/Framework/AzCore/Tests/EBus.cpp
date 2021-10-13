@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -2836,7 +2837,7 @@ namespace UnitTest
             handlerList.emplace_back(i, maxSleep);
         }
 
-        auto work = [maxSleep, threadCount]()
+        auto work = []()
         {
             char sentinel[64] = { 0 };
             char* end = sentinel + AZ_ARRAY_SIZE(sentinel);
@@ -2922,7 +2923,7 @@ namespace UnitTest
 
         MyEventGroupImpl handler;
 
-        auto work = [maxSleep, &handler]()
+        auto work = [&handler]()
         {
             for (int i = 1; i < cycleCount; ++i)
             {

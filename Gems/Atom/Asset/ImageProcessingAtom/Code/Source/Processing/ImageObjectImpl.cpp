@@ -1,11 +1,11 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
-#include <ImageProcessing_precompiled.h>
 
 #include <Processing/ImageObjectImpl.h>
 #include <Processing/PixelFormatInfo.h>
@@ -241,8 +241,6 @@ namespace ImageProcessingAtom
     // clone this image-object's contents
     IImageObject* CImageObject::Clone(uint32_t maxMipCount) const
     {
-        const EPixelFormat srcPixelformat = GetPixelFormat();
-
         IImageObject* outImage = AllocateImage(maxMipCount);
         AZ::u32 mips = outImage->GetMipCount();
 

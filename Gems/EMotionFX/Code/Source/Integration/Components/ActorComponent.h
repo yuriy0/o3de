@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -79,19 +80,19 @@ namespace EMotionFX
                 AZ::Data::Asset<ActorAsset> m_actorAsset{AZ::Data::AssetLoadBehavior::NoLoad}; ///< Selected actor asset.
                 ActorAsset::MaterialList m_materialPerLOD{}; ///< Material assignment per LOD.
                 AZ::EntityId m_attachmentTarget{}; ///< Target entity this actor should attach to.
-                AZ::u32 m_attachmentJointIndex = MCORE_INVALIDINDEX32; ///< Index of joint on target skeleton for actor attachments.
+                size_t m_attachmentJointIndex = InvalidIndex; ///< Index of joint on target skeleton for actor attachments.
                 AttachmentType m_attachmentType = AttachmentType::None; ///< Type of attachment.
                 bool m_renderSkeleton = false; ///< Toggles debug rendering of the skeleton.
                 bool m_renderCharacter = true; ///< Toggles rendering of the character.
                 bool m_renderBounds = false; ///< Toggles rendering of the character bounds used for visibility testing.
                 SkinningMethod m_skinningMethod = SkinningMethod::DualQuat; ///< The skinning method for this actor
-                AZ::u32 m_lodLevel = 0;
+                size_t m_lodLevel = 0;
 
                 // Force updating the joints when it is out of camera view. By
                 // default, joints level update (beside the root joint) on
                 // actor are disabled when the actor is out of view. 
                 bool m_forceUpdateJointsOOV = false;
-				BoundingBoxConfiguration m_bboxConfig; ///< Configuration for bounding box type and updates
+                BoundingBoxConfiguration m_bboxConfig; ///< Configuration for bounding box type and updates
 
                 static void Reflect(AZ::ReflectContext* context);
             };
@@ -118,6 +119,7 @@ namespace EMotionFX
             void DebugDrawRoot(bool enable) override;
             bool GetRenderCharacter() const override;
             void SetRenderCharacter(bool enable) override;
+            bool GetRenderActorVisible() const override;
             SkinningMethod GetSkinningMethod() const override;
 
             //////////////////////////////////////////////////////////////////////////

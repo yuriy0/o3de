@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -13,6 +14,8 @@
 
 #include <AzCore/std/containers/map.h>
 #include <AzCore/std/string/string.h>
+
+#include <ImageBuilderBaseType.h>
 
 namespace ImageProcessingAtom
 {
@@ -49,7 +52,7 @@ namespace ImageProcessingAtom
 
                 Result = ((intValue + 0x0FFFU + ((intValue >> 13U) & 1U)) >> 13U) & 0x7FFFU;
             }
-            h = (Result | Sign);
+            h = static_cast<AZ::u16>(Result | Sign);
         }
 
         operator float() const
@@ -79,7 +82,7 @@ namespace ImageProcessingAtom
             }
             else                        // The value is zero
             {
-                Exponent = -112;
+                Exponent = static_cast<AZ::u32>(-112);
             }
 
             Result = ((h & 0x8000) << 16) | // Sign

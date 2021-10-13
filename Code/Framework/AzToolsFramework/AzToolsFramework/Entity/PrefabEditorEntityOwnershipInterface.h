@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -55,5 +56,7 @@ namespace AzToolsFramework
         virtual void StopPlayInEditor() = 0;
 
         virtual void CreateNewLevelPrefab(AZStd::string_view filename, const AZStd::string& templateFilename) = 0;
+
+        virtual bool IsRootPrefabAssigned() const = 0;
     };
 }

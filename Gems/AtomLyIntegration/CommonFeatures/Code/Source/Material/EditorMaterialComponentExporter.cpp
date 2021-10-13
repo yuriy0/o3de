@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -10,6 +11,7 @@
 
 #include <AzFramework/API/ApplicationAPI.h>
 #include <AzQtComponents/Components/Widgets/BrowseEdit.h>
+#include <AzQtComponents/Components/Widgets/FileDialog.h>
 #include <AzToolsFramework/API/EditorAssetSystemAPI.h>
 #include <AzToolsFramework/API/EditorWindowRequestBus.h>
 #include <AzToolsFramework/API/ToolsApplicationAPI.h>
@@ -21,7 +23,6 @@ AZ_PUSH_DISABLE_WARNING(4251 4800, "-Wunknown-warning-option") // disable warnin
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
-#include <QFileDialog>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
@@ -54,6 +55,10 @@ namespace AZ
 
             bool OpenExportDialog(ExportItemsContainer& exportItems)
             {
+                // Sort material entries so they are ordered by name in the table
+                AZStd::sort(exportItems.begin(), exportItems.end(),
+                    [](const auto& a, const auto& b) { return a.GetMaterialSlotName() < b.GetMaterialSlotName(); });
+
                 QWidget* activeWindow = nullptr;
                 AzToolsFramework::EditorWindowRequestBus::BroadcastResult(activeWindow, &AzToolsFramework::EditorWindowRequests::GetAppMainWindow);
 
@@ -144,7 +149,7 @@ namespace AZ
 
                     // Whenever the browse button is clicked, open a save file dialog in the same location as the current export file setting
                     QObject::connect(materialFileWidget, &AzQtComponents::BrowseEdit::attachedButtonTriggered, materialFileWidget, [&dialog, &exportItem, materialFileWidget, overwriteCheckBox]() {
-                        QFileInfo fileInfo = QFileDialog::getSaveFileName(&dialog,
+                        QFileInfo fileInfo = AzQtComponents::FileDialog::GetSaveFileName(&dialog,
                             QString("Select Material Filename"),
                             exportItem.GetExportPath().c_str(),
                             QString("Material (*.material)"),

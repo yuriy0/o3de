@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -32,7 +33,7 @@ namespace AzToolsFramework
         void PrefabUndoInstance::Capture(
             const PrefabDom& initialState,
             const PrefabDom& endState,
-            const TemplateId& templateId)
+            TemplateId templateId)
         {
             m_templateId = templateId;
 
@@ -42,10 +43,15 @@ namespace AzToolsFramework
 
         void PrefabUndoInstance::Undo()
         {
-            m_instanceToTemplateInterface->PatchTemplate(m_undoPatch, m_templateId);
+            m_instanceToTemplateInterface->PatchTemplate(m_undoPatch, m_templateId, true);
         }
 
         void PrefabUndoInstance::Redo()
+        {
+            m_instanceToTemplateInterface->PatchTemplate(m_redoPatch, m_templateId, true);
+        }
+
+        void PrefabUndoInstance::RedoBatched()
         {
             m_instanceToTemplateInterface->PatchTemplate(m_redoPatch, m_templateId);
         }
@@ -90,7 +96,7 @@ namespace AzToolsFramework
         void PrefabUndoEntityUpdate::Undo()
         {
             [[maybe_unused]] bool isPatchApplicationSuccessful =
-                m_instanceToTemplateInterface->PatchTemplate(m_undoPatch, m_templateId);
+                m_instanceToTemplateInterface->PatchTemplate(m_undoPatch, m_templateId, true);
 
             AZ_Error(
                 "Prefab", isPatchApplicationSuccessful,
@@ -101,7 +107,7 @@ namespace AzToolsFramework
         void PrefabUndoEntityUpdate::Redo()
         {
             [[maybe_unused]] bool isPatchApplicationSuccessful =
-                m_instanceToTemplateInterface->PatchTemplate(m_redoPatch, m_templateId);
+                m_instanceToTemplateInterface->PatchTemplate(m_redoPatch, m_templateId, true);
 
             AZ_Error(
                 "Prefab", isPatchApplicationSuccessful,
@@ -112,7 +118,7 @@ namespace AzToolsFramework
         void PrefabUndoEntityUpdate::Redo(InstanceOptionalReference instanceToExclude)
         {
             [[maybe_unused]] bool isPatchApplicationSuccessful =
-                m_instanceToTemplateInterface->PatchTemplate(m_redoPatch, m_templateId, instanceToExclude);
+                m_instanceToTemplateInterface->PatchTemplate(m_redoPatch, m_templateId, false, instanceToExclude);
 
             AZ_Error(
                 "Prefab", isPatchApplicationSuccessful,
@@ -135,8 +141,8 @@ namespace AzToolsFramework
         }
 
         void PrefabUndoInstanceLink::Capture(
-            const TemplateId& targetId,
-            const TemplateId& sourceId,
+            TemplateId targetId,
+            TemplateId sourceId,
             const InstanceAlias& instanceAlias,
             PrefabDom linkPatches,
             const LinkId linkId)
@@ -261,12 +267,12 @@ namespace AzToolsFramework
             instanceDom.CopyFrom(instanceDomRef->get(), instanceDom.GetAllocator());
 
             //apply the patch to the template within the target
-            AZ::JsonSerializationResult::ResultCode result = PrefabDomUtils::ApplyPatches(instanceDom, instanceDom.GetAllocator(), patch);
+            [[maybe_unused]] AZ::JsonSerializationResult::ResultCode result = PrefabDomUtils::ApplyPatches(instanceDom, instanceDom.GetAllocator(), patch);
 
             AZ_Error(
                 "Prefab",
-                result.GetOutcome() == AZ::JsonSerializationResult::Outcomes::PartialSkip ||
-                    result.GetOutcome() == AZ::JsonSerializationResult::Outcomes::Success,
+                (result.GetOutcome() != AZ::JsonSerializationResult::Outcomes::Skipped) &&
+                (result.GetOutcome() != AZ::JsonSerializationResult::Outcomes::PartialSkip),
                 "Some of the patches are not successfully applied.");
 
             //remove the link id placed into the instance
@@ -328,7 +334,7 @@ namespace AzToolsFramework
 
             //propagate the link changes
             link->get().UpdateTarget();
-            m_prefabSystemComponentInterface->PropagateTemplateChanges(link->get().GetTargetTemplateId(), instanceToExclude);
+            m_prefabSystemComponentInterface->PropagateTemplateChanges(link->get().GetTargetTemplateId(), false, instanceToExclude);
 
             //mark as dirty
             m_prefabSystemComponentInterface->SetTemplateDirtyFlag(link->get().GetTargetTemplateId(), true);

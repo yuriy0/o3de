@@ -1,11 +1,13 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
 #include <AtomCore/std/containers/vector_set.h>
+#include <AzCore/Asset/AssetSerializer.h>
 #include <Atom/RPI.Reflect/Material/ShaderCollection.h>
 #include <Atom/RHI/RHISystemInterface.h>
 #include <Atom/RHI/DrawListTagRegistry.h>
@@ -21,7 +23,7 @@ namespace AZ
             : public SerializeContext::IEventHandler
         {
             //! Called right before we start reading from the instance pointed by classPtr.
-            virtual void OnReadBegin(void* classPtr)
+            void OnReadBegin(void* classPtr) override
             {
                 ShaderCollection::Item* shaderVariantReference = reinterpret_cast<ShaderCollection::Item*>(classPtr);
                 shaderVariantReference->m_shaderVariantId = shaderVariantReference->m_shaderOptionGroup.GetShaderVariantId();

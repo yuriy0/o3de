@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -51,6 +52,7 @@ namespace O3DE::ProjectManager
 
         if (projectButton)
         {
+            projectButton->SetProjectBuilding();
             projectButton->SetProjectButtonAction(tr("Cancel Build"), [this] { HandleCancel(); });
 
             if (m_lastProgress != 0)
@@ -103,12 +105,16 @@ namespace O3DE::ProjectManager
                 QMessageBox::critical(m_parent, tr("Project Failed to Build!"), result);
 
                 m_projectInfo.m_buildFailed = true;
-                m_projectInfo.m_logUrl = QUrl();
+                m_projectInfo.m_logUrl = QUrl("file:///" + m_worker->GetLogFilePath());
                 emit NotifyBuildProject(m_projectInfo);
             }
 
             emit Done(false);
             return;
+        }
+        else
+        {
+            m_projectInfo.m_buildFailed = false;
         }
 
         emit Done(true);

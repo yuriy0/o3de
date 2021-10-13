@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -325,6 +326,7 @@ ActionManager::MenuWrapper ActionManager::FindMenu(const QString& menuId)
             return *menuIt;
         }
 
+        AZ_UNUSED(menuId); // Prevent unused warning in release builds
         AZ_Warning("ActionManager", false, "Did not find menu with menuId %s", menuId.toUtf8().data());
         return nullptr;
     }();
@@ -385,6 +387,13 @@ void ActionManager::AddAction(int id, QAction* action)
     AddAction(action);
 }
 
+void ActionManager::AddAction(AZ::Crc32 id, QAction* action)
+{
+    action->setData(aznumeric_cast<AZ::u32>(id));
+    AddAction(action);
+}
+
+
 void ActionManager::AddAction(QAction* action)
 {
     const int id = action->data().toInt();
@@ -430,6 +439,15 @@ ActionManager::ActionWrapper ActionManager::AddAction(int id, const QString& nam
 {
     QAction* action = ActionIsWidget(id) ? new WidgetAction(id, m_mainWindow, name, this)
         : static_cast<QAction*>(new PatchedAction(name, this)); // static cast to base so ternary compiles
+    AddAction(id, action);
+    return ActionWrapper(action, this);
+}
+
+ActionManager::ActionWrapper ActionManager::AddAction(AZ::Crc32 id, const QString& name)
+{
+    QAction* action = ActionIsWidget(aznumeric_cast<AZ::u32>(id))
+        ? new WidgetAction(aznumeric_cast<AZ::u32>(id), m_mainWindow, name, this)
+        : static_cast<QAction*>(new PatchedAction(name, this)); // static cast to base so ternary compile
     AddAction(id, action);
     return ActionWrapper(action, this);
 }
@@ -597,6 +615,11 @@ void SetDefaultActionsEnabled(
 }
 
 void ActionManager::AddActionViaBus(int id, QAction* action)
+{
+    AddAction(id, action);
+}
+
+void ActionManager::AddActionViaBusCrc(AZ::Crc32 id, QAction* action)
 {
     AddAction(id, action);
 }

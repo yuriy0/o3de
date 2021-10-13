@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -724,7 +725,7 @@ namespace AzFramework
 
             if (!info.m_relativePath.empty())
             {
-                const char* devAssetRoot = fileIO->GetAlias("@devassets@");
+                const char* devAssetRoot = fileIO->GetAlias("@projectroot@");
                 if (devAssetRoot)
                 {
                     AZ::Data::AssetStreamInfo streamInfo;
@@ -986,7 +987,7 @@ namespace AzFramework
     void AssetCatalog::AddCatalogEntry(AZStd::shared_ptr<AzFramework::AssetRegistry> deltaCatalog)
     {
         AZStd::lock_guard<AZStd::recursive_mutex> lock(m_deltaCatalogMutex);
-#if defined(PERFORMANCE_BUILD) || !defined(_RELEASE)
+#if !defined(_RELEASE)
         for (const auto& thisElement : m_deltaCatalogList)
         {
             if (thisElement == deltaCatalog)
@@ -1009,7 +1010,7 @@ namespace AzFramework
             AZ_Warning("AssetCatalog", false, "Catalog name %p can't be inserted at slot %u", deltaCatalog.get(), catalogIndex);
             return;
         }
-#if defined(PERFORMANCE_BUILD) || !defined(_RELEASE)
+#if !defined(_RELEASE)
         for (const auto& thisElement : m_deltaCatalogList)
         {
             if (thisElement == deltaCatalog)

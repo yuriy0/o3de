@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -35,10 +36,6 @@ namespace ImageProcessingAtom
         AZ::u32 GetWidth(AZ::u32 mip) const override;
         AZ::u32 GetHeight(AZ::u32 mip) const override;
         AZ::u32 GetMipCount() const override;
-        bool IsCubemap() const override
-        {
-            return false;
-        };
 
         void GetImagePointer(AZ::u32 mip, AZ::u8*& pMem, AZ::u32& pitch) const override;
         AZ::u32 GetMipBufSize(AZ::u32 mip) const override;

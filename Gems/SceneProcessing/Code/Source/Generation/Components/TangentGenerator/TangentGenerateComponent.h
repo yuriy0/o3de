@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -9,6 +10,7 @@
 
 #include <SceneAPI/SceneCore/Components/GenerationComponent.h>
 #include <SceneAPI/SceneCore/Containers/Scene.h>
+#include <SceneAPI/SceneData/Rules/TangentsRule.h>
 #include <AzCore/RTTI/RTTI.h>
 
 namespace AZ::SceneAPI::DataTypes { class IMeshData; }
@@ -16,7 +18,6 @@ namespace AZ::SceneAPI::DataTypes { class IMeshVertexUVData; }
 namespace AZ::SceneAPI::DataTypes { class IMeshVertexTangentData; }
 namespace AZ::SceneAPI::DataTypes { class IMeshVertexBitangentData; }
 namespace AZ::SceneAPI::DataTypes { enum class TangentSpace; }
-namespace AZ::SceneAPI::SceneData { class TangentsRule; }
 namespace AZ::SceneData::GraphData
 {
     class BlendShapeData;
@@ -54,48 +55,31 @@ namespace AZ::SceneGenerationComponents
         AZ::SceneAPI::Events::ProcessingResult GenerateTangentData(TangentGenerateContext& context);
 
     private:
-        struct PerUvGenerateContext
-        {
-            AZ::SceneAPI::Containers::Scene& scene;
-            AZ::SceneAPI::Containers::SceneGraph::NodeIndex nodeIndex;
-            size_t uvSetIndex;
-            const AZ::SceneAPI::SceneData::TangentsRule& rule;
-            AZ::SceneAPI::DataTypes::IMeshData* meshData;
-            AZStd::vector<AZ::SceneData::GraphData::BlendShapeData*> blendShapes;
-
-            bool GenerateTangentsForMeshUv() const;
-            bool GenerateNormalsForMeshUv() const;
-
-            template<class DataSource>
-            bool GenerateNormalsForMeshUv(DataSource* dataSource) const;
-        };
-
         void FindBlendShapes(
             AZ::SceneAPI::Containers::SceneGraph& graph, const AZ::SceneAPI::Containers::SceneGraph::NodeIndex& nodeIndex,
             AZStd::vector<AZ::SceneData::GraphData::BlendShapeData*>& outBlendShapes) const;
-        bool GenerateNormalsAndTangentsForMesh(AZ::SceneAPI::Containers::Scene& scene, const AZ::SceneAPI::Containers::SceneGraph::NodeIndex& nodeIndex, AZ::SceneAPI::DataTypes::IMeshData* meshData);
-        
+        bool GenerateTangentsForMesh(AZ::SceneAPI::Containers::Scene& scene, const AZ::SceneAPI::Containers::SceneGraph::NodeIndex& nodeIndex, AZ::SceneAPI::DataTypes::IMeshData* meshData);
         void UpdateFbxTangentWValues(AZ::SceneAPI::Containers::SceneGraph& graph, const AZ::SceneAPI::Containers::SceneGraph::NodeIndex& nodeIndex, const AZ::SceneAPI::DataTypes::IMeshData* meshData);
-        const AZ::SceneAPI::SceneData::TangentsRule& GetTangentSpaceRule(const AZ::SceneAPI::Containers::Scene& scene) const;
+        const AZ::SceneAPI::SceneData::TangentsRule* GetTangentRule(const AZ::SceneAPI::Containers::Scene& scene) const;
 
         size_t CalcUvSetCount(AZ::SceneAPI::Containers::SceneGraph& graph, const AZ::SceneAPI::Containers::SceneGraph::NodeIndex& nodeIndex) const;
-        static AZ::SceneAPI::DataTypes::IMeshVertexUVData* FindUvData(AZ::SceneAPI::Containers::SceneGraph& graph, const AZ::SceneAPI::Containers::SceneGraph::NodeIndex& nodeIndex, AZ::u64 uvSet);
+        AZ::SceneAPI::DataTypes::IMeshVertexUVData* FindUvData(AZ::SceneAPI::Containers::SceneGraph& graph, const AZ::SceneAPI::Containers::SceneGraph::NodeIndex& nodeIndex, AZ::u64 uvSet) const;
 
-        static AZ::SceneAPI::DataTypes::IMeshVertexTangentData* FindTangentData(AZ::SceneAPI::Containers::SceneGraph& graph, const AZ::SceneAPI::Containers::SceneGraph::NodeIndex& nodeIndex, AZ::u64 setIndex);
-        static bool CreateTangentLayer(AZ::SceneAPI::Containers::SceneManifest& manifest,
+        AZ::SceneAPI::DataTypes::IMeshVertexTangentData* FindTangentData(AZ::SceneAPI::Containers::SceneGraph& graph, const AZ::SceneAPI::Containers::SceneGraph::NodeIndex& nodeIndex, AZ::u64 setIndex) const;
+        bool CreateTangentLayer(AZ::SceneAPI::Containers::SceneManifest& manifest,
             const AZ::SceneAPI::Containers::SceneGraph::NodeIndex& nodeIndex,
             size_t numVerts,
             size_t uvSetIndex,
-            AZ::SceneAPI::DataTypes::TangentSpace tangentSpace,
+            AZ::SceneAPI::DataTypes::TangentGenerationMethod generationMethod,
             AZ::SceneAPI::Containers::SceneGraph& graph,
             AZ::SceneAPI::DataTypes::IMeshVertexTangentData** outTangentData);
 
-        static AZ::SceneAPI::DataTypes::IMeshVertexBitangentData* FindBitangentData(AZ::SceneAPI::Containers::SceneGraph& graph, const AZ::SceneAPI::Containers::SceneGraph::NodeIndex& nodeIndex, AZ::u64 setIndex);
-        static bool CreateBitangentLayer(AZ::SceneAPI::Containers::SceneManifest& manifest,
+        AZ::SceneAPI::DataTypes::IMeshVertexBitangentData* FindBitangentData(AZ::SceneAPI::Containers::SceneGraph& graph, const AZ::SceneAPI::Containers::SceneGraph::NodeIndex& nodeIndex, AZ::u64 setIndex) const;
+        bool CreateBitangentLayer(AZ::SceneAPI::Containers::SceneManifest& manifest,
             const AZ::SceneAPI::Containers::SceneGraph::NodeIndex& nodeIndex,
             size_t numVerts,
             size_t uvSetIndex,
-            AZ::SceneAPI::DataTypes::TangentSpace tangentSpace,
+            AZ::SceneAPI::DataTypes::TangentGenerationMethod generationMethod,
             AZ::SceneAPI::Containers::SceneGraph& graph,
             AZ::SceneAPI::DataTypes::IMeshVertexBitangentData** outBitangentData);
     };

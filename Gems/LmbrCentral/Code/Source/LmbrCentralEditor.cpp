@@ -1,11 +1,11 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
-#include "LmbrCentral_precompiled.h"
 
 #include "LmbrCentralEditor.h"
 
@@ -24,6 +24,7 @@
 #include "Scripting/EditorSpawnerComponent.h"
 #include "Scripting/EditorTagComponent.h"
 
+#include "Shape/EditorAxisAlignedBoxShapeComponent.h"
 #include "Shape/EditorBoxShapeComponent.h"
 #include "Shape/EditorQuadShapeComponent.h"
 #include "Shape/EditorSphereShapeComponent.h"
@@ -67,6 +68,7 @@ namespace LmbrCentral
             EditorDiskShapeComponent::CreateDescriptor(),
             EditorTubeShapeComponent::CreateDescriptor(),
             EditorBoxShapeComponent::CreateDescriptor(),
+            EditorAxisAlignedBoxShapeComponent::CreateDescriptor(),
             EditorQuadShapeComponent::CreateDescriptor(),
             EditorLookAtComponent::CreateDescriptor(),
             EditorCylinderShapeComponent::CreateDescriptor(),

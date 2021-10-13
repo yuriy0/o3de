@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -550,7 +551,7 @@ namespace EMotionFX
 
         QString GetTestMotionFileName() const
         {
-            AZStd::string resolvedAssetPath = this->ResolvePath("@devroot@/Gems/EMotionFX/Code/Tests/TestAssets/Rin/rin_idle.motion");
+            AZStd::string resolvedAssetPath = this->ResolvePath("@engroot@/Gems/EMotionFX/Code/Tests/TestAssets/Rin/rin_idle.motion");
             return QString::fromUtf8(resolvedAssetPath.data(), aznumeric_cast<int>(resolvedAssetPath.size()));
         }
 

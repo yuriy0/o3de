@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -281,7 +282,7 @@ namespace ReplicaBehavior {
         GM_CLASS_ALLOCATOR(EntityLikeScriptReplicaChunk);
 
         EntityLikeScriptReplicaChunk();
-        ~EntityLikeScriptReplicaChunk() = default;
+        ~EntityLikeScriptReplicaChunk() override = default;
 
         //////////////////////////////////////////////////////////////////////
         //! GridMate::ReplicaChunk overrides.
@@ -295,7 +296,7 @@ namespace ReplicaBehavior {
 
         int GetMaxServerProperties() const { return k_maxScriptableDataSets; }
 
-        AZ::u32 CalculateDirtyDataSetMask(MarshalContext& marshalContext);
+        AZ::u32 CalculateDirtyDataSetMask(MarshalContext& marshalContext) override;
 
         EntityLikeScriptDataSet m_scriptDataSets[k_maxScriptableDataSets];
         AZ::u32 m_enabledDataSetMask;
@@ -814,7 +815,7 @@ namespace ReplicaBehavior {
             m_replicaId = m_sessions[sHost].GetReplicaMgr().AddPrimary(replica);
         }
 
-        ~Integ_ReplicaDefaultDataSetDriller()
+        ~Integ_ReplicaDefaultDataSetDriller() override
         {
             m_driller.BusDisconnect();
         }
@@ -927,7 +928,7 @@ namespace ReplicaBehavior {
             m_replicaU8Id = m_sessions[sHost].GetReplicaMgr().AddPrimary(replica2);
         }
 
-        ~Integ_Replica_ComparePackingBoolsVsU8()
+        ~Integ_Replica_ComparePackingBoolsVsU8() override
         {
             m_driller.BusDisconnect();
         }
@@ -1056,7 +1057,7 @@ namespace ReplicaBehavior {
             m_replicaId = m_sessions[sHost].GetReplicaMgr().AddPrimary(replica);
         }
 
-        ~Integ_CheckDataSetStreamIsntWrittenMoreThanNecessary()
+        ~Integ_CheckDataSetStreamIsntWrittenMoreThanNecessary() override
         {
             m_driller.BusDisconnect();
         }
@@ -1153,7 +1154,7 @@ namespace ReplicaBehavior {
             m_replicaId = m_sessions[sHost].GetReplicaMgr().AddPrimary(replica);
         }
 
-        ~Integ_CheckDataSetStreamIsntWrittenMoreThanNecessaryOnceDirty()
+        ~Integ_CheckDataSetStreamIsntWrittenMoreThanNecessaryOnceDirty() override
         {
             m_driller.BusDisconnect();
         }
@@ -1247,7 +1248,7 @@ namespace ReplicaBehavior {
             m_replicaId = m_sessions[sHost].GetReplicaMgr().AddPrimary(replica);
         }
 
-        ~Integ_CheckReplicaIsntSentWithNoChanges()
+        ~Integ_CheckReplicaIsntSentWithNoChanges() override
         {
             m_driller.BusDisconnect();
         }
@@ -1358,7 +1359,7 @@ namespace ReplicaBehavior {
             m_replicaId = m_sessions[sHost].GetReplicaMgr().AddPrimary(replica);
         }
 
-        ~Integ_CheckEntityScriptReplicaIsntSentWithNoChanges()
+        ~Integ_CheckEntityScriptReplicaIsntSentWithNoChanges() override
         {
             m_driller.BusDisconnect();
         }

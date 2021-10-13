@@ -1,27 +1,29 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
-#include <Source/NetworkEntity/EntityReplication/EntityReplicator.h>
-#include <Source/NetworkEntity/EntityReplication/EntityReplicationManager.h>
-#include <Source/NetworkEntity/EntityReplication/PropertyPublisher.h>
-#include <Source/NetworkEntity/EntityReplication/PropertySubscriber.h>
-#include <Source/NetworkEntity/NetworkEntityAuthorityTracker.h>
-#include <Source/NetworkEntity/NetworkEntityTracker.h>
-#include <Source/AutoGen/Multiplayer.AutoPackets.h>
 #include <Multiplayer/IMultiplayer.h>
 #include <Multiplayer/Components/NetBindComponent.h>
+#include <Multiplayer/Components/NetworkHierarchyChildComponent.h>
+#include <Multiplayer/Components/NetworkHierarchyRootComponent.h>
 #include <Multiplayer/Components/NetworkTransformComponent.h>
 #include <Multiplayer/NetworkEntity/NetworkEntityRpcMessage.h>
+#include <Multiplayer/NetworkEntity/EntityReplication/EntityReplicator.h>
+#include <Multiplayer/NetworkEntity/EntityReplication/EntityReplicationManager.h>
+#include <Source/NetworkEntity/NetworkEntityAuthorityTracker.h>
+#include <Source/NetworkEntity/NetworkEntityTracker.h>
+#include <Source/NetworkEntity/EntityReplication/PropertyPublisher.h>
+#include <Source/NetworkEntity/EntityReplication/PropertySubscriber.h>
 
+#include <AzNetworking/ConnectionLayer/IConnection.h>
 #include <AzNetworking/PacketLayer/IPacket.h>
 #include <AzNetworking/Serialization/ISerializer.h>
 #include <AzNetworking/Serialization/NetworkInputSerializer.h>
 #include <AzNetworking/Serialization/NetworkOutputSerializer.h>
-#include <AzNetworking/ConnectionLayer/IConnection.h>
 
 #include <AzCore/Component/ComponentApplicationBus.h>
 #include <AzCore/Console/IConsole.h>
@@ -47,12 +49,12 @@ namespace Multiplayer
         , m_onForwardRpcHandler([this](NetworkEntityRpcMessage& entityRpcMessage) { OnSendRpcEvent(entityRpcMessage); })
         , m_onSendAutonomousRpcHandler([this](NetworkEntityRpcMessage& entityRpcMessage) { OnSendRpcEvent(entityRpcMessage); })
         , m_onForwardAutonomousRpcHandler([this](NetworkEntityRpcMessage& entityRpcMessage) { OnSendRpcEvent(entityRpcMessage); })
-        , m_onEntityStopHandler([this](const ConstNetworkEntityHandle &) { OnEntityRemovedEvent(); })
+        , m_onEntityStopHandler([this](const ConstNetworkEntityHandle&) { OnEntityRemovedEvent(); })
         , m_proxyRemovalEvent([this] { OnProxyRemovalTimedEvent(); }, AZ::Name("ProxyRemovalTimedEvent"))
     {
         if (auto localEnt = m_entityHandle.GetEntity())
         {
-            m_netBindComponent = localEnt->FindComponent<NetBindComponent>();
+            m_netBindComponent = m_entityHandle.GetNetBindComponent();
             m_boundLocalNetworkRole = m_netBindComponent->GetNetEntityRole();
         }
     }
@@ -92,7 +94,7 @@ namespace Multiplayer
         m_entityHandle = entityHandle;
         if (auto localEntity = m_entityHandle.GetEntity())
         {
-            m_netBindComponent = localEntity->FindComponent<NetBindComponent>();
+            m_netBindComponent = m_entityHandle.GetNetBindComponent();
             AZ_Assert(m_netBindComponent, "No Multiplayer::NetBindComponent");
             m_boundLocalNetworkRole = m_netBindComponent->GetNetEntityRole();
             SetPrefabEntityId(m_netBindComponent->GetPrefabEntityId());
@@ -118,12 +120,13 @@ namespace Multiplayer
         {
             m_replicationManager.AddReplicatorToPendingSend(*this);
             m_propertyPublisher = AZStd::make_unique<PropertyPublisher>
-            (
-                GetRemoteNetworkRole(),
-                !RemoteManagerOwnsEntityLifetime() ? PropertyPublisher::OwnsLifetime::True : PropertyPublisher::OwnsLifetime::False,
-                m_netBindComponent,
-                *m_connection
-            );
+                (
+                    GetRemoteNetworkRole(),
+                    !RemoteManagerOwnsEntityLifetime() ? PropertyPublisher::OwnsLifetime::True : PropertyPublisher::OwnsLifetime::False,
+                    m_netBindComponent,
+                    *m_connection
+                );
+            m_onEntityDirtiedHandler.Disconnect();
             m_netBindComponent->AddEntityDirtiedEventHandler(m_onEntityDirtiedHandler);
         }
         else
@@ -144,8 +147,9 @@ namespace Multiplayer
         // Prepare event handlers
         if (auto localEntity = m_entityHandle.GetEntity())
         {
-            NetBindComponent* netBindComponent = localEntity->FindComponent<NetBindComponent>();
+            NetBindComponent* netBindComponent = m_entityHandle.GetNetBindComponent();
             AZ_Assert(netBindComponent, "No Multiplayer::NetBindComponent");
+            m_onEntityStopHandler.Disconnect();
             netBindComponent->AddEntityStopEventHandler(m_onEntityStopHandler);
             AttachRPCHandlers();
         }
@@ -166,7 +170,7 @@ namespace Multiplayer
 
         if (auto localEntity = m_entityHandle.GetEntity())
         {
-            NetBindComponent* netBindComponent = localEntity->FindComponent<NetBindComponent>();
+            NetBindComponent* netBindComponent = m_entityHandle.GetNetBindComponent();
             AZ_Assert(netBindComponent, "No Multiplayer::NetBindComponent");
 
             switch (GetBoundLocalNetworkRole())
@@ -278,7 +282,7 @@ namespace Multiplayer
             AZ_Assert(netBindComponent, "No Multiplayer::NetBindComponent");
 
             bool isAuthority = (GetBoundLocalNetworkRole() == NetEntityRole::Authority)
-                            && (GetBoundLocalNetworkRole() == netBindComponent->GetNetEntityRole());
+                && (GetBoundLocalNetworkRole() == netBindComponent->GetNetEntityRole());
             bool isClient = GetRemoteNetworkRole() == NetEntityRole::Client;
             bool isAutonomous = GetBoundLocalNetworkRole() == NetEntityRole::Autonomous;
             if (isAuthority || isClient || isAutonomous)
@@ -304,16 +308,12 @@ namespace Multiplayer
 
     bool EntityReplicator::RemoteManagerOwnsEntityLifetime() const
     {
-        bool ret(false);
         bool isServer = (GetBoundLocalNetworkRole() == NetEntityRole::Server)
-                     && (GetRemoteNetworkRole() == NetEntityRole::Authority);
+            && (GetRemoteNetworkRole() == NetEntityRole::Authority);
         bool isClient = (GetBoundLocalNetworkRole() == NetEntityRole::Client)
-                     || (GetBoundLocalNetworkRole() == NetEntityRole::Autonomous);
-        if (isServer || isClient)
-        {
-            ret = true;
-        }
-        return ret;
+            || (GetBoundLocalNetworkRole() == NetEntityRole::Autonomous);
+
+        return isServer || isClient;
     }
 
     void EntityReplicator::MarkForRemoval()
@@ -408,6 +408,62 @@ namespace Multiplayer
         return m_replicationManager.GetResendTimeoutTimeMs();
     }
 
+    bool EntityReplicator::IsReadyToActivate() const
+    {
+        const AZ::Entity* entity = m_entityHandle.GetEntity();
+        AZ_Assert(entity, "Entity replicator entity unexpectedly missing");
+
+        const NetworkHierarchyChildComponent* hierarchyChildComponent = entity->FindComponent<NetworkHierarchyChildComponent>();
+        const NetworkHierarchyRootComponent* hierarchyRootComponent = nullptr;
+
+        if (hierarchyChildComponent == nullptr)
+        {
+            // Child and root hierarchy components are mutually exclusive
+            hierarchyRootComponent = entity->FindComponent<NetworkHierarchyRootComponent>();
+        }
+
+        if ((hierarchyChildComponent && hierarchyChildComponent->IsHierarchicalChild())
+            || (hierarchyRootComponent && hierarchyRootComponent->IsHierarchicalChild()))
+        {
+            // If hierarchy is enabled for the entity, check if the parent is available
+            if (const NetworkTransformComponent* networkTransform = entity->FindComponent<NetworkTransformComponent>())
+            {
+                const NetEntityId parentId = networkTransform->GetParentEntityId();
+                /*
+                 * For root entities attached to a level, a network parent won't be set.
+                 * In this case, this entity is the root entity of the hierarchy and it will be activated first.
+                 */
+                if (parentId != InvalidNetEntityId)
+                {
+                    ConstNetworkEntityHandle parentHandle = GetNetworkEntityManager()->GetEntity(parentId);
+
+                    const AZ::Entity* parentEntity = parentHandle.GetEntity();
+                    if (parentEntity && parentEntity->GetState() == AZ::Entity::State::Active)
+                    {
+                        AZLOG
+                        (
+                            NET_HierarchyActivationInfo,
+                            "Hierchical entity %s asking for activation - granted",
+                            entity->GetName().c_str()
+                        );
+                        return true;
+                    }
+
+                    AZLOG
+                    (
+                        NET_HierarchyActivationInfo,
+                        "Hierchical entity %s asking for activation - waiting on the parent %u",
+                        entity->GetName().c_str(),
+                        aznumeric_cast<uint32_t>(parentId)
+                    );
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     NetworkEntityUpdateMessage EntityReplicator::GenerateUpdatePacket()
     {
         if (IsMarkedForRemoval() && OwnsReplicatorLifetime()) // TODO: clean this up
@@ -416,35 +472,41 @@ namespace Multiplayer
             AZLOG
             (
                 NET_RepDeletes,
-                "Sending delete replicator id %u migrated %d to remote manager id %d",
+                "Sending delete replicator id %u migrated %d to remote host %s",
                 aznumeric_cast<uint32_t>(GetEntityHandle().GetNetEntityId()),
                 WasMigrated() ? 1 : 0,
-                aznumeric_cast<int32_t>(m_replicationManager.GetRemoteHostId())
+                m_replicationManager.GetRemoteHostId().GetString().c_str()
             );
             return NetworkEntityUpdateMessage(GetEntityHandle().GetNetEntityId(), WasMigrated(), m_propertyPublisher->IsRemoteReplicatorEstablished());
         }
 
         NetBindComponent* netBindComponent = GetNetBindComponent();
-        const bool sendSliceName = !m_propertyPublisher->IsRemoteReplicatorEstablished();
+        //const bool sendSliceName = !m_propertyPublisher->IsRemoteReplicatorEstablished();
 
         NetworkEntityUpdateMessage updateMessage(GetRemoteNetworkRole(), GetEntityHandle().GetNetEntityId());
-        if (sendSliceName)
+        //if (sendSliceName)
         {
             updateMessage.SetPrefabEntityId(netBindComponent->GetPrefabEntityId());
         }
 
-        AzNetworking::NetworkInputSerializer inputSerializer(updateMessage.ModifyData().GetBuffer(), updateMessage.ModifyData().GetCapacity());
+        AzNetworking::NetworkInputSerializer inputSerializer(updateMessage.ModifyData().GetBuffer(), static_cast<uint32_t>(updateMessage.ModifyData().GetCapacity()));
         m_propertyPublisher->UpdateSerialization(inputSerializer);
         updateMessage.ModifyData().Resize(inputSerializer.GetSize());
 
         return updateMessage;
     }
 
+    void EntityReplicator::FinalizeSerialization(AzNetworking::PacketId sentId)
+    {
+        m_propertyPublisher->FinalizeSerialization(sentId);
+    }
+
     void EntityReplicator::DeferRpcMessage(NetworkEntityRpcMessage& entityRpcMessage)
     {
         // Received rpc metrics, log rpc sent, number of bytes, and the componentId/rpcId for bandwidth metrics
         MultiplayerStats& stats = GetMultiplayer()->GetStats();
-        stats.RecordRpcSent(entityRpcMessage.GetComponentId(), entityRpcMessage.GetRpcIndex(), entityRpcMessage.GetEstimatedSerializeSize());
+        stats.RecordRpcSent(GetEntityHandle().GetEntity()->GetId(), GetEntityHandle().GetEntity()->GetName().c_str(),
+            entityRpcMessage.GetComponentId(), entityRpcMessage.GetRpcIndex(), entityRpcMessage.GetEstimatedSerializeSize());
 
         m_replicationManager.AddDeferredRpcMessage(entityRpcMessage);
     }
@@ -518,7 +580,7 @@ namespace Multiplayer
                 && (GetRemoteNetworkRole() == NetEntityRole::Server))
             {
                 // We are on a server, and we received this message from another server, therefore we should forward this to our autonomous player
-                // This can occur if we've recently migrated 
+                // This can occur if we've recently migrated
                 result = RpcValidationResult::ForwardToAutonomous;
             }
         }
@@ -627,7 +689,8 @@ namespace Multiplayer
     {
         // Received rpc metrics, log rpc received, time spent, number of bytes, and the componentId/rpcId for bandwidth metrics
         MultiplayerStats& stats = GetMultiplayer()->GetStats();
-        stats.RecordRpcReceived(entityRpcMessage.GetComponentId(), entityRpcMessage.GetRpcIndex(), entityRpcMessage.GetEstimatedSerializeSize());
+        stats.RecordRpcReceived(GetEntityHandle().GetEntity()->GetId(), GetEntityHandle().GetEntity()->GetName().c_str(),
+            entityRpcMessage.GetComponentId(), entityRpcMessage.GetRpcIndex(), entityRpcMessage.GetEstimatedSerializeSize());
 
         if (!m_netBindComponent)
         {

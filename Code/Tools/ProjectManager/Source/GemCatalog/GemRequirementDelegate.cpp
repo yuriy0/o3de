@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -34,7 +35,7 @@ namespace O3DE::ProjectManager
         CalcRects(options, fullRect, itemRect, contentRect);
 
         QFont standardFont(options.font);
-        standardFont.setPixelSize(s_fontSize);
+        standardFont.setPixelSize(static_cast<int>(s_fontSize));
         QFontMetrics standardFontMetrics(standardFont);
 
         painter->save();
@@ -50,14 +51,14 @@ namespace O3DE::ProjectManager
         painter->fillRect(itemRect, itemBackgroundColor);
 
         // Gem name
-        QString gemName = GemModel::GetName(modelIndex);
+        QString gemName = GemModel::GetDisplayName(modelIndex);
         QFont gemNameFont(options.font);
         const int firstColumnMaxTextWidth = s_summaryStartX - 30;
         gemName = QFontMetrics(gemNameFont).elidedText(gemName, Qt::TextElideMode::ElideRight, firstColumnMaxTextWidth);
-        gemNameFont.setPixelSize(s_gemNameFontSize);
+        gemNameFont.setPixelSize(static_cast<int>(s_gemNameFontSize));
         gemNameFont.setBold(true);
         QRect gemNameRect = GetTextRect(gemNameFont, gemName, s_gemNameFontSize);
-        gemNameRect.moveTo(contentRect.left(), contentRect.center().y() - s_gemNameFontSize);
+        gemNameRect.moveTo(contentRect.left(), contentRect.center().y() - static_cast<int>(s_gemNameFontSize));
 
         painter->setFont(gemNameFont);
         painter->setPen(m_textColor);

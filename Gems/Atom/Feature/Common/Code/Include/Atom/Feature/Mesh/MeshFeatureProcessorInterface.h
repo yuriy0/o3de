@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -89,14 +90,18 @@ namespace AZ
             virtual AZ::Aabb GetLocalAabb(const MeshHandle& meshHandle) const = 0;
             //! Gets the non-uniform scale for a given mesh handle.
             virtual Vector3 GetNonUniformScale(const MeshHandle& meshHandle) = 0;
+            //! Sets the local space bbox for a given mesh handle. You don't need to call this for static models, only skinned/animated models
+            virtual void SetLocalAabb(const MeshHandle& meshHandle, const AZ::Aabb& localAabb) = 0;
+            //! Gets the local space bbox for a given mesh handle. Unless SetLocalAabb has been called before, this will be the bbox of the model asset
+            virtual AZ::Aabb GetLocalAabb(const MeshHandle& meshHandle) const = 0;
             //! Sets the sort key for a given mesh handle.
             virtual void SetSortKey(const MeshHandle& meshHandle, RHI::DrawItemSortKey sortKey) = 0;
             //! Gets the sort key for a given mesh handle.
-            virtual RHI::DrawItemSortKey GetSortKey(const MeshHandle& meshHandle) = 0;
-            //! Sets an LOD override for a given mesh handle. This LOD will always be rendered instead being automatically determined.
-            virtual void SetLodOverride(const MeshHandle& meshHandle, RPI::Cullable::LodOverride lodOverride) = 0;
-            //! Gets the LOD override for a given mesh handle.
-            virtual RPI::Cullable::LodOverride GetLodOverride(const MeshHandle& meshHandle) = 0;
+            virtual RHI::DrawItemSortKey GetSortKey(const MeshHandle& meshHandle) const = 0;
+            //! Sets LOD mesh configurations to be used in the Mesh Feature Processor
+            virtual void SetMeshLodConfiguration(const MeshHandle& meshHandle, const RPI::Cullable::LodConfiguration& meshLodConfig) = 0;
+            //! Gets the LOD mesh configurations being used in the Mesh Feature Processor
+            virtual RPI::Cullable::LodConfiguration GetMeshLodConfiguration(const MeshHandle& meshHandle) const = 0;
             //! Sets the option to exclude this mesh from baked reflection probe cubemaps
             virtual void SetExcludeFromReflectionCubeMaps(const MeshHandle& meshHandle, bool excludeFromReflectionCubeMaps) = 0;
             //! Sets the option to exclude this mesh from raytracing

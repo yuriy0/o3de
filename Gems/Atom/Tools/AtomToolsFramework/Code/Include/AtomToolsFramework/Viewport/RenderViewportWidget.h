@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -11,6 +12,7 @@
 #include <QElapsedTimer>
 #include <Atom/RPI.Public/Base.h>
 #include <AzToolsFramework/Viewport/ViewportMessages.h>
+#include <AzToolsFramework/Input/QtEventToAzInputManager.h>
 #include <AzFramework/Input/Events/InputChannelEventListener.h>
 #include <AzFramework/Scene/Scene.h>
 #include <AzFramework/Viewport/ViewportControllerInterface.h>
@@ -81,28 +83,24 @@ namespace AtomToolsFramework
         //! Gets the default camera that's been automatically registered to our ViewportContext.
         AZ::RPI::ViewPtr GetDefaultCamera();
         AZ::RPI::ConstViewPtr GetDefaultCamera() const;
+        //! Sets whether or not input processing is enabled for this RenderViewportWidget.
+        //! While input processing is enabled, synthetic input events may appear in OnInputChannelEventFiltered
+        //! due to internal viewport input mapping via QtEventToAzInputMapper, so it may be desirable to disable
+        //! camera controller input processing wholesale to avoid competing input messages.
+        //! Input processing is enabled by default.
+        void SetInputProcessingEnabled(bool enabled);
 
         // AzToolsFramework::ViewportInteraction::ViewportInteractionRequestBus::Handler ...
         AzFramework::CameraState GetCameraState() override;
-        bool GridSnappingEnabled() override;
-        float GridSize() override;
-        bool ShowGrid() override;
-        bool AngleSnappingEnabled() override;
-        float AngleStep() override;
         AzFramework::ScreenPoint ViewportWorldToScreen(const AZ::Vector3& worldPosition) override;
         AZStd::optional<AZ::Vector3> ViewportScreenToWorld(const AzFramework::ScreenPoint& screenPosition, float depth) override;
         AZStd::optional<AzToolsFramework::ViewportInteraction::ProjectedViewportRay> ViewportScreenToWorldRay(
             const AzFramework::ScreenPoint& screenPosition) override;
         float DeviceScalingFactor() override;
 
-        //! Set interface for providing viewport specific settings (e.g. snapping properties).
-        void SetViewportSettings(const AzToolsFramework::ViewportInteraction::ViewportSettings* viewportSettings);
-
         // AzToolsFramework::ViewportInteraction::ViewportMouseCursorRequestBus::Handler ...
         void BeginCursorCapture() override;
         void EndCursorCapture() override;
-        AzFramework::ScreenPoint ViewportCursorScreenPosition() override;
-        AZStd::optional<AzFramework::ScreenPoint> PreviousViewportCursorScreenPosition() override;
         bool IsMouseOver() const override;
 
         // AzFramework::WindowRequestBus::Handler ...
@@ -114,6 +112,8 @@ namespace AtomToolsFramework
         bool CanToggleFullScreenState() const override;
         void ToggleFullScreenState() override;
         float GetDpiScaleFactor() const override;
+        uint32_t GetSyncInterval() const override;
+        uint32_t GetDisplayRefreshRate() const override;
 
     protected:
         // AzFramework::InputChannelEventListener ...
@@ -131,7 +131,6 @@ namespace AtomToolsFramework
 
     private:
         void SendWindowResizeEvent();
-        bool CanInputGrantFocus(const AzFramework::InputChannel& inputChannel) const;
 
         // The underlying ViewportContext, our entry-point to the Atom RPI.
         AZ::RPI::ViewportContextPtr m_viewportContext;
@@ -140,10 +139,8 @@ namespace AtomToolsFramework
         AzFramework::ViewportControllerListPtr m_controllerList;
         // The default camera for our viewport i.e. the one used when a camera entity hasn't been activated.
         AZ::RPI::ViewPtr m_defaultCamera;
-        // Our viewport-local auxgeom pipeline for supplemental rendering.
+        // Our viewport-local aux geom pipeline for supplemental rendering.
         AZ::RPI::AuxGeomDrawPtr m_auxGeom;
-        // Used to keep track of a pending resize event to avoid initialization before window activate.
-        bool m_windowResizedEvent = false;
         // Tracks whether the cursor is currently over our viewport, used for mouse input event book-keeping.
         bool m_mouseOver = false;
         // The last recorded mouse position, in local viewport screen coordinates.
@@ -152,11 +149,7 @@ namespace AtomToolsFramework
         QElapsedTimer m_renderTimer;
         // The time of the last recorded tick event from the system tick bus.
         AZ::ScriptTimePoint m_time;
-        // Whether the Viewport is currently hiding and capturing the cursor position.
-        bool m_capturingCursor = false;
-        // The last known position of the mouse cursor, if one is available.
-        AZStd::optional<QPoint> m_lastCursorPosition;
-        // The viewport settings (e.g. grid snapping, grid size) for this viewport.
-        const AzToolsFramework::ViewportInteraction::ViewportSettings* m_viewportSettings = nullptr;
+        // Maps our internal Qt events into AzFramework InputChannels for our ViewportControllerList.
+        AzToolsFramework::QtEventToAzInputMapper* m_inputChannelMapper = nullptr;
     };
 } //namespace AtomToolsFramework

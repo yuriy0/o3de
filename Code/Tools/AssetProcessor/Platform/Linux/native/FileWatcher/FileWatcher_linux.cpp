@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -191,7 +192,6 @@ void FolderRootWatch::WatchFolderLoop()
             for (size_t index=0; index<bytesRead;)
             {
                 struct inotify_event *event = ( struct inotify_event * ) &eventBuffer[ index ];
-                const char* eventName = event->name;
 
                 if (event->mask & (IN_CREATE | IN_DELETE | IN_MODIFY | IN_MOVE ))
                 {

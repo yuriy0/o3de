@@ -1,11 +1,14 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
 #include "FrameCaptureSystemComponent.h"
+
+#include <Atom/RHI/RHIUtils.h>
 
 #include <Atom/RPI.Public/Pass/PassSystemInterface.h>
 #include <Atom/RPI.Public/Pass/PassFilter.h>
@@ -15,8 +18,9 @@
 
 #include <Atom/Utils/DdsFile.h>
 #include <Atom/Utils/PpmFile.h>
+#include <Atom/Utils/PngFile.h>
 
-#include <AtomCore/Serialization/Json/JsonUtils.h>
+#include <AzCore/Serialization/Json/JsonUtils.h>
 #include <AzCore/Jobs/JobFunction.h>
 #include <AzCore/Jobs/JobCompletion.h>
 
@@ -31,9 +35,7 @@
 #include <AzCore/Preprocessor/EnumReflectUtils.h>
 #include <AzCore/Console/Console.h>
 
-#if defined(OPEN_IMAGE_IO_ENABLED)
 #include <OpenImageIO/imageio.h>
-#endif
 
 namespace AZ
 {
@@ -41,7 +43,6 @@ namespace AZ
     {
         AZ_ENUM_DEFINE_REFLECT_UTILITIES(FrameCaptureResult);
 
-#if defined(OPEN_IMAGE_IO_ENABLED)
         AZ_CVAR(unsigned int,
             r_pngCompressionLevel,
             3, // A compression level of 3 seems like the best default in terms of file size and saving speeds
@@ -64,7 +65,7 @@ namespace AZ
 
                 AZ::JobCompletion jobCompletion;
                 const int numThreads = 8;
-                const int numPixelsPerThread = buffer->size() / numChannels / numThreads;
+                const int numPixelsPerThread = static_cast<int>(buffer->size() / numChannels / numThreads);
                 for (int i = 0; i < numThreads; ++i)
                 {
                     int startPixel = i * numPixelsPerThread;
@@ -90,26 +91,21 @@ namespace AZ
                 jobCompletion.StartAndWaitForCompletion();
             }
 
-            using namespace OIIO;
-            AZStd::unique_ptr<ImageOutput> out = ImageOutput::create(outputFilePath.c_str());
-            if (out)
-            {
-                ImageSpec spec(
-                    readbackResult.m_imageDescriptor.m_size.m_width,
-                    readbackResult.m_imageDescriptor.m_size.m_height,
-                    numChannels
-                );
-                spec.attribute("png:compressionLevel", r_pngCompressionLevel);
+            Utils::PngFile image = Utils::PngFile::Create(readbackResult.m_imageDescriptor.m_size, readbackResult.m_imageDescriptor.m_format, *buffer);
 
-                if (out->open(outputFilePath.c_str(), spec))
-                {
-                    out->write_image(TypeDesc::UINT8, buffer->data());
-                    out->close();
-                    return FrameCaptureOutputResult{FrameCaptureResult::Success, AZStd::nullopt};
-                }
+            Utils::PngFile::SaveSettings saveSettings;
+            saveSettings.m_compressionLevel = r_pngCompressionLevel;
+            // We should probably strip alpha to save space, especially for automated test screenshots. Alpha is left in to maintain
+            // prior behavior, changing this is out of scope for the current task. Note, it would have bit of a cascade effect where
+            // AtomSampleViewer's ScriptReporter assumes an RGBA image.
+            saveSettings.m_stripAlpha = false; 
+
+            if(image && image.Save(outputFilePath.c_str(), saveSettings))
+            {
+                return FrameCaptureOutputResult{FrameCaptureResult::Success, AZStd::nullopt};
             }
 
-            return FrameCaptureOutputResult{FrameCaptureResult::InternalError, "Unable to save frame capture output to " + outputFilePath};
+            return FrameCaptureOutputResult{FrameCaptureResult::InternalError, "Unable to save frame capture output to '" + outputFilePath + "'"};
         }
 
         AZStd::optional<AZStd::pair<OIIO::TypeDesc, OIIO::TypeDesc>> GetFormatOIIOType(AZ::RHI::Format format)
@@ -168,7 +164,6 @@ namespace AZ
 
             return FrameCaptureOutputResult{ FrameCaptureResult::InternalError, "Unable to save frame capture output to " + outputFilePath };
         }
-#endif
 
         FrameCaptureOutputResult DdsFrameCaptureOutput(
             const AZStd::string& outputFilePath, const AZ::RPI::AttachmentReadback::ReadbackResult& readbackResult)
@@ -306,8 +301,18 @@ namespace AZ
             return AZStd::string(resolvedPath);
         }
 
+        bool FrameCaptureSystemComponent::CanCapture() const
+        {
+            return !AZ::RHI::IsNullRenderer();
+        }
+
         bool FrameCaptureSystemComponent::CaptureScreenshotForWindow(const AZStd::string& filePath, AzFramework::NativeWindowHandle windowHandle)
         {
+            if (!CanCapture())
+            {
+                return false;
+            }
+
             InitReadback();
 
             if (m_state != State::Idle)
@@ -353,6 +358,11 @@ namespace AZ
 
         bool FrameCaptureSystemComponent::CaptureScreenshotWithPreview(const AZStd::string& outputFilePath)
         {
+            if (!CanCapture())
+            {
+                return false;
+            }
+
             InitReadback();
 
             if (m_state != State::Idle)
@@ -402,6 +412,11 @@ namespace AZ
         bool FrameCaptureSystemComponent::CapturePassAttachment(const AZStd::vector<AZStd::string>& passHierarchy, const AZStd::string& slot,
             const AZStd::string& outputFilePath, RPI::PassAttachmentReadbackOption option)
         {
+            if (!CanCapture())
+            {
+                return false;
+            }
+
             InitReadback();
 
             if (m_state != State::Idle)
@@ -448,6 +463,11 @@ namespace AZ
         bool FrameCaptureSystemComponent::CapturePassAttachmentWithCallback(const AZStd::vector<AZStd::string>& passHierarchy, const AZStd::string& slotName
             , RPI::AttachmentReadback::CallbackFunction callback, RPI::PassAttachmentReadbackOption option)
         {
+            if (!CanCapture())
+            {
+                return false;
+            }
+
             bool result = CapturePassAttachment(passHierarchy, slotName, "", option);
 
             // Append state change to user provided call back
@@ -527,7 +547,6 @@ namespace AZ
                         m_result = ddsFrameCapture.m_result;
                         m_latestCaptureInfo = ddsFrameCapture.m_errorMessage.value_or("");
                     }
-#if defined(OPEN_IMAGE_IO_ENABLED)
                     else if (extension == "png")
                     {
                         if (readbackResult.m_imageDescriptor.m_format == RHI::Format::R8G8B8A8_UNORM ||
@@ -558,7 +577,6 @@ namespace AZ
                         m_result = frameCaptureResult.m_result;
                         m_latestCaptureInfo = frameCaptureResult.m_errorMessage.value_or("");
                     }
-#endif
                     else
                     {
                         m_latestCaptureInfo = AZStd::string::format("Only supports saving image to ppm or dds files");

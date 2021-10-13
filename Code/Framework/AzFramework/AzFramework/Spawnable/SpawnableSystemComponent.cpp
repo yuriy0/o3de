@@ -1,11 +1,13 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
 #include <AzCore/Asset/AssetManager.h>
+#include <AzCore/Asset/AssetSerializer.h>
 #include <AzCore/Settings/SettingsRegistry.h>
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzFramework/Spawnable/SpawnableMetaData.h>
@@ -238,10 +240,11 @@ namespace AzFramework
         }
         else if (rootSpawnableKeyType == AZ::SettingsRegistryInterface::Type::NoType)
         {
-            AZ_Warning(
+            // [LYN-4146] - temporarily disabled
+            /*AZ_Warning(
                 "Spawnables", false,
                 "No root spawnable assigned. The root spawnable can be assigned in the Settings Registry under the key '%s'.\n",
-                RootSpawnableRegistryKey);
+                RootSpawnableRegistryKey);*/
             ReleaseRootSpawnable();
         }
     }

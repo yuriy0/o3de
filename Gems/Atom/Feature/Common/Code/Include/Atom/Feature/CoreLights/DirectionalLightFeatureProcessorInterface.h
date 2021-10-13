@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -148,12 +149,6 @@ namespace AZ
             //! @param method filter method.
             virtual void SetShadowFilterMethod(LightHandle handle, ShadowFilterMethod method) = 0;
 
-            //! This sets sample count to predict boundary of shadow.
-            //! @param handle the light handle.
-            //! @param count Sample Count for prediction of whether the pixel is on the boundary (up to 16)
-            //! The value should be less than or equal to m_filteringSampleCount.
-            virtual void SetPredictionSampleCount(LightHandle handle, uint16_t count) = 0;
-
             //! This sets sample count for filtering of shadow boundary.
             //! @param handle the light handle.
             //! @param count Sample Count for filtering (up to 64)
@@ -165,8 +160,9 @@ namespace AZ
             //! If width == 0, softening edge is disabled. Units are in meters.
             virtual void SetShadowBoundaryWidth(LightHandle handle, float boundaryWidth) = 0;
 
-            //! Sets the shadowmap Pcf method.
-            virtual void SetPcfMethod(LightHandle handle, PcfMethod method) = 0;
+            //! Sets whether the directional shadowmap should use receiver plane bias.
+            //! This attempts to reduce shadow acne when using large pcf filters.
+            virtual void SetShadowReceiverPlaneBiasEnabled(LightHandle handle, bool enable) = 0;
         };
     } // namespace Render
 } // namespace AZ

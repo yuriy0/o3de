@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -43,6 +44,7 @@
 #include <AzToolsFramework/Entity/EditorEntityContextBus.h>
 #include <AzToolsFramework/Entity/EditorEntityHelpers.h>
 #include <AzToolsFramework/Entity/EditorEntityInfoBus.h>
+#include <AzToolsFramework/FocusMode/FocusModeInterface.h>
 #include <AzToolsFramework/ToolsComponents/ComponentAssetMimeDataContainer.h>
 #include <AzToolsFramework/ToolsComponents/ComponentMimeData.h>
 #include <AzToolsFramework/ToolsComponents/EditorEntityIdContainer.h>
@@ -80,10 +82,13 @@ namespace AzToolsFramework
         , m_entityExpansionState()
         , m_entityFilteredState()
     {
+        m_focusModeInterface = AZ::Interface<FocusModeInterface>::Get();
+        AZ_Assert(m_focusModeInterface != nullptr, "EntityOutlinerListModel requires a FocusModeInterface instance on construction.");
     }
 
     EntityOutlinerListModel::~EntityOutlinerListModel()
     {
+        ContainerEntityNotificationBus::Handler::BusDisconnect();
         EditorEntityInfoNotificationBus::Handler::BusDisconnect();
         EditorEntityContextNotificationBus::Handler::BusDisconnect();
         ToolsApplicationEvents::Bus::Handler::BusDisconnect();
@@ -101,10 +106,15 @@ namespace AzToolsFramework
         EntityCompositionNotificationBus::Handler::BusConnect();
         AZ::EntitySystemBus::Handler::BusConnect();
 
-        m_editorEntityFrameworkInterface = AZ::Interface<AzToolsFramework::EditorEntityUiInterface>::Get();
+        AzFramework::EntityContextId editorEntityContextId = AzFramework::EntityContextId::CreateNull();
+        AzToolsFramework::EditorEntityContextRequestBus::BroadcastResult(
+            editorEntityContextId, &AzToolsFramework::EditorEntityContextRequestBus::Events::GetEditorEntityContextId);
 
-        AZ_Assert(m_editorEntityFrameworkInterface != nullptr,
-            "EntityOutlinerListModel requires a EditorEntityFrameworkInterface instance on Initialize.");
+        ContainerEntityNotificationBus::Handler::BusConnect(editorEntityContextId);
+
+        m_editorEntityUiInterface = AZ::Interface<AzToolsFramework::EditorEntityUiInterface>::Get();
+        AZ_Assert(m_editorEntityUiInterface != nullptr,
+            "EntityOutlinerListModel requires a EditorEntityUiInterface instance on Initialize.");
     }
 
     int EntityOutlinerListModel::rowCount(const QModelIndex& parent) const
@@ -246,7 +256,7 @@ namespace AzToolsFramework
                         if (highlightTextIndex >= 0)
                         {
                             const QString BACKGROUND_COLOR{ "#707070" };
-                            label.insert(highlightTextIndex + m_filterString.length(), "</span>");
+                            label.insert(highlightTextIndex + static_cast<int>(m_filterString.length()), "</span>");
                             label.insert(highlightTextIndex, "<span style=\"background-color: " + BACKGROUND_COLOR + "\">");
                         }
                     } while(highlightTextIndex > 0);
@@ -278,18 +288,18 @@ namespace AzToolsFramework
 
     QVariant EntityOutlinerListModel::GetEntityIcon(const AZ::EntityId& id) const
     {
-        auto entityUiHandler = m_editorEntityFrameworkInterface->GetHandler(id);
-        QPixmap pixmap;
+        auto entityUiHandler = m_editorEntityUiInterface->GetHandler(id);
+        QIcon icon;
 
         // Retrieve the icon from the handler
         if (entityUiHandler != nullptr)
         {
-            pixmap = entityUiHandler->GenerateItemIcon(id);
+            icon = entityUiHandler->GenerateItemIcon(id);
         }
 
-        if (!pixmap.isNull())
+        if (!icon.isNull())
         {
-            return QIcon(pixmap);
+            return icon;
         }
 
         // If no icon was returned by the handler, use the default one.
@@ -298,7 +308,7 @@ namespace AzToolsFramework
 
         if (isEditorOnly)
         {
-            return QIcon(QPixmap(QString(":/Icons/Entity_Editor_Only.svg")));
+            return QIcon(QString(":/Icons/Entity_Editor_Only.svg"));
         }
 
         AZ::Entity* entity = nullptr;
@@ -307,15 +317,15 @@ namespace AzToolsFramework
 
         if (!isInitiallyActive)
         {
-            return QIcon(QPixmap(QString(":/Icons/Entity_Not_Active.svg")));
+            return QIcon(QString(":/Icons/Entity_Not_Active.svg"));
         }
 
-        return QIcon(QPixmap(QString(":/Icons/Entity.svg")));
+        return QIcon(QString(":/Icons/Entity.svg"));
     }
 
     QVariant EntityOutlinerListModel::GetEntityTooltip(const AZ::EntityId& id) const
     {
-        auto entityUiHandler = m_editorEntityFrameworkInterface->GetHandler(id);
+        auto entityUiHandler = m_editorEntityUiInterface->GetHandler(id);
         QString tooltip;
 
         // Retrieve the tooltip from the handler
@@ -348,7 +358,7 @@ namespace AzToolsFramework
     QVariant EntityOutlinerListModel::dataForVisibility(const QModelIndex& index, int role) const
     {
         auto entityId = GetEntityFromIndex(index);
-        auto entityUiHandler = m_editorEntityFrameworkInterface->GetHandler(entityId);
+        auto entityUiHandler = m_editorEntityUiInterface->GetHandler(entityId);
 
         if (!entityUiHandler || entityUiHandler->CanToggleLockVisibility(entityId))
         {
@@ -376,7 +386,7 @@ namespace AzToolsFramework
     QVariant EntityOutlinerListModel::dataForLock(const QModelIndex& index, int role) const
     {
         auto entityId = GetEntityFromIndex(index);
-        auto entityUiHandler = m_editorEntityFrameworkInterface->GetHandler(entityId);
+        auto entityUiHandler = m_editorEntityUiInterface->GetHandler(entityId);
 
         if (!entityUiHandler || entityUiHandler->CanToggleLockVisibility(entityId))
         {
@@ -435,7 +445,7 @@ namespace AzToolsFramework
             if (value.canConvert<Qt::CheckState>())
             {
                 const auto entityId = GetEntityFromIndex(index);
-                auto entityUiHandler = m_editorEntityFrameworkInterface->GetHandler(entityId);
+                auto entityUiHandler = m_editorEntityUiInterface->GetHandler(entityId);
 
                 if (!entityUiHandler || entityUiHandler->CanToggleLockVisibility(entityId))
                 {
@@ -529,6 +539,11 @@ namespace AzToolsFramework
         default:
             itemFlags |= Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsDropEnabled;
             break;
+        }
+
+        if (AZ::EntityId entityId = GetEntityFromIndex(index); !m_focusModeInterface->IsInFocusSubTree(entityId))
+        {
+            itemFlags &= !Qt::ItemIsEnabled;
         }
 
         return itemFlags;
@@ -935,7 +950,7 @@ namespace AzToolsFramework
 
     bool EntityOutlinerListModel::CanReparentEntities(const AZ::EntityId& newParentId, const EntityIdList &selectedEntityIds) const
     {
-        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+        AZ_PROFILE_FUNCTION(AzToolsFramework);
         if (selectedEntityIds.empty())
         {
             return false;
@@ -1024,7 +1039,7 @@ namespace AzToolsFramework
 
     bool EntityOutlinerListModel::ReparentEntities(const AZ::EntityId& newParentId, const EntityIdList &selectedEntityIds, const AZ::EntityId& beforeEntityId)
     {
-        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+        AZ_PROFILE_FUNCTION(AzToolsFramework);
         if (!CanReparentEntities(newParentId, selectedEntityIds))
         {
             return false;
@@ -1104,9 +1119,7 @@ namespace AzToolsFramework
 
     QMimeData* EntityOutlinerListModel::mimeData(const QModelIndexList& indexes) const
     {
-        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
-        AZ::TypeId uuid1 = AZ::AzTypeInfo<AZ::Entity>::Uuid();
-        AZ::TypeId uuid2 = AZ::AzTypeInfo<EditorEntityIdContainer>::Uuid();
+        AZ_PROFILE_FUNCTION(AzToolsFramework);
 
         EditorEntityIdContainer entityIdList;
         for (const QModelIndex& index : indexes)
@@ -1194,7 +1207,7 @@ namespace AzToolsFramework
 
     void EntityOutlinerListModel::ProcessEntityUpdates()
     {
-        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::Editor);
+        AZ_PROFILE_FUNCTION(Editor);
         m_entityChangeQueued = false;
         if (m_layoutResetQueued)
         {
@@ -1202,7 +1215,7 @@ namespace AzToolsFramework
         }
 
         {
-            AZ_PROFILE_SCOPE(AZ::Debug::ProfileCategory::Editor, "EntityOutlinerListModel::ProcessEntityUpdates:ExpandQueue");
+            AZ_PROFILE_SCOPE(Editor, "EntityOutlinerListModel::ProcessEntityUpdates:ExpandQueue");
             for (auto entityId : m_entityExpandQueue)
             {
                 emit ExpandEntity(entityId, IsExpanded(entityId));
@@ -1211,7 +1224,7 @@ namespace AzToolsFramework
         }
 
         {
-            AZ_PROFILE_SCOPE(AZ::Debug::ProfileCategory::Editor, "EntityOutlinerListModel::ProcessEntityUpdates:SelectQueue");
+            AZ_PROFILE_SCOPE(Editor, "EntityOutlinerListModel::ProcessEntityUpdates:SelectQueue");
             for (auto entityId : m_entitySelectQueue)
             {
                 emit SelectEntity(entityId, IsSelected(entityId));
@@ -1221,7 +1234,7 @@ namespace AzToolsFramework
 
         if (!m_entityChangeQueue.empty())
         {
-            AZ_PROFILE_SCOPE(AZ::Debug::ProfileCategory::Editor, "EntityOutlinerListModel::ProcessEntityUpdates:ChangeQueue");
+            AZ_PROFILE_SCOPE(Editor, "EntityOutlinerListModel::ProcessEntityUpdates:ChangeQueue");
 
             // its faster to just do a bulk data change than to carefully pick out indices
             // so we'll just merge all ranges into a single range rather than try to make gaps
@@ -1254,7 +1267,7 @@ namespace AzToolsFramework
         }
 
         {
-            AZ_PROFILE_SCOPE(AZ::Debug::ProfileCategory::Editor, "EntityOutlinerListModel::ProcessEntityUpdates:LayoutChanged");
+            AZ_PROFILE_SCOPE(Editor, "EntityOutlinerListModel::ProcessEntityUpdates:LayoutChanged");
             if (m_entityLayoutQueued)
             {
                 emit layoutAboutToBeChanged();
@@ -1264,7 +1277,7 @@ namespace AzToolsFramework
         }
 
         {
-            AZ_PROFILE_SCOPE(AZ::Debug::ProfileCategory::Editor, "EntityOutlinerListModel::ProcessEntityUpdates:InvalidateFilter");
+            AZ_PROFILE_SCOPE(Editor, "EntityOutlinerListModel::ProcessEntityUpdates:InvalidateFilter");
             if (m_isFilterDirty)
             {
                 InvalidateFilter();
@@ -1287,7 +1300,7 @@ namespace AzToolsFramework
 
     void EntityOutlinerListModel::ProcessEntityInfoResetEnd()
     {
-        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+        AZ_PROFILE_FUNCTION(AzToolsFramework);
         m_layoutResetQueued = false;
         m_entityChangeQueued = false;
         m_entityChangeQueue.clear();
@@ -1308,7 +1321,7 @@ namespace AzToolsFramework
     void EntityOutlinerListModel::OnEntityInfoUpdatedAddChildEnd(AZ::EntityId parentId, AZ::EntityId childId)
     {
         (void)parentId;
-        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+        AZ_PROFILE_FUNCTION(AzToolsFramework);
         endInsertRows();
 
         //expand ancestors if a new descendant is already selected
@@ -1327,28 +1340,43 @@ namespace AzToolsFramework
         emit EnableSelectionUpdates(true);
     }
 
-    void EntityOutlinerListModel::OnEntityRuntimeActivationChanged(AZ::EntityId entityId, bool activeOnStart)
+    void EntityOutlinerListModel::OnEntityRuntimeActivationChanged(AZ::EntityId entityId, [[maybe_unused]] bool activeOnStart)
     {
-        AZ_UNUSED(activeOnStart);
         QueueEntityUpdate(entityId);
     }
 
-    void EntityOutlinerListModel::OnEntityInfoUpdatedRemoveChildBegin(AZ::EntityId parentId, AZ::EntityId childId)
+    void EntityOutlinerListModel::OnContainerEntityStatusChanged(AZ::EntityId entityId, [[maybe_unused]] bool open)
+    {
+        QModelIndex changedIndex = GetIndexFromEntity(entityId);
+
+        // Trigger a refresh of all direct children so that they can be shown or hidden appropriately.
+        int numChildren = rowCount(changedIndex);
+        if (numChildren > 0)
+        {
+            emit dataChanged(index(0, 0, changedIndex), index(numChildren - 1, ColumnCount - 1, changedIndex));
+        }
+
+        // Always expand containers
+        QueueEntityToExpand(entityId, true);
+    }
+
+    void EntityOutlinerListModel::OnEntityInfoUpdatedRemoveChildBegin([[maybe_unused]] AZ::EntityId parentId, [[maybe_unused]] AZ::EntityId childId)
     {
         //add/remove operations trigger selection change signals which assert and break undo/redo operations in progress in inspector etc.
         //so disallow selection updates until change is complete
         emit EnableSelectionUpdates(false);
+
         auto parentIndex = GetIndexFromEntity(parentId);
         auto childIndex = GetIndexFromEntity(childId);
-        beginResetModel();
+        beginRemoveRows(parentIndex, childIndex.row(), childIndex.row());
     }
 
     void EntityOutlinerListModel::OnEntityInfoUpdatedRemoveChildEnd(AZ::EntityId parentId, AZ::EntityId childId)
     {
         (void)childId;
-        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+        AZ_PROFILE_FUNCTION(AzToolsFramework);
 
-        endResetModel();
+        endRemoveRows();
 
         //must refresh partial lock/visibility of parents
         m_isFilterDirty = true;
@@ -1365,7 +1393,7 @@ namespace AzToolsFramework
 
     void EntityOutlinerListModel::OnEntityInfoUpdatedOrderEnd(AZ::EntityId parentId, AZ::EntityId childId, AZ::u64 index)
     {
-        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::Editor);
+        AZ_PROFILE_FUNCTION(Editor);
         (void)index;
         m_entityLayoutQueued = true;
         QueueEntityUpdate(parentId);
@@ -1424,7 +1452,7 @@ namespace AzToolsFramework
 
     QModelIndex EntityOutlinerListModel::GetIndexFromEntity(const AZ::EntityId& entityId, int column) const
     {
-        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+        AZ_PROFILE_FUNCTION(AzToolsFramework);
 
         if (entityId.IsValid())
         {
@@ -1586,7 +1614,7 @@ namespace AzToolsFramework
 
     void EntityOutlinerListModel::ExpandAncestors(const AZ::EntityId& entityId)
     {
-        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+        AZ_PROFILE_FUNCTION(AzToolsFramework);
         //typically to reveal selected entities, expand all parent entities
         if (entityId.IsValid())
         {
@@ -1791,7 +1819,7 @@ namespace AzToolsFramework
 
     bool EntityOutlinerListModel::AreAllDescendantsSameLockState(const AZ::EntityId& entityId) const
     {
-        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+        AZ_PROFILE_FUNCTION(AzToolsFramework);
         //TODO result can be cached in mutable map and cleared when any descendant changes to avoid recursion in deep hierarchies
         bool isLocked = false;
         EditorEntityInfoRequestBus::EventResult(isLocked, entityId, &EditorEntityInfoRequestBus::Events::IsJustThisEntityLocked);
@@ -1812,7 +1840,7 @@ namespace AzToolsFramework
 
     bool EntityOutlinerListModel::AreAllDescendantsSameVisibleState(const AZ::EntityId& entityId) const
     {
-        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzToolsFramework);
+        AZ_PROFILE_FUNCTION(AzToolsFramework);
         //TODO result can be cached in mutable map and cleared when any descendant changes to avoid recursion in deep hierarchies
 
         bool isVisible = IsEntitySetToBeVisible(entityId);
@@ -2179,7 +2207,7 @@ namespace AzToolsFramework
         QPainterPath path;
 
         auto newRect = option.rect;
-        newRect.setHeight(newRect.height() - 1.0);
+        newRect.setHeight(newRect.height() - 1);
         path.addRect(newRect);
 
         // Get the foreground color of the current object to draw our sub-object-selected box

@@ -1,15 +1,12 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
 #pragma once
-
-#if !defined(Q_MOC_RUN)
-#include "Include/EditorCoreAPI.h"
-#endif
 
 #if !defined(Q_MOC_RUN)
 #include "Include/EditorCoreAPI.h"
@@ -70,7 +67,6 @@ private:
     void reparentToMainWindowFix();
     QRect ProperGeometry() const;
     QString settingsKey() const;
-    QSettings* const m_settings;
     QMainWindow* const m_mainWindow;
     QtViewPane* const m_pane;
     AzQtComponents::FancyDocking* m_advancedDockManager;

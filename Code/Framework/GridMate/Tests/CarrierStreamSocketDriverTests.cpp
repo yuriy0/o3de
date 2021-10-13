@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -64,7 +65,7 @@ public:
     {
     }
 
-    ~CarrierStreamCallbacksHandler()
+    ~CarrierStreamCallbacksHandler() override
     {
         if (m_active)
         {
@@ -187,7 +188,7 @@ namespace UnitTest
             CarrierStreamCallbacksHandler clientCB, serverCB;
             TestCarrierDesc serverCarrierDesc, clientCarrierDesc;
 
-            string str("Hello this is a carrier test!");
+            AZStd::string str("Hello this is a carrier test!");
 
             const char* targetAddress = "127.0.0.1";
 
@@ -373,7 +374,7 @@ namespace UnitTest
             CarrierStreamCallbacksHandler clientCB, serverCB;
             TestCarrierDesc serverCarrierDesc, clientCarrierDesc;
 
-            string str("Hello this is a carrier test!");
+            AZStd::string str("Hello this is a carrier test!");
             clientCarrierDesc.m_driver = CreateDriverForJoin(clientCarrierDesc);
             serverCarrierDesc.m_driver = CreateDriverForHost(serverCarrierDesc);
 
@@ -474,7 +475,7 @@ namespace UnitTest
         CarrierStreamCallbacksHandler clientCB, serverCB;
         UnitTest::TestCarrierDesc serverCarrierDesc, clientCarrierDesc;
 
-        string str("Hello this is a carrier stress test!");
+        AZStd::string str("Hello this is a carrier stress test!");
 
         clientCarrierDesc.m_enableDisconnectDetection = /*false*/ true;
         serverCarrierDesc.m_enableDisconnectDetection = /*false*/ true;

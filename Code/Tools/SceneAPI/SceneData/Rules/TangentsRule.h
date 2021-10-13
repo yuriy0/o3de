@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -54,15 +55,22 @@ namespace AZ
                 SCENE_DATA_API AZ::SceneAPI::DataTypes::TangentSpace GetTangentSpace() const;
                 SCENE_DATA_API NormalsSource GetNormalsSource() const;
                 SCENE_DATA_API bool GetShouldRenormalizeNormals() const;
+                SCENE_DATA_API AZ::SceneAPI::DataTypes::MikkTSpaceMethod GetMikkTSpaceMethod() const;
 
                 SCENE_DATA_API static const TangentsRule& GetDefault();
 
                 static void Reflect(ReflectContext* context);
 
             protected:
+                AZ::SceneAPI::DataTypes::TangentGenerationMethod m_generationMethod = AZ::SceneAPI::DataTypes::TangentGenerationMethod::MikkT; /**< Specifies how to handle tangents. Either generate them, or import them. */
+
                 AZ::SceneAPI::DataTypes::TangentSpace m_tangentSpace;     /**< Specifies how to handle tangents. Either generate them, or import them. */
                 NormalsSource m_normalsSource;
                 bool m_shouldRenormalizeNormals;
+                
+                // MikkT specific settings
+                AZ::Crc32 GetSpaceMethodVisibility() const;
+                AZ::SceneAPI::DataTypes::MikkTSpaceMethod m_tSpaceMethod = AZ::SceneAPI::DataTypes::MikkTSpaceMethod::TSpace;
             };
         } // SceneData
     } // SceneAPI

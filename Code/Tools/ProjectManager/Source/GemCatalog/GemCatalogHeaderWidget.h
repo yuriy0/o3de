@@ -1,11 +1,14 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
 #pragma once
+
+#include <AzCore/std/function/function_fwd.h>
 
 #if !defined(Q_MOC_RUN)
 #include <AzQtComponents/Components/SearchLineEdit.h>
@@ -29,21 +32,15 @@ namespace O3DE::ProjectManager
 
     public:
         CartOverlayWidget(GemModel* gemModel, QWidget* parent = nullptr);
-        void Update();
 
     private:
         QStringList ConvertFromModelIndices(const QVector<QModelIndex>& gems) const;
 
+        using GetTagIndicesCallback = AZStd::function<QVector<QModelIndex>()>;
+        void CreateGemSection(const QString& singularTitle, const QString& pluralTitle, GetTagIndicesCallback getTagIndices);
+
         QVBoxLayout* m_layout = nullptr;
         GemModel* m_gemModel = nullptr;
-
-        QWidget* m_enabledWidget = nullptr;
-        QLabel* m_enabledLabel = nullptr;
-        TagContainerWidget* m_enabledTagContainer = nullptr;
-
-        QWidget* m_disabledWidget = nullptr;
-        QLabel* m_disabledLabel = nullptr;
-        TagContainerWidget* m_disabledTagContainer = nullptr;
 
         inline constexpr static int s_width = 240;
     };

@@ -1,16 +1,16 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
-#include <RenderCommon.h>
-
-#include <Atom/RHI/CpuProfiler.h>
 #include <Atom/RHI/RHIUtils.h>
 #include <Atom/RHI.Reflect/InputStreamLayoutBuilder.h>
+#include <Atom/Feature/RenderCommon.h>
 #include <Atom/Feature/Mesh/MeshFeatureProcessor.h>
+#include <Atom/Feature/Mesh/ModelReloaderSystemInterface.h>
 #include <Atom/Feature/ReflectionProbe/ReflectionProbeFeatureProcessor.h>
 #include <Atom/RPI.Public/Model/ModelLodUtils.h>
 #include <Atom/RPI.Public/Scene.h>
@@ -18,6 +18,8 @@
 #include <Atom/Utils/StableDynamicArray.h>
 
 #include <Atom/RPI.Reflect/Model/ModelAssetCreator.h>
+
+#include <AzFramework/Asset/AssetSystemBus.h>
 
 #include <AtomCore/Instance/InstanceDatabase.h>
 
@@ -74,8 +76,7 @@ namespace AZ
 
         void MeshFeatureProcessor::Simulate(const FeatureProcessor::SimulatePacket& packet)
         {
-            AZ_PROFILE_FUNCTION(Debug::ProfileCategory::AzRender);
-            AZ_ATOM_PROFILE_FUNCTION("RPI", "MeshFeatureProcessor: Simulate");
+            AZ_PROFILE_SCOPE(RPI, "MeshFeatureProcessor: Simulate");
             AZ_UNUSED(packet);
 
             AZStd::concurrency_check_scope scopeCheck(m_meshDataChecker);
@@ -86,7 +87,6 @@ namespace AZ
             {
                 const auto jobLambda = [&]() -> void
                 {
-                    AZ_PROFILE_SCOPE(Debug::ProfileCategory::AzRender, "MeshFP::Simulate() Lambda");
                     for (auto meshDataIter = iteratorRange.first; meshDataIter != iteratorRange.second; ++meshDataIter)
                     {
                         if (!meshDataIter->m_model)
@@ -148,7 +148,7 @@ namespace AZ
             const MeshHandleDescriptor& descriptor,
             const MaterialAssignmentMap& materials)
         {
-            AZ_PROFILE_FUNCTION(Debug::ProfileCategory::AzRender);
+            AZ_PROFILE_SCOPE(AzRender, "MeshFeatureProcessor: AcquireMesh");
 
             // don't need to check the concurrency during emplace() because the StableDynamicArray won't move the other elements during insertion
             MeshHandle meshDataHandle = m_meshData.emplace();
@@ -178,6 +178,7 @@ namespace AZ
         {
             if (meshHandle.IsValid())
             {
+                meshHandle->m_meshLoader.reset();
                 meshHandle->DeInit();
                 m_transformService->ReleaseObjectId(meshHandle->m_objectId);
 
@@ -345,7 +346,7 @@ namespace AZ
             }
         }
 
-        RHI::DrawItemSortKey MeshFeatureProcessor::GetSortKey(const MeshHandle& meshHandle)
+        RHI::DrawItemSortKey MeshFeatureProcessor::GetSortKey(const MeshHandle& meshHandle) const
         {
             if (meshHandle.IsValid())
             {
@@ -358,24 +359,24 @@ namespace AZ
             }
         }
 
-        void MeshFeatureProcessor::SetLodOverride(const MeshHandle& meshHandle, RPI::Cullable::LodOverride lodOverride)
+        void MeshFeatureProcessor::SetMeshLodConfiguration(const MeshHandle& meshHandle, const RPI::Cullable::LodConfiguration& meshLodConfig)
         {
             if (meshHandle.IsValid())
             {
-                meshHandle->SetLodOverride(lodOverride);
+                meshHandle->SetMeshLodConfiguration(meshLodConfig);
             }
         }
 
-        RPI::Cullable::LodOverride MeshFeatureProcessor::GetLodOverride(const MeshHandle& meshHandle)
+        RPI::Cullable::LodConfiguration MeshFeatureProcessor::GetMeshLodConfiguration(const MeshHandle& meshHandle) const
         {
             if (meshHandle.IsValid())
             {
-                return meshHandle->GetLodOverride();
+                return meshHandle->GetMeshLodConfiguration();
             }
             else
             {
                 AZ_Assert(false, "Invalid mesh handle");
-                return 0;
+                return {RPI::Cullable::LodType::Default, 0, 0.0f, 0.0f };
             }
         }
 
@@ -424,6 +425,7 @@ namespace AZ
             if (meshHandle.IsValid())
             {
                 meshHandle->SetVisible(visible);
+                SetRayTracingEnabled(meshHandle, visible);
             }
         }
 
@@ -477,8 +479,6 @@ namespace AZ
             : m_modelAsset(modelAsset)
             , m_parent(parent)
         {
-            AZ_PROFILE_FUNCTION(Debug::ProfileCategory::AzRender);
-
             if (!m_modelAsset.GetId().IsValid())
             {
                 AZ_Error("MeshDataInstance::MeshLoader", false, "Invalid model asset Id.");
@@ -491,10 +491,12 @@ namespace AZ
             }
 
             Data::AssetBus::Handler::BusConnect(modelAsset.GetId());
+            AzFramework::AssetCatalogEventBus::Handler::BusConnect();
         }
 
         MeshDataInstance::MeshLoader::~MeshLoader()
         {
+            AzFramework::AssetCatalogEventBus::Handler::BusDisconnect();
             Data::AssetBus::Handler::BusDisconnect();
         }
 
@@ -506,7 +508,6 @@ namespace AZ
         //! AssetBus::Handler overrides...
         void MeshDataInstance::MeshLoader::OnAssetReady(Data::Asset<Data::AssetData> asset)
         {
-            AZ_PROFILE_FUNCTION(Debug::ProfileCategory::AzRender);
             Data::Asset<RPI::ModelAsset> modelAsset = asset;
 
             // Assign the fully loaded asset back to the mesh handle to not only hold asset id, but the actual data as well.
@@ -538,6 +539,7 @@ namespace AZ
             
             if (model)
             {
+                m_parent->RemoveRayTracingData();
                 m_parent->Init(model);
                 m_modelChangedEvent.Signal(AZStd::move(model));
             }
@@ -550,10 +552,51 @@ namespace AZ
             }
         }
 
+        
+        void MeshDataInstance::MeshLoader::OnModelReloaded(Data::Asset<Data::AssetData> asset)
+        {
+            OnAssetReady(asset);
+        }
+
         void MeshDataInstance::MeshLoader::OnAssetError(Data::Asset<Data::AssetData> asset)
         {
             // Note: m_modelAsset and asset represents same asset, but only m_modelAsset contains the file path in its hint from serialization
-            AZ_Error("MeshDataInstance::MeshLoader", false, "Failed to load asset %s.", m_modelAsset.GetHint().c_str()); 
+            AZ_Error(
+                "MeshDataInstance::MeshLoader", false, "Failed to load asset %s. It may be missing, or not be finished processing",
+                m_modelAsset.GetHint().c_str());
+
+            AzFramework::AssetSystemRequestBus::Broadcast(
+                &AzFramework::AssetSystem::AssetSystemRequests::EscalateAssetByUuid, m_modelAsset.GetId().m_guid);
+        }
+        
+        void MeshDataInstance::MeshLoader::OnCatalogAssetChanged(const AZ::Data::AssetId& assetId)
+        {
+            if (assetId == m_modelAsset.GetId())
+            {
+                Data::Asset<RPI::ModelAsset> modelAssetReference = m_modelAsset;
+
+                // If the asset was modified, reload it
+                AZ::SystemTickBus::QueueFunction(
+                    [=]() mutable
+                    {
+                        ModelReloaderSystemInterface::Get()->ReloadModel(modelAssetReference, m_modelReloadedEventHandler);
+                    });
+            }
+        }
+
+        void MeshDataInstance::MeshLoader::OnCatalogAssetAdded(const AZ::Data::AssetId& assetId)
+        {
+            if (assetId == m_modelAsset.GetId())
+            {
+                Data::Asset<RPI::ModelAsset> modelAssetReference = m_modelAsset;
+                
+                // If the asset didn't exist in the catalog when it first attempted to load, we need to try loading it again
+                AZ::SystemTickBus::QueueFunction(
+                    [=]() mutable
+                    {
+                        ModelReloaderSystemInterface::Get()->ReloadModel(modelAssetReference, m_modelReloadedEventHandler);
+                    });
+            }
         }
 
         // MeshDataInstance...
@@ -562,14 +605,8 @@ namespace AZ
         {
             m_scene->GetCullingScene()->UnregisterCullable(m_cullable);
 
-            // remove from ray tracing
-            RayTracingFeatureProcessor* rayTracingFeatureProcessor = m_scene->GetFeatureProcessor<RayTracingFeatureProcessor>();
-            if (rayTracingFeatureProcessor)
-            {
-                rayTracingFeatureProcessor->RemoveMesh(m_objectId);
-            }
+            RemoveRayTracingData();
 
-            m_meshLoader.reset();
             m_drawPacketListsByLod.clear();
             m_materialAssignments.clear();
             m_shaderResourceGroup = {};
@@ -578,8 +615,6 @@ namespace AZ
 
         void MeshDataInstance::Init(Data::Instance<RPI::Model> model)
         {
-            AZ_PROFILE_FUNCTION(Debug::ProfileCategory::AzRender);
-
             m_model = model;
             const size_t modelLodCount = m_model->GetLodCount();
             m_drawPacketListsByLod.resize(modelLodCount);
@@ -610,8 +645,6 @@ namespace AZ
 
         void MeshDataInstance::BuildDrawPacketList(size_t modelLodIndex)
         {
-            AZ_PROFILE_FUNCTION(Debug::ProfileCategory::AzRender);
-
             RPI::ModelLod& modelLod = *m_model->GetLods()[modelLodIndex];
             const size_t meshCount = modelLod.GetMeshes().size();
 
@@ -641,15 +674,15 @@ namespace AZ
                     continue;
                 }
 
-                auto& objectSrgAsset = material->GetAsset()->GetObjectSrgAsset();
+                auto& objectSrgLayout = material->GetAsset()->GetObjectSrgLayout();
 
-                if (!objectSrgAsset)
+                if (!objectSrgLayout)
                 {
                     AZ_Warning("MeshFeatureProcessor", false, "No per-object ShaderResourceGroup found.");
                     continue;
                 }
 
-                if (m_shaderResourceGroup && m_shaderResourceGroup->GetAsset() != objectSrgAsset)
+                if (m_shaderResourceGroup && m_shaderResourceGroup->GetLayout()->GetHash() != objectSrgLayout->GetHash())
                 {
                     AZ_Warning("MeshFeatureProcessor", false, "All materials on a model must use the same per-object ShaderResourceGroup. Skipping.");
                     continue;
@@ -659,7 +692,8 @@ namespace AZ
                 // in shaderResourceGroupInOut. All of the Model's draw packets will use this same instance.
                 if (!m_shaderResourceGroup)
                 {
-                    m_shaderResourceGroup = RPI::ShaderResourceGroup::Create(objectSrgAsset);
+                    auto& shaderAsset = material->GetAsset()->GetMaterialTypeAsset()->GetShaderAssetForObjectSrg();
+                    m_shaderResourceGroup = RPI::ShaderResourceGroup::Create(shaderAsset, objectSrgLayout->GetName());
                     if (!m_shaderResourceGroup)
                     {
                         AZ_Warning("MeshFeatureProcessor", false, "Failed to create a new shader resource group, skipping.");
@@ -694,8 +728,13 @@ namespace AZ
 
         void MeshDataInstance::SetRayTracingData()
         {
+            if (!m_model)
+            {
+                return;
+            }
+
             RayTracingFeatureProcessor* rayTracingFeatureProcessor = m_scene->GetFeatureProcessor<RayTracingFeatureProcessor>();
-            if (rayTracingFeatureProcessor == nullptr)
+            if (!rayTracingFeatureProcessor)
             {
                 return;
             }
@@ -798,19 +837,19 @@ namespace AZ
                 // note that the element count is the size of the entire buffer, even though this mesh may only
                 // occupy a portion of the vertex buffer.  This is necessary since we are accessing it using
                 // a ByteAddressBuffer in the raytracing shaders and passing the byte offset to the shader in a constant buffer.
-                uint32_t positionBufferByteCount = const_cast<RHI::Buffer*>(streamBufferViews[0].GetBuffer())->GetDescriptor().m_byteCount;
+                uint32_t positionBufferByteCount = static_cast<uint32_t>(const_cast<RHI::Buffer*>(streamBufferViews[0].GetBuffer())->GetDescriptor().m_byteCount);
                 RHI::BufferViewDescriptor positionBufferDescriptor = RHI::BufferViewDescriptor::CreateRaw(0, positionBufferByteCount);
 
-                uint32_t normalBufferByteCount = const_cast<RHI::Buffer*>(streamBufferViews[1].GetBuffer())->GetDescriptor().m_byteCount;
+                uint32_t normalBufferByteCount = static_cast<uint32_t>(const_cast<RHI::Buffer*>(streamBufferViews[1].GetBuffer())->GetDescriptor().m_byteCount);
                 RHI::BufferViewDescriptor normalBufferDescriptor = RHI::BufferViewDescriptor::CreateRaw(0, normalBufferByteCount);
 
-                uint32_t tangentBufferByteCount = const_cast<RHI::Buffer*>(streamBufferViews[2].GetBuffer())->GetDescriptor().m_byteCount;
+                uint32_t tangentBufferByteCount = static_cast<uint32_t>(const_cast<RHI::Buffer*>(streamBufferViews[2].GetBuffer())->GetDescriptor().m_byteCount);
                 RHI::BufferViewDescriptor tangentBufferDescriptor = RHI::BufferViewDescriptor::CreateRaw(0, tangentBufferByteCount);
 
-                uint32_t bitangentBufferByteCount = const_cast<RHI::Buffer*>(streamBufferViews[3].GetBuffer())->GetDescriptor().m_byteCount;
+                uint32_t bitangentBufferByteCount = static_cast<uint32_t>(const_cast<RHI::Buffer*>(streamBufferViews[3].GetBuffer())->GetDescriptor().m_byteCount);
                 RHI::BufferViewDescriptor bitangentBufferDescriptor = RHI::BufferViewDescriptor::CreateRaw(0, bitangentBufferByteCount);
 
-                uint32_t uvBufferByteCount = const_cast<RHI::Buffer*>(streamBufferViews[4].GetBuffer())->GetDescriptor().m_byteCount;
+                uint32_t uvBufferByteCount = static_cast<uint32_t>(const_cast<RHI::Buffer*>(streamBufferViews[4].GetBuffer())->GetDescriptor().m_byteCount);
                 RHI::BufferViewDescriptor uvBufferDescriptor = RHI::BufferViewDescriptor::CreateRaw(0, uvBufferByteCount);
 
                 const RHI::IndexBufferView& indexBufferView = mesh.m_indexBufferView;
@@ -951,7 +990,17 @@ namespace AZ
                 subMeshes.push_back(subMesh);
             }
 
-            rayTracingFeatureProcessor->SetMesh(m_objectId, subMeshes);
+            rayTracingFeatureProcessor->SetMesh(m_objectId, m_model->GetModelAsset()->GetId(), subMeshes);
+        }
+
+        void MeshDataInstance::RemoveRayTracingData()
+        {
+            // remove from ray tracing
+            RayTracingFeatureProcessor* rayTracingFeatureProcessor = m_scene->GetFeatureProcessor<RayTracingFeatureProcessor>();
+            if (rayTracingFeatureProcessor)
+            {
+                rayTracingFeatureProcessor->RemoveMesh(m_objectId);
+            }
         }
 
         void MeshDataInstance::SetSortKey(RHI::DrawItemSortKey sortKey)
@@ -966,24 +1015,24 @@ namespace AZ
             }
         }
 
-        RHI::DrawItemSortKey MeshDataInstance::GetSortKey()
+        RHI::DrawItemSortKey MeshDataInstance::GetSortKey() const
         {
             return m_sortKey;
         }
 
-        void MeshDataInstance::SetLodOverride(RPI::Cullable::LodOverride lodOverride)
+        void MeshDataInstance::SetMeshLodConfiguration(RPI::Cullable::LodConfiguration meshLodConfig)
         {
-            m_cullable.m_lodData.m_lodOverride = lodOverride;
+            m_cullable.m_lodData.m_lodConfiguration = meshLodConfig;
         }
 
-        RPI::Cullable::LodOverride MeshDataInstance::GetLodOverride()
+        RPI::Cullable::LodConfiguration MeshDataInstance::GetMeshLodConfiguration() const
         {
-            return m_cullable.m_lodData.m_lodOverride;
+            return m_cullable.m_lodData.m_lodConfiguration;
         }
 
         void MeshDataInstance::UpdateDrawPackets(bool forceUpdate /*= false*/)
         {
-            AZ_PROFILE_FUNCTION(Debug::ProfileCategory::AzRender);
+            AZ_PROFILE_SCOPE(AzRender, "MeshDataInstance:: UpdateDrawPackets");
             for (auto& drawPacketList : m_drawPacketListsByLod)
             {
                 for (auto& drawPacket : drawPacketList)
@@ -998,7 +1047,7 @@ namespace AZ
 
         void MeshDataInstance::BuildCullable()
         {
-            AZ_PROFILE_FUNCTION(Debug::ProfileCategory::AzRender);
+            AZ_PROFILE_SCOPE(AzRender, "MeshDataInstance: BuildCullable");
             AZ_Assert(m_cullableNeedsRebuild, "This function only needs to be called if the cullable to be rebuilt");
             AZ_Assert(m_model, "The model has not finished loading yet");
 
@@ -1020,9 +1069,6 @@ namespace AZ
             {
                 //initialize the lod
                 RPI::Cullable::LodData::Lod& lod = lodData.m_lods[lodIndex];
-                //[GFX TODO][ATOM-5562] - Level of detail: override lod distances and add global lod multiplier(s)
-                static const float MinimumScreenCoverage = 1.0f/1080.0f;        //mesh should cover at least a screen pixel at 1080p to be drawn
-                static const float ReductionFactor = 0.5f;
                 if (lodIndex == 0)
                 {
                     //first lod
@@ -1031,17 +1077,18 @@ namespace AZ
                 else
                 {
                     //every other lod: use the previous lod's min
-                    lod.m_screenCoverageMax = AZStd::GetMax(lodData.m_lods[lodIndex-1].m_screenCoverageMin, MinimumScreenCoverage);
+                    lod.m_screenCoverageMax = AZStd::GetMax(lodData.m_lods[lodIndex - 1].m_screenCoverageMin, lodData.m_lodConfiguration.m_minimumScreenCoverage);
                 }
+
                 if (lodIndex < lodAssets.size() - 1)
                 {
                     //first and middle lods: compute a stepdown value for the min
-                    lod.m_screenCoverageMin = AZStd::GetMax(ReductionFactor * lod.m_screenCoverageMax, MinimumScreenCoverage);
+                    lod.m_screenCoverageMin = AZStd::GetMax(lodData.m_lodConfiguration.m_qualityDecayRate * lod.m_screenCoverageMax, lodData.m_lodConfiguration.m_minimumScreenCoverage);
                 }
                 else
                 {
                     //last lod: use MinimumScreenCoverage for the min
-                    lod.m_screenCoverageMin = MinimumScreenCoverage;
+                    lod.m_screenCoverageMin = lodData.m_lodConfiguration.m_minimumScreenCoverage;
                 }
 
                 lod.m_drawPackets.clear();
@@ -1077,7 +1124,7 @@ namespace AZ
 
         void MeshDataInstance::UpdateCullBounds(const TransformServiceFeatureProcessor* transformService)
         {
-            AZ_PROFILE_FUNCTION(Debug::ProfileCategory::AzRender);
+            AZ_PROFILE_SCOPE(AzRender, "MeshDataInstance: UpdateCullBounds");
             AZ_Assert(m_cullBoundsNeedsUpdate, "This function only needs to be called if the culling bounds need to be rebuilt");
             AZ_Assert(m_model, "The model has not finished loading yet");
 
@@ -1113,20 +1160,17 @@ namespace AZ
             if (reflectionProbeFeatureProcessor && (m_descriptor.m_useForwardPassIblSpecular || m_hasForwardPassIblSpecularMaterial))
             {
                 // retrieve probe constant indices
-                AZ::RHI::ShaderInputConstantIndex posConstantIndex = m_shaderResourceGroup->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_aabbPos"));
-                AZ_Error("MeshDataInstance", posConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
+                AZ::RHI::ShaderInputConstantIndex modelToWorldConstantIndex = m_shaderResourceGroup->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_modelToWorld"));
+                AZ_Error("MeshDataInstance", modelToWorldConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
 
-                AZ::RHI::ShaderInputConstantIndex outerAabbMinConstantIndex = m_shaderResourceGroup->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_outerAabbMin"));
-                AZ_Error("MeshDataInstance", outerAabbMinConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
+                AZ::RHI::ShaderInputConstantIndex modelToWorldInverseConstantIndex = m_shaderResourceGroup->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_modelToWorldInverse"));
+                AZ_Error("MeshDataInstance", modelToWorldInverseConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
 
-                AZ::RHI::ShaderInputConstantIndex outerAabbMaxConstantIndex = m_shaderResourceGroup->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_outerAabbMax"));
-                AZ_Error("MeshDataInstance", outerAabbMaxConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
+                AZ::RHI::ShaderInputConstantIndex outerObbHalfLengthsConstantIndex = m_shaderResourceGroup->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_outerObbHalfLengths"));
+                AZ_Error("MeshDataInstance", outerObbHalfLengthsConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
 
-                AZ::RHI::ShaderInputConstantIndex innerAabbMinConstantIndex = m_shaderResourceGroup->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_innerAabbMin"));
-                AZ_Error("MeshDataInstance", innerAabbMinConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
-
-                AZ::RHI::ShaderInputConstantIndex innerAabbMaxConstantIndex = m_shaderResourceGroup->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_innerAabbMax"));
-                AZ_Error("MeshDataInstance", innerAabbMaxConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
+                AZ::RHI::ShaderInputConstantIndex innerObbHalfLengthsConstantIndex = m_shaderResourceGroup->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_innerObbHalfLengths"));
+                AZ_Error("MeshDataInstance", innerObbHalfLengthsConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
 
                 AZ::RHI::ShaderInputConstantIndex useReflectionProbeConstantIndex = m_shaderResourceGroup->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_useReflectionProbe"));
                 AZ_Error("MeshDataInstance", useReflectionProbeConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
@@ -1166,37 +1210,10 @@ namespace AZ
 
                 if (!reflectionProbes.empty())
                 {
-                    // Sort available probes by their distance to the mesh bbox centre
-                    if (reflectionProbes.size() > 1)
-                    {
-                        const AZ::Vector3 worldBBoxCentre = worldBbox.GetCenter();
-                        const auto probeDistanceToMesh = [&](const AZStd::shared_ptr<ReflectionProbe>& probe)
-                        {
-                            if (probe->GetOuterAabbWs().Contains(worldBBoxCentre))
-                            {
-                                return -(probe->GetOuterAabbWs().GetCenter() - worldBBoxCentre).GetLengthSq();
-                            }
-                            else
-                            {
-                                return probe->GetOuterAabbWs().GetDistanceSq(worldBBoxCentre);
-                            }
-                        };
-
-                        AZStd::sort(
-                            reflectionProbes.begin(), reflectionProbes.end(),
-                            [&](const auto& p0, const auto& p1) {
-                                return probeDistanceToMesh(p0) < probeDistanceToMesh(p1);
-                            }
-                        );
-                    }
-
-                    const AZStd::shared_ptr<ReflectionProbe>& probe = reflectionProbes[0];
-
-                    m_shaderResourceGroup->SetConstant(posConstantIndex, probe->GetPosition());
-                    m_shaderResourceGroup->SetConstant(outerAabbMinConstantIndex, probe->GetOuterAabbWs().GetMin());
-                    m_shaderResourceGroup->SetConstant(outerAabbMaxConstantIndex, probe->GetOuterAabbWs().GetMax());
-                    m_shaderResourceGroup->SetConstant(innerAabbMinConstantIndex, probe->GetInnerAabbWs().GetMin());
-                    m_shaderResourceGroup->SetConstant(innerAabbMaxConstantIndex, probe->GetInnerAabbWs().GetMax());
+                    m_shaderResourceGroup->SetConstant(modelToWorldConstantIndex, reflectionProbes[0]->GetTransform());
+                    m_shaderResourceGroup->SetConstant(modelToWorldInverseConstantIndex, Matrix3x4::CreateFromTransform(reflectionProbes[0]->GetTransform()).GetInverseFull());
+                    m_shaderResourceGroup->SetConstant(outerObbHalfLengthsConstantIndex, reflectionProbes[0]->GetOuterObbWs().GetHalfLengths());
+                    m_shaderResourceGroup->SetConstant(innerObbHalfLengthsConstantIndex, reflectionProbes[0]->GetInnerObbWs().GetHalfLengths());
                     m_shaderResourceGroup->SetConstant(useReflectionProbeConstantIndex, true);
                     m_shaderResourceGroup->SetConstant(useParallaxCorrectionConstantIndex, probe->GetUseParallaxCorrection());
 

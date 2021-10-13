@@ -1,13 +1,12 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
-#include "Camera_precompiled.h"
 
 #include <AzCore/Module/Module.h>
-#include <IGem.h>
 
 #include "CameraComponent.h"
 #include "CameraSystemComponent.h"
@@ -22,13 +21,13 @@
 namespace Camera
 {
     class CameraModule
-        : public CryHooksModule
+        : public AZ::Module
     {
     public:
         AZ_RTTI(CameraModule, "{C2E72B0D-BCEF-452A-9BFA-03833015258C}", AZ::Module);
 
         CameraModule()
-            : CryHooksModule()
+            : AZ::Module()
         {
             m_descriptors.insert(m_descriptors.end(), {
                 Camera::CameraComponent::CreateDescriptor(),

@@ -1,12 +1,12 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
-#include "ComponentEntityEditorPlugin_precompiled.h"
-
+#include <EditorDefs.h>
 #include "CryEdit.h"
 #include "AssetCatalogModel.h"
 #include "Objects/ComponentEntityObject.h"
@@ -472,7 +472,7 @@ void AssetCatalogModel::LoadDatabase()
         {
             m_fileCacheCurrentIndex = 0;
             Q_EMIT UpdateProgress(0);
-            Q_EMIT SetTotalProgress(m_fileCache.size());
+            Q_EMIT SetTotalProgress(static_cast<int>(m_fileCache.size()));
         };
 
     EBUS_EVENT(AZ::Data::AssetCatalogRequestBus, EnumerateAssets, startCB, enumerateCB, endCB);

@@ -1,7 +1,8 @@
 @echo off
 REM 
-REM Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
-REM 
+REM Copyright (c) Contributors to the Open 3D Engine Project.
+REM For complete copyright and license terms please see the LICENSE at the root of this distribution.
+REM
 REM SPDX-License-Identifier: Apache-2.0 OR MIT
 REM
 REM
@@ -62,7 +63,7 @@ set DCCSI_PYTHON_INSTALL=%LY_DEV%\Python
 echo     DCCSI_PYTHON_INSTALL = %DCCSI_PYTHON_INSTALL%
 
 :: Wing and other IDEs probably prefer access directly to the python.exe
-set DCCSI_PY_IDE = %DCCSI_PYTHON_INSTALL%\runtime\python-3.7.10-rev1-windows\python
+set DCCSI_PY_IDE = %DCCSI_PYTHON_INSTALL%\runtime\python-3.7.10-rev2-windows\python
 echo     DCCSI_PY_IDE = %DCCSI_PY_IDE%
 
 :: ide and debugger plug

@@ -1,11 +1,13 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
 #include <Atom/RPI.Public/Model/Model.h>
+#include <Atom/RPI.Reflect/Model/ModelAsset.h>
 
 #include <Atom/RHI/Factory.h>
 
@@ -29,6 +31,28 @@ namespace AZ
                 modelAsset);
         }
 
+        
+        void Model::TEMPOrphanFromDatabase(const Data::Asset<ModelAsset>& modelAsset)
+        {
+            for (auto& modelLodAsset : modelAsset->GetLodAssets())
+            {
+                for(auto& mesh : modelLodAsset->GetMeshes())
+                {
+                    for (auto& streamBufferInfo : mesh.GetStreamBufferInfoList())
+                    {
+                        Data::InstanceDatabase<Buffer>::Instance().TEMPOrphan(
+                            Data::InstanceId::CreateFromAssetId(streamBufferInfo.m_bufferAssetView.GetBufferAsset().GetId()));
+                    }
+                    Data::InstanceDatabase<Buffer>::Instance().TEMPOrphan(
+                        Data::InstanceId::CreateFromAssetId(mesh.GetIndexBufferAssetView().GetBufferAsset().GetId()));
+                }
+                Data::InstanceDatabase<ModelLod>::Instance().TEMPOrphan(Data::InstanceId::CreateFromAssetId(modelLodAsset.GetId()));
+            }
+
+            Data::InstanceDatabase<Model>::Instance().TEMPOrphan(
+                Data::InstanceId::CreateFromAssetId(modelAsset.GetId()));
+        }
+
         size_t Model::GetLodCount() const
         {
             return m_lods.size();
@@ -41,7 +65,7 @@ namespace AZ
 
         Data::Instance<Model> Model::CreateInternal(const Data::Asset<ModelAsset>& modelAsset)
         {
-            AZ_PROFILE_FUNCTION(Debug::ProfileCategory::AzRender);
+            AZ_PROFILE_SCOPE(RPI, "Model: CreateInternal");
             Data::Instance<Model> model = aznew Model();
             const RHI::ResultCode resultCode = model->Init(modelAsset);
 
@@ -55,7 +79,7 @@ namespace AZ
 
         RHI::ResultCode Model::Init(const Data::Asset<ModelAsset>& modelAsset)
         {
-            AZ_PROFILE_FUNCTION(Debug::ProfileCategory::AzRender);
+            AZ_PROFILE_SCOPE(RPI, "Model: Init");
 
             m_lods.resize(modelAsset->GetLodAssets().size());
 
@@ -106,7 +130,7 @@ namespace AZ
         {
             if (m_isUploadPending)
             {
-                AZ_PROFILE_SCOPE_STALL_DYNAMIC(Debug::ProfileCategory::AzRender, "Model::WaitForUpload - %s", GetDatabaseName());
+                AZ_PROFILE_SCOPE(RPI, "Model::WaitForUpload - %s", GetDatabaseName());
                 for (const Data::Instance<ModelLod>& lod : m_lods)
                 {
                     lod->WaitForUpload();
@@ -127,14 +151,14 @@ namespace AZ
 
         bool Model::LocalRayIntersection(const AZ::Vector3& rayStart, const AZ::Vector3& rayDir, float& distanceNormalized, AZ::Vector3& normal) const
         {
-            AZ_PROFILE_FUNCTION(Debug::ProfileCategory::AzRender);
-
+            AZ_PROFILE_SCOPE(RPI, "Model: LocalRayIntersection");
+            
             if (!GetModelAsset())
             {
                 AZ_Assert(false, "Invalid Model - not created from a ModelAsset?");
                 return false;
             }
-
+            
             float start;
             float end;
             const int result = Intersect::IntersectRayAABB2(rayStart, rayDir.GetReciprocal(), GetModelAsset()->GetAabb(), start, end);
@@ -170,7 +194,7 @@ namespace AZ
             float& distanceNormalized,
             AZ::Vector3& normal) const
         {
-            AZ_PROFILE_FUNCTION(Debug::ProfileCategory::AzRender);
+            AZ_PROFILE_SCOPE(RPI, "Model: RayIntersection");
             const AZ::Vector3 clampedScale = nonUniformScale.GetMax(AZ::Vector3(AZ::MinTransformScale));
 
             const AZ::Transform inverseTM = modelTransform.GetInverse();

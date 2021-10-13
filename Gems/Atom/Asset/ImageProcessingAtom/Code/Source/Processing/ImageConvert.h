@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -20,6 +21,7 @@
 #include <AzCore/Asset/AssetCommon.h>
 
 #include <AssetBuilderSDK/AssetBuilderSDK.h>
+#include <ImageBuilderBaseType.h>
 
 namespace ImageProcessingAtom
 {
@@ -120,6 +122,8 @@ namespace ImageProcessingAtom
         // Get output JobProducts and append them to the outProducts vector.
         void GetAppendOutputProducts(AZStd::vector<AssetBuilderSDK::JobProduct>& outProducts);
 
+        const ImageConvertProcessDescriptor* GetInputDesc() const;
+
     private:
         //input image and settings
         AZStd::shared_ptr<ImageConvertProcessDescriptor> m_input;
@@ -159,7 +163,7 @@ namespace ImageProcessingAtom
         bool FillCubemapMipmaps();
 
         //IBL cubemap generation, this creates a separate ImageConvertProcess
-        void CreateIBLCubemap(AZ::Uuid presetUUID, const char* fileNameSuffix, IImageObjectPtr cubemapImage);
+        void CreateIBLCubemap(AZ::Uuid presetUUID, const char* fileNameSuffix, IImageObjectPtr& cubemapImage);
 
         //convert color space to linear with pixel format rgba32f
         bool ConvertToLinear();

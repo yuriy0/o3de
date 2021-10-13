@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -51,7 +52,7 @@ namespace AZ
 
             // load shaders
             AZStd::string verticalBlurShaderFilePath = "Shaders/Reflections/ReflectionScreenSpaceBlurVertical.azshader";
-            Data::Instance<AZ::RPI::Shader> verticalBlurShader = RPI::LoadShader(verticalBlurShaderFilePath);
+            Data::Instance<AZ::RPI::Shader> verticalBlurShader = RPI::LoadCriticalShader(verticalBlurShaderFilePath);
             if (verticalBlurShader == nullptr)
             {
                 AZ_Error("PassSystem", false, "[ReflectionScreenSpaceBlurPass '%s']: Failed to load shader '%s'!", GetPathName().GetCStr(), verticalBlurShaderFilePath.c_str());
@@ -59,7 +60,7 @@ namespace AZ
             }
 
             AZStd::string horizontalBlurShaderFilePath = "Shaders/Reflections/ReflectionScreenSpaceBlurHorizontal.azshader";
-            Data::Instance<AZ::RPI::Shader> horizontalBlurShader = RPI::LoadShader(horizontalBlurShaderFilePath);
+            Data::Instance<AZ::RPI::Shader> horizontalBlurShader = RPI::LoadCriticalShader(horizontalBlurShaderFilePath);
             if (horizontalBlurShader == nullptr)
             {
                 AZ_Error("PassSystem", false, "[ReflectionScreenSpaceBlurPass '%s']: Failed to load shader '%s'!", GetPathName().GetCStr(), horizontalBlurShaderFilePath.c_str());
@@ -189,8 +190,8 @@ namespace AZ
                 RPI::PassAttachmentBinding& outputAttachmentBinding = horizontalBlurChildPass->GetInputOutputBinding(1);
                 uint32_t mipLevel = attachmentIndex + 1;
                 RHI::ImageViewDescriptor outputViewDesc;
-                outputViewDesc.m_mipSliceMin = mipLevel;
-                outputViewDesc.m_mipSliceMax = mipLevel;
+                outputViewDesc.m_mipSliceMin = static_cast<int16_t>(mipLevel);
+                outputViewDesc.m_mipSliceMax = static_cast<int16_t>(mipLevel);
                 outputAttachmentBinding.m_unifiedScopeDesc.SetAsImage(outputViewDesc);
                 outputAttachmentBinding.SetAttachment(reflectionImageAttachment);
 

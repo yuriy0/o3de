@@ -1,13 +1,13 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
-#include "EMotionFX_precompiled.h"
-
 #include <AzCore/Component/Entity.h>
+#include <AzCore/Asset/AssetSerializer.h>
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzCore/Serialization/EditContext.h>
 #include <AzCore/RTTI/BehaviorContext.h>
@@ -29,6 +29,8 @@
 #include <EMotionFX/Tools/EMotionStudio/EMStudioSDK/Source/MainWindow.h>
 #include <EMotionFX/Tools/EMotionStudio/EMStudioSDK/Source/NodeSelectionWindow.h>
 #include <EMotionFX/CommandSystem/Source/SelectionList.h>
+#include <EMotionFX/Source/TransformData.h>
+#include <EMotionFX/Source/AttachmentNode.h>
 #include <MCore/Source/AzCoreConversions.h>
 
 namespace EMotionFX
@@ -102,7 +104,7 @@ namespace EMotionFX
                         ->Attribute(AZ::Edit::Attributes::Category, "Animation")
                         ->Attribute(AZ::Edit::Attributes::Icon, ":/EMotionFX/ActorComponent.svg")
                         ->Attribute(AZ::Edit::Attributes::PrimaryAssetType, azrtti_typeid<ActorAsset>())
-                        ->Attribute(AZ::Edit::Attributes::ViewportIcon, ":/EMotionFX/ActorComponent.svg")
+                        ->Attribute(AZ::Edit::Attributes::ViewportIcon, ":/EMotionFX/Viewport/ActorComponent.svg")
                         ->Attribute(AZ::Edit::Attributes::AppearsInAddComponentMenu, AZ_CRC("Game", 0x232b318c))
                         ->Attribute(AZ::Edit::Attributes::AutoExpand, true)
                         ->Attribute(AZ::Edit::Attributes::HelpPageURL, "https://o3de.org/docs/user-guide/components/reference/actor/")
@@ -242,6 +244,14 @@ namespace EMotionFX
         }
 
         //////////////////////////////////////////////////////////////////////////
+        bool EditorActorComponent::GetRenderActorVisible() const
+        {
+            if (m_renderActorInstance)
+            {
+                return m_renderActorInstance->IsVisible();
+            }
+            return false;
+        }
         size_t EditorActorComponent::GetNumJoints() const
         {
             const Actor* actor = m_actorAsset->GetActor();
@@ -679,11 +689,13 @@ namespace EMotionFX
             bool isHit = false;
 
             // Iterate through the meshes in the actor, looking for the closest hit
-            const AZ::u32 lodLevel = m_actorInstance->GetLODLevel();
+            const size_t lodLevel = m_actorInstance->GetLODLevel();
             Actor* actor = m_actorAsset.Get()->GetActor();
-            const uint32 numNodes = actor->GetNumNodes();
-            const uint32 numLods = actor->GetNumLODLevels();
-                for (uint32 nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex)
+            const size_t numNodes = actor->GetNumNodes();
+            for (size_t nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex)
+            {
+                Mesh* mesh = actor->GetMesh(lodLevel, nodeIndex);
+                if (!mesh || mesh->GetIsCollisionMesh())
                 {
                 Mesh* mesh = actor->GetMesh(lodLevel, nodeIndex);
                     if (!mesh || mesh->GetIsCollisionMesh())
@@ -802,7 +814,7 @@ namespace EMotionFX
                 Node* node = jointName ? targetActorInstance->GetActor()->GetSkeleton()->FindNodeByName(jointName) : targetActorInstance->GetActor()->GetSkeleton()->GetNode(0);
                 if (node)
                 {
-                    const AZ::u32 jointIndex = node->GetNodeIndex();
+                    const size_t jointIndex = node->GetNodeIndex();
                     Attachment* attachment = AttachmentNode::Create(targetActorInstance, jointIndex, m_actorInstance.get(), true /* Managed externally, by this component. */);
                     targetActorInstance->AddAttachment(attachment);
                 }
@@ -944,4 +956,3 @@ namespace EMotionFX
         }
     } //namespace Integration
 } // namespace EMotionFX
-

@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -25,6 +26,11 @@ namespace AZ
 
             bool m_enable = true;
             AZStd::string m_defaultMaterial;
+            //! Sets whether to include material property names when generating material assets. If this
+            //! setting is true, material property name resolution and validation is deferred into load
+            //! time rather than at build time, allowing to break some dependencies (e.g. fbx files will no
+            //! longer need to be dependent on materialtype files).
+            bool m_includeMaterialPropertyNames = true;
         };
 
         //! Atom's implementation of converting SceneAPI data into Atom's default material: StandardPBR
@@ -44,8 +50,9 @@ namespace AZ
 
             // MaterialConverterBus overrides ...
             bool IsEnabled() const override;
+            bool ShouldIncludeMaterialPropertyNames() const override;
             bool ConvertMaterial(const AZ::SceneAPI::DataTypes::IMaterialData& materialData, RPI::MaterialSourceData& out) override;
-            const char* GetMaterialTypePath() const override;
+            AZStd::string GetMaterialTypePath() const override;
             AZStd::string GetDefaultMaterialPath() const override;
 
         private:

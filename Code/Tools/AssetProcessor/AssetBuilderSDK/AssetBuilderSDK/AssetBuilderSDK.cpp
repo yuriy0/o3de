@@ -1,7 +1,8 @@
 
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -19,6 +20,7 @@
 #include <AzFramework/IO/LocalFileIO.h>
 #include <AzCore/Component/ComponentApplicationBus.h>
 #include <AzCore/Slice/SliceAsset.h> // For slice asset sub ids
+#include <AzCore/RTTI/BehaviorContext.h>
 //////////////////////////////////////////////////////////////////////////
 
 namespace AssetBuilderSDK
@@ -72,6 +74,10 @@ namespace AssetBuilderSDK
         if (azstricmp(newPlatformName, "pc") == 0)
         {
             return AssetBuilderSDK::Platform_PC;
+        }
+        if (azstricmp(newPlatformName, "linux") == 0)
+        {
+            return AssetBuilderSDK::Platform_LINUX;
         }
         if (azstricmp(newPlatformName, "android") == 0)
         {

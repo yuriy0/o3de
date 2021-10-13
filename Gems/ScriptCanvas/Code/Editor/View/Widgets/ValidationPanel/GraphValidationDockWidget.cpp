@@ -1,10 +1,10 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
-#include <precompiled.h>
 
 #include <QButtonGroup>
 
@@ -734,7 +734,7 @@ namespace ScriptCanvasEditor
     {
         ui->statusTableView->clearSelection();
 
-        if (auto model = GetActiveData().second->GetModel())
+        if (auto model = GetActiveData().second ? GetActiveData().second->GetModel() : nullptr)
         {
             model->Clear();
             model->RunValidation(m_activeGraphIds.scriptCanvasId);
@@ -810,7 +810,6 @@ namespace ScriptCanvasEditor
             const ScriptCanvas::ValidationEvent* validationEvent = model->FindItemForIndex(m_proxyModel->mapToSource(modelIndex));
         
             AZ::EntityId graphCanvasMemberId;
-            QRectF focusArea;
 
             if (const ScriptCanvas::FocusOnEntityEffect* focusOnEntityEffect = azrtti_cast<const ScriptCanvas::FocusOnEntityEffect*>(validationEvent))
             {

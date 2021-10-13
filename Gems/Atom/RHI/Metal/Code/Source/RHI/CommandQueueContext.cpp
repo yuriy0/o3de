@@ -1,12 +1,12 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
 #include <AzCore/Debug/EventTrace.h>
-#include <Atom/RHI/CpuProfiler.h>
 #include <Atom/RHI/CommandQueue.h>
 #include <Atom/RHI.Reflect/CpuTimingStatistics.h>
 #include <RHI/Device.h>
@@ -78,8 +78,8 @@ namespace AZ
 
         void CommandQueueContext::End()
         {
-            AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzRender);
-            
+            AZ_PROFILE_SCOPE(RHI, "CommandQueueContext: End");
+
             QueueGpuSignals(m_frameFences[m_currentFrameIndex]);
             for (uint32_t hardwareQueueIdx = 0; hardwareQueueIdx < RHI::HardwareQueueClassCount; ++hardwareQueueIdx)
             {
@@ -90,8 +90,7 @@ namespace AZ
             m_currentFrameIndex = (m_currentFrameIndex + 1) % aznumeric_cast<uint32_t>(m_frameFences.size());
 
             {
-                AZ_PROFILE_SCOPE_IDLE(AZ::Debug::ProfileCategory::AzRender, "Wait and Reset Fence");
-                AZ_ATOM_PROFILE_TIME_GROUP_REGION("RHI", "CommandQueueContext: Wait on Fences");
+                AZ_PROFILE_SCOPE(RHI, "Wait and Reset Fence");
 
                 //Synchronize the CPU with the GPU by waiting on the fence until signalled by the GPU. CPU can only go upto
                 //RHI::Limits::Device::FrameCountMax frames ahead of the GPU

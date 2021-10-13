@@ -1,5 +1,6 @@
 """
-Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
+Copyright (c) Contributors to the Open 3D Engine Project.
+For complete copyright and license terms please see the LICENSE at the root of this distribution.
 
 SPDX-License-Identifier: Apache-2.0 OR MIT
 
@@ -593,7 +594,7 @@ class AssetProcessor(object):
         output_list = None
         if capture_output:
             if decode:
-                output_list = run_result.stdout.decode('utf-8').splitlines()
+                output_list = run_result.stdout.decode('utf-8', errors="replace").splitlines()
             else:
                 output_list = run_result.stdout.splitlines()
 

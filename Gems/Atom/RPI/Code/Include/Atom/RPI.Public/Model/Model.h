@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -23,6 +24,8 @@ namespace AZ
 {
     namespace RPI
     {
+        class ModelAsset;
+
         class Model final
             : public Data::InstanceData
         {
@@ -33,6 +36,10 @@ namespace AZ
             AZ_CLASS_ALLOCATOR(Model, AZ::SystemAllocator, 0);
 
             static Data::Instance<Model> FindOrCreate(const Data::Asset<ModelAsset>& modelAsset);
+
+            //! Orphan the model, its lods, and all their buffers so that they can be replaced in the instance database
+            //! This is a temporary function, that will be removed once the Model/ModelAsset classes no longer need it
+            static void TEMPOrphanFromDatabase(const Data::Asset<ModelAsset>& modelAsset);
 
             ~Model() = default;
 

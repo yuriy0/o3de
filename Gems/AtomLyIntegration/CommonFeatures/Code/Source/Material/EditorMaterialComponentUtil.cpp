@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -136,8 +137,8 @@ namespace AZ
 
                 // Copy all of the properties from the material asset to the source data that will be exported
                 result = true;
-                editData.m_materialTypeSourceData.EnumerateProperties([&](const AZStd::string& groupNameId, const AZStd::string& propertyNameId, const auto& propertyDefinition) {
-                    const AZ::RPI::MaterialPropertyId propertyId(groupNameId, propertyNameId);
+                editData.m_materialTypeSourceData.EnumerateProperties([&](const AZStd::string& groupName, const AZStd::string& propertyName, const auto& propertyDefinition) {
+                    const AZ::RPI::MaterialPropertyId propertyId(groupName, propertyName);
                     const AZ::RPI::MaterialPropertyIndex propertyIndex =
                         editData.m_materialAsset->GetMaterialPropertiesLayout()->FindPropertyIndex(propertyId.GetFullName());
 
@@ -169,7 +170,7 @@ namespace AZ
                         return true;
                     }
 
-                    exportData.m_properties[groupNameId][propertyDefinition.m_nameId].m_value = propertyValue;
+                    exportData.m_properties[groupName][propertyDefinition.m_name].m_value = propertyValue;
                     return true;
                 });
 

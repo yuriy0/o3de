@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -201,9 +202,6 @@ namespace QtForPython
     QtBootstrapParameters QtForPythonSystemComponent::GetQtBootstrapParameters() const
     {
         QtBootstrapParameters params;
-
-        char devroot[AZ_MAX_PATH_LEN];
-        AZ::IO::FileIOBase::GetInstance()->ResolvePath("@devroot@", devroot, AZ_MAX_PATH_LEN);
        
 #if !defined(Q_OS_WIN)
 #error Unsupported OS platform for this QtForPython gem

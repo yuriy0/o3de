@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -10,7 +11,7 @@
 #include <AzCore/IO/FileIO.h>
 #include <AzCore/IO/SystemFile.h>
 #include <AzCore/IO/Path/Path.h>
-#include <AzFramework/FileFunc/FileFunc.h>
+#include <AzCore/Serialization/Json/JsonUtils.h>
 
 namespace AWSMetrics
 {
@@ -21,7 +22,7 @@ namespace AWSMetrics
 
     AZStd::string IdentityProvider::GetEngineVersion()
     {
-        static constexpr const char* EngineConfigFilePath = "@root@/engine.json";
+        static constexpr const char* EngineConfigFilePath = "@products@/engine.json";
         static constexpr const char* EngineVersionJsonKey = "O3DEVersion";
 
         AZ::IO::FileIOBase* fileIO = AZ::IO::FileIOBase::GetDirectInstance();
@@ -38,8 +39,7 @@ namespace AWSMetrics
             return "";
         }
 
-        AZ::IO::Path configIoPath(resolvedPath);
-        auto readOutcome = AzFramework::FileFunc::ReadJsonFile(configIoPath, fileIO);
+        auto readOutcome = AZ::JsonSerializationUtils::ReadJsonFile(resolvedPath);
         if (!readOutcome.IsSuccess())
         {
             AZ_Error("AWSMetrics", false, readOutcome.GetError().c_str());

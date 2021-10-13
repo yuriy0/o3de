@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -8,9 +9,9 @@
 #include <AzCore/IO/Path/Path.h>
 #include <AzCore/JSON/schema.h>
 #include <AzCore/JSON/prettywriter.h>
+#include <AzCore/Serialization/Json/JsonUtils.h>
 #include <AzCore/Settings/SettingsRegistry.h>
 #include <AzCore/Settings/SettingsRegistryImpl.h>
-#include <AzFramework/FileFunc/FileFunc.h>
 #include <AzFramework/StringFunc/StringFunc.h>
 
 #include <AWSCoreInternalBus.h>
@@ -210,8 +211,7 @@ namespace AWSCore
         }
 
         AzFramework::StringFunc::Path::Normalize(configJsonPath);
-        AZ::IO::Path configJsonFileIOPath(configJsonPath);
-        auto readJsonOutcome = AzFramework::FileFunc::ReadJsonFile(configJsonFileIOPath);
+        auto readJsonOutcome = AZ::JsonSerializationUtils::ReadJsonFile(configJsonPath);
         if (readJsonOutcome.IsSuccess())
         {
             auto jsonDocument = readJsonOutcome.TakeValue();

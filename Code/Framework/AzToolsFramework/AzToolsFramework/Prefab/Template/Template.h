@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -58,12 +59,11 @@ namespace AzToolsFramework
             PrefabDom& GetPrefabDom();
             const PrefabDom& GetPrefabDom() const;
 
-            bool CopyTemplateIntoPrefabFileFormat(PrefabDom& output);
-
             PrefabDomValueReference GetInstancesValue();
             PrefabDomValueConstReference GetInstancesValue() const;
 
             const AZ::IO::Path& GetFilePath() const;
+            void SetFilePath(const AZ::IO::PathView& path);
 
         private:
             // Container for keeping links representing the Template's nested instances.

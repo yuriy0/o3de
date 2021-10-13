@@ -1,11 +1,13 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
 #include "TerrainDataRequestBus.h"
+#include <AzCore/Serialization/SerializeContext.h>
 
 namespace AzFramework
 {
@@ -49,7 +51,8 @@ namespace AzFramework
                     ->Event("GetNormal", &AzFramework::Terrain::TerrainDataRequestBus::Events::GetNormal)
                     ->Event("GetNormalFromFloats", &AzFramework::Terrain::TerrainDataRequestBus::Events::GetNormalFromFloats)
                     ->Event("GetTerrainAabb", &AzFramework::Terrain::TerrainDataRequestBus::Events::GetTerrainAabb)
-                    ->Event("GetTerrainGridResolution", &AzFramework::Terrain::TerrainDataRequestBus::Events::GetTerrainGridResolution)
+                    ->Event("GetTerrainHeightQueryResolution",
+                        &AzFramework::Terrain::TerrainDataRequestBus::Events::GetTerrainHeightQueryResolution)
                     ;
 
             }

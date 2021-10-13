@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -89,7 +90,7 @@ public:
     {
     }
 
-    ~CarrierCallbacksHandler()
+    ~CarrierCallbacksHandler() override
     {
         CarrierEventBus::Handler::BusDisconnect();
     }
@@ -192,7 +193,7 @@ namespace UnitTest
             CarrierCallbacksHandler clientCB, serverCB;
             TestCarrierDesc serverCarrierDesc, clientCarrierDesc;
 
-            string str("Hello this is a carrier test!");
+            AZStd::string str("Hello this is a carrier test!");
 
             const char* targetAddress = "127.0.0.1";
 
@@ -376,7 +377,7 @@ namespace UnitTest
             CarrierCallbacksHandler clientCB, serverCB;
             TestCarrierDesc serverCarrierDesc, clientCarrierDesc;
 
-            string str("Hello this is a carrier test!");
+            AZStd::string str("Hello this is a carrier test!");
             clientCarrierDesc.m_driver = SocketProvider::CreateDriverForJoin();
             serverCarrierDesc.m_driver = SocketProvider::CreateDriverForHost();
 
@@ -468,7 +469,7 @@ namespace UnitTest
             CarrierCallbacksHandler clientCB, serverCB;
             TestCarrierDesc serverCarrierDesc, clientCarrierDesc;
 
-            string str("Hello this is a carrier stress test!");
+            AZStd::string str("Hello this is a carrier stress test!");
 
             clientCarrierDesc.m_enableDisconnectDetection = false;
             serverCarrierDesc.m_enableDisconnectDetection = false;
@@ -1400,7 +1401,7 @@ namespace UnitTest
             CarrierCallbacksHandler clientCB, serverCB;
             CarrierDesc serverCarrierDesc, clientCarrierDesc;
 
-            string str("Hello this is a carrier test!");
+            AZStd::string str("Hello this is a carrier test!");
 
             const char* targetAddress = "127.0.0.1";
 
@@ -1706,7 +1707,7 @@ TEST_F(GridMateCarrierTestFixture, Test_GetSocketErrorString)
     static constexpr char posixErrorWouldBlockPosixErrStr[] = "Resource temporarily unavailable";
     azsnprintf(expectedBuffer.data(), expectedBuffer.size()-1 , "%s", posixErrorWouldBlockPosixErrStr);
 #else
-    azsnprintf(expectedBuffer.data(), expectedBuffer.size()-1 , "%d", AZ_EWOULDBLOCK);
+    azsnprintf(expectedBuffer.data(), expectedBuffer.size()-1 , "%ld", AZ_EWOULDBLOCK);
 #endif // !AZ_TRAIT_USE_POSIX_STRERROR_R
     EXPECT_STREQ(expectedBuffer.data(), socketErrorString);
     EXPECT_STREQ(expectedBuffer.data(), buffer.data());

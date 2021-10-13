@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -28,8 +29,8 @@ namespace EMStudio
     template<class ManagerType, typename GetNumFunc, typename GetEntityFunc>
     bool HasEntityInEditor(const ManagerType& manager, const GetNumFunc& getNumEntitiesFunc, const GetEntityFunc& getEntityFunc)
     {
-        const uint32 numEntities = (manager.*getNumEntitiesFunc)();
-        for (uint32 i = 0; i < numEntities; ++i)
+        const size_t numEntities = (manager.*getNumEntitiesFunc)();
+        for (size_t i = 0; i < numEntities; ++i)
         {
             const auto& entity = (manager.*getEntityFunc)(i);
             if (!entity->GetIsOwnedByRuntime())

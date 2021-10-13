@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -63,7 +64,7 @@ namespace AZ
             bool operator==(const MaterialAssignmentId& rhs) const;
             bool operator!=(const MaterialAssignmentId& rhs) const;
 
-            static constexpr MaterialAssignmentLodIndex NonLodIndex = -1;
+            static constexpr MaterialAssignmentLodIndex NonLodIndex = std::numeric_limits<MaterialAssignmentLodIndex>::max();
 
             MaterialAssignmentLodIndex m_lodIndex = NonLodIndex;
             RPI::ModelMaterialSlot::StableId m_materialSlotStableId = RPI::ModelMaterialSlot::InvalidStableId;

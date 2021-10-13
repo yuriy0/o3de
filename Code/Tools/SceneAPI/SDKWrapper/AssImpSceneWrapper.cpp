@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -24,15 +25,10 @@ namespace AZ
     namespace AssImpSDKWrapper
     {
         AssImpSceneWrapper::AssImpSceneWrapper()
-            : SDKScene::SceneWrapperBase()
         {
         }
         AssImpSceneWrapper::AssImpSceneWrapper(aiScene* aiScene)
-            : SDKScene::SceneWrapperBase(aiScene)
-        {
-        }
-
-        AssImpSceneWrapper::~AssImpSceneWrapper()
+            : m_assImpScene(aiScene)
         {
         }
 
@@ -111,6 +107,11 @@ namespace AZ
         void AssImpSceneWrapper::Clear()
         {
             m_importer.FreeScene();
+        }
+
+        const aiScene* AssImpSceneWrapper::GetAssImpScene() const
+        {
+            return m_assImpScene;
         }
 
         AZStd::pair<AssImpSceneWrapper::AxisVector, int32_t> AssImpSceneWrapper::GetUpVectorAndSign() const

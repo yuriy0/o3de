@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -47,8 +48,6 @@ float Pow5(float x)
 {
     return x * Pow4(x);
 }
-
-
 // ---------- Intersection -----------
 
 // a simple ray sphere intersection function, didn't take limited precision 
@@ -132,6 +131,22 @@ float ComputeLerpBetweenInnerOuterAABBs(float3 innerAabbMin, float3 innerAabbMax
     float3 outerAabbIntersect = position + (dirToPoint * shortestDistance);
     float totalDistance = length(outerAabbIntersect - closestPointOnInnerAabb);
     return totalDistance > 0.0f ? saturate(shortestDistance / totalDistance) : 1.0f;
+}
+
+// returns true if the Obb contains the specified point
+bool ObbContainsPoint(float4x4 obbTransformInverse, float3 obbHalfExtents, float3 testPoint)
+{
+    // get the position in Obb local space, force to positive quadrant with abs()
+    float4 p = abs(mul(obbTransformInverse, float4(testPoint, 1.0f)));
+    return AabbContainsPoint(-obbHalfExtents, obbHalfExtents, p);
+}
+
+// computes [0..1] percentage of a point that's in between the inner and outer OBBs
+float ComputeLerpBetweenInnerOuterOBBs(float3x4 obbTransformInverse, float3 innerObbHalfExtents, float3 outerObbHalfExtents, float3 position)
+{
+    // get the position in Obb local space, force to positive quadrant with abs()
+    float3 p = abs(mul(obbTransformInverse, float4(position, 1.0f)));
+    return ComputeLerpBetweenInnerOuterAABBs(-innerObbHalfExtents, innerObbHalfExtents, outerObbHalfExtents, float3(0.0f, 0.0f, 0.0f), p);
 }
 
 // ---------- Normal Encoding -----------
@@ -253,33 +268,19 @@ float LerpInverse(float a, float b, float value)
         return (value - a) / (b - a);
     }
 }
-
-// ---------- Gaussian -----------
-
+//-------- Gaussinan distribution functions ---------
 // https://en.wikipedia.org/wiki/Gaussian_function
 // Parameter:
-// a is the height of the curve's peak,
-// b is the position of the center of the peak
-// c is the standard deviation and controls the width of the "bell". 
-float Gaussian(float x, float a, float b, float c)
+// amplitude - the height of the curve's peak
+// median - the position of the Mean / Median - the center of the "bell"
+// standardDeviation - controls the width of the "bell"
+float Gaussian(float x, float amplitude, float median, float standardDeviation)
 {
-    float top = Pow2(x - b);
-    float bottom = 2*c*c;
-    return a * exp(-top / bottom);
+    float exponent = -0.5 * Pow2((x - median) / standardDeviation);
+    return amplitude * exp(exponent);
 }
-
-// For parameter description see Gaussian(...) function above
-float GaussianIntegral(float a, float c)
-{
-    return (a * c * sqrt(TWO_PI));
-}
-
 float GaussianNormalized(float x, float expectedValue, float standardDeviation)
 {
-    float b = expectedValue;
-    float c = standardDeviation;
-    float a = 1.0f / (c * sqrt(TWO_PI));
-
-    return Gaussian(x, a, b, c);
+    float normalizedAmplitude = 1.0f / (standardDeviation * sqrt(TWO_PI));
+    return Gaussian(x, normalizedAmplitude, expectedValue, standardDeviation);
 }
-

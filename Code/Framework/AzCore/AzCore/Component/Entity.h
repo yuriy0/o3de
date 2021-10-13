@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -15,6 +16,7 @@
 #pragma once
 
 #include <AzCore/Component/Component.h>
+#include <AzCore/Debug/Budget.h>
 #include <AzCore/Memory/SystemAllocator.h>
 #include <AzCore/EBus/Event.h>
 #include <AzCore/std/string/string.h>
@@ -374,10 +376,9 @@ namespace AZ
         //! @return The Process Signature of the local machine.
         static AZ::u32 GetProcessSignature();
 
-        /// @cond EXCLUDE_DOCS 
-        //! @deprecated Use the TransformBus to communicate with the TransformInterface.
-        inline TransformInterface* GetTransform() const { return m_transform; }
-        /// @endcond
+        //! Gets the TransformInterface for the entity.
+        //! @return The TransformInterface for the entity.
+        TransformInterface* GetTransform() const;
 
         //! Sorts an entity's components based on the dependencies between components.
         //! If all dependencies are met, the required services can be activated
@@ -426,7 +427,7 @@ namespace AZ
         //! A cached pointer to the transform interface. 
         //! We recommend using AZ::TransformBus and caching locally instead of accessing
         //! the transform interface directly through this pointer.
-        TransformInterface* m_transform;
+        mutable TransformInterface* m_transform;
 
         //! A user-friendly name for the entity. This makes error messages easier to read.
         AZStd::string m_name;
@@ -461,3 +462,4 @@ namespace AZ
         return component;
     }
 } // namespace AZ
+

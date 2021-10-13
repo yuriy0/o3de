@@ -1,11 +1,11 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
-#include <LmbrCentral_precompiled.h>
 #include "BundlingSystemComponent.h"
 
 #include <AzCore/Asset/AssetManagerBus.h>
@@ -22,7 +22,7 @@
 
 namespace LmbrCentral
 {
-    const char bundleRoot[] = "@assets@";
+    const char bundleRoot[] = "@products@";
 
     void BundlingSystemComponent::Activate()
     {
@@ -178,7 +178,7 @@ namespace LmbrCentral
 
         // Not already opened, new entry
         m_openedBundles[bundleName] = AZStd::make_unique<OpenBundleInfo>();
-        AZStd::shared_ptr<AzFramework::AssetRegistry> nextCatalog; // Not all bundles will have catalogs - some are legacy.  
+        AZStd::shared_ptr<AzFramework::AssetRegistry> nextCatalog; // Not all bundles will have catalogs - some are legacy.
         if (nextBundle == nullptr)
         {
             // Added to the end

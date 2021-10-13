@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -32,7 +33,7 @@ namespace EMotionFX
         ASSERT_EQ(GetActorManager().GetNumActors(), 0);
 
         // Load an Actor
-        const char* actorCmd{ "ImportActor -filename @devroot@/Gems/EMotionFX/Code/Tests/TestAssets/Rin/rin.actor" };
+        const char* actorCmd{ "ImportActor -filename @engroot@/Gems/EMotionFX/Code/Tests/TestAssets/Rin/rin.actor" };
         {
             AZStd::string result;
             EXPECT_TRUE(CommandSystem::GetCommandManager()->ExecuteCommand(actorCmd, result)) << result.c_str();

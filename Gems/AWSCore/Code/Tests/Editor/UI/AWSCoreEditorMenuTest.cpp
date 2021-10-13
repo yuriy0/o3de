@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -31,7 +32,7 @@ class AWSCoreEditorMenuTest
     {
         AWSCoreEditorUIFixture::SetUp();
         AWSCoreFixture::SetUp();
-        m_localFileIO->SetAlias("@devroot@", "dummy engine root");
+        m_localFileIO->SetAlias("@engroot@", "dummy engine root");
     }
 
     void TearDown() override
@@ -41,18 +42,9 @@ class AWSCoreEditorMenuTest
     }
 };
 
-TEST_F(AWSCoreEditorMenuTest, AWSCoreEditorMenu_NoEngineRootFolder_ExpectOneError)
-{
-    AZ_TEST_START_TRACE_SUPPRESSION;
-    AWSCoreEditorMenu testMenu("dummy title");
-    AZ_TEST_STOP_TRACE_SUPPRESSION(1); // expect the above have thrown an AZ_Error
-}
-
 TEST_F(AWSCoreEditorMenuTest, AWSCoreEditorMenu_GetAllActions_GetExpectedNumberOfActions)
 {
-    AZ_TEST_START_TRACE_SUPPRESSION;
     AWSCoreEditorMenu testMenu("dummy title");
-    AZ_TEST_STOP_TRACE_SUPPRESSION(1); // expect the above have thrown an AZ_Error
 
     QList<QAction*> actualActions = testMenu.actions();
 #ifdef AWSCORE_EDITOR_RESOURCE_MAPPING_TOOL_ENABLED
@@ -64,9 +56,7 @@ TEST_F(AWSCoreEditorMenuTest, AWSCoreEditorMenu_GetAllActions_GetExpectedNumberO
 
 TEST_F(AWSCoreEditorMenuTest, AWSCoreEditorMenu_BroadcastFeatureGemsAreEnabled_CorrespondingActionsAreEnabled)
 {
-    AZ_TEST_START_TRACE_SUPPRESSION;
     AWSCoreEditorMenu testMenu("dummy title");
-    AZ_TEST_STOP_TRACE_SUPPRESSION(1); // expect the above have thrown an AZ_Error
 
     AWSCoreEditorRequestBus::Broadcast(&AWSCoreEditorRequests::SetAWSClientAuthEnabled);
     AWSCoreEditorRequestBus::Broadcast(&AWSCoreEditorRequests::SetAWSMetricsEnabled);

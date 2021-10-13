@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -158,8 +159,8 @@ CLayoutViewPane::CLayoutViewPane(QWidget* parent)
     , m_viewportTitleDlg(this)
     , m_expanderWatcher(new ViewportTitleExpanderWatcher(this, &m_viewportTitleDlg))
 {
-    m_viewport = 0;
-    m_active = 0;
+    m_viewport = nullptr;
+    m_active = false;
     m_nBorder = VIEW_BORDER;
 
     m_bFullscreen = false;
@@ -333,7 +334,7 @@ void CLayoutViewPane::DetachViewport()
 {
     DisconnectRenderViewportInteractionRequestBus();
     OnFOVChanged(gSettings.viewports.fDefaultFov);
-    m_viewport = 0;
+    m_viewport = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -343,7 +344,7 @@ void CLayoutViewPane::ReleaseViewport()
     {
         DisconnectRenderViewportInteractionRequestBus();
         m_viewport->deleteLater();
-        m_viewport = 0;
+        m_viewport = nullptr;
     }
 }
 
@@ -645,7 +646,7 @@ namespace
         if (viewPane && viewPane->GetViewport())
         {
             const QRect rcViewport = viewPane->GetViewport()->rect();
-            return AZ::Vector2(rcViewport.width(), rcViewport.height());
+            return AZ::Vector2(static_cast<float>(rcViewport.width()), static_cast<float>(rcViewport.height()));
         }
         else
         {
@@ -768,7 +769,9 @@ namespace
 
     void PySetViewPaneLayout(unsigned int layoutId)
     {
+        AZ_PUSH_DISABLE_WARNING(4296, "-Wunknown-warning-option")
         if ((layoutId >= ET_Layout0) && (layoutId <= ET_Layout8))
+        AZ_POP_DISABLE_WARNING
         {
             CLayoutWnd* layout = GetIEditor()->GetViewManager()->GetLayout();
             if (layout)

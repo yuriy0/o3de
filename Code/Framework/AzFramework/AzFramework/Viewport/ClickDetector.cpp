@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -8,8 +9,19 @@
 #include <AzFramework/Viewport/ClickDetector.h>
 #include <AzFramework/Viewport/ScreenGeometry.h>
 
+#include <AzCore/std/chrono/clocks.h>
+
 namespace AzFramework
 {
+    ClickDetector::ClickDetector()
+    {
+        m_timeNowFn = []
+        {
+            const auto now = AZStd::chrono::high_resolution_clock::now();
+            return AZStd::chrono::time_point_cast<AZStd::chrono::milliseconds>(now).time_since_epoch();
+        };
+    }
+
     ClickDetector::ClickOutcome ClickDetector::DetectClick(const ClickEvent clickEvent, const ScreenVector& cursorDelta)
     {
         const auto previousDetectionState = m_detectionState;
@@ -25,11 +37,13 @@ namespace AzFramework
 
         if (clickEvent == ClickEvent::Down)
         {
-            const auto now = std::chrono::steady_clock::now();
+            const auto now = m_timeNowFn();
             if (m_tryBeginTime)
             {
-                const std::chrono::duration<float> diff = now - m_tryBeginTime.value();
-                if (diff.count() < m_doubleClickInterval)
+                using FloatingPointSeconds = AZStd::chrono::duration<float, AZStd::chrono::seconds::period>;
+
+                const auto diff = now - m_tryBeginTime.value();
+                if (FloatingPointSeconds(diff).count() < m_doubleClickInterval)
                 {
                     return ClickOutcome::Nil;
                 }
@@ -42,7 +56,8 @@ namespace AzFramework
         }
         else if (clickEvent == ClickEvent::Up)
         {
-            const auto clickOutcome = [detectionState = m_detectionState] {
+            const auto clickOutcome = [detectionState = m_detectionState]
+            {
                 if (detectionState == DetectionState::WaitingForMove)
                 {
                     return ClickOutcome::Click;
@@ -64,5 +79,10 @@ namespace AzFramework
         }
 
         return ClickOutcome::Nil;
+    }
+
+    void ClickDetector::OverrideTimeNowFn(AZStd::function<AZStd::chrono::milliseconds()> timeNowFn)
+    {
+        m_timeNowFn = AZStd::move(timeNowFn);
     }
 } // namespace AzFramework

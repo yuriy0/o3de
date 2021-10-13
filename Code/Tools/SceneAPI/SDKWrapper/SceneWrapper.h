@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -24,9 +25,7 @@ namespace AZ
         {
         public:
             AZ_RTTI(SceneWrapperBase, "{703CD344-2C75-4F30-8CE2-6BDEF2511AFD}");
-            SceneWrapperBase() = default;
             virtual ~SceneWrapperBase() = default;
-            SceneWrapperBase(aiScene* aiScene);
 
             virtual bool LoadSceneFromFile(const char* fileName);
             virtual bool LoadSceneFromFile(const AZStd::string& fileName);
@@ -35,11 +34,6 @@ namespace AZ
             virtual std::shared_ptr<SDKNode::NodeWrapper> GetRootNode();
 
             virtual void Clear();
-            
-            virtual const aiScene* GetAssImpScene() const;
-            virtual ::fbxsdk::FbxScene* GetFbxScene() const { return nullptr; }
-
-            const aiScene* m_assImpScene = nullptr;
 
             static const char* s_defaultSceneName;
         };

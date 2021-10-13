@@ -1,6 +1,7 @@
 # 
-# Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
-# 
+# Copyright (c) Contributors to the Open 3D Engine Project.
+# For complete copyright and license terms please see the LICENSE at the root of this distribution.
+#
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 #
 # 
@@ -85,6 +86,7 @@ set(FILES
     Passes/CascadedShadowmaps.pass
     Passes/CheckerboardResolveColor.pass
     Passes/CheckerboardResolveDepth.pass
+    Passes/HDRColorGrading.pass
     Passes/ContrastAdaptiveSharpening.pass
     Passes/ConvertToAcescg.pass
     Passes/DebugOverlayParent.pass
@@ -111,7 +113,6 @@ set(FILES
     Passes/DepthUpsample.pass
     Passes/DiffuseComposite.pass
     Passes/DiffuseGlobalFullscreen.pass
-    Passes/DiffuseGlobalFullscreen_nomsaa.pass
     Passes/DiffuseGlobalIllumination.pass
     Passes/DiffuseProbeGridBlendDistance.pass
     Passes/DiffuseProbeGridBlendIrradiance.pass
@@ -136,8 +137,6 @@ set(FILES
     Passes/FastDepthAwareBlur.pass
     Passes/FastDepthAwareBlurHor.pass
     Passes/FastDepthAwareBlurVer.pass
-    Passes/FilterDepthHorizontal.pass
-    Passes/FilterDepthVertical.pass
     Passes/Forward.pass
     Passes/ForwardCheckerboard.pass
     Passes/ForwardMSAA.pass
@@ -145,12 +144,12 @@ set(FILES
     Passes/FullscreenCopy.pass
     Passes/FullscreenOutputOnly.pass
     Passes/ImGui.pass
+    Passes/KawaseShadowBlur.pass
     Passes/LightAdaptationParent.pass
     Passes/LightCulling.pass
     Passes/LightCullingHeatmap.pass
     Passes/LightCullingParent.pass
     Passes/LightCullingRemap.pass
-    Passes/LightCullingTilePrepare.pass
     Passes/LightCullingTilePrepareMSAA.pass
     Passes/LookModificationComposite.pass
     Passes/LookModificationTransform.pass
@@ -160,6 +159,8 @@ set(FILES
     Passes/LuminanceHistogramGenerator.pass
     Passes/MainPipeline.pass
     Passes/MainPipelineRenderToTexture.pass
+    Passes/ThumbnailPipeline.pass
+    Passes/ThumbnailPipelineRenderToTexture.pass
     Passes/MeshMotionVector.pass
     Passes/ModulateTexture.pass
     Passes/MorphTarget.pass
@@ -174,7 +175,6 @@ set(FILES
     Passes/ReflectionComposite.pass
     Passes/ReflectionCopyFrameBuffer.pass
     Passes/ReflectionGlobalFullscreen.pass
-    Passes/ReflectionGlobalFullscreen_nomsaa.pass
     Passes/ReflectionProbeBlendWeight.pass
     Passes/ReflectionProbeRenderInner.pass
     Passes/ReflectionProbeRenderOuter.pass
@@ -188,7 +188,6 @@ set(FILES
     Passes/ReflectionScreenSpaceComposite.pass
     Passes/ReflectionScreenSpaceMobile.pass
     Passes/ReflectionScreenSpaceTrace.pass
-    Passes/Reflections_nomsaa.pass
     Passes/ShadowParent.pass
     Passes/Skinning.pass
     Passes/SkyBox.pass
@@ -224,6 +223,8 @@ set(FILES
     ShaderLib/Atom/Features/ColorManagement/GeneratedTransforms/LinearSrgb_To_AcesCg.azsli
     ShaderLib/Atom/Features/ColorManagement/GeneratedTransforms/LinearSrgb_To_Srgb.azsli
     ShaderLib/Atom/Features/ColorManagement/GeneratedTransforms/Srgb_To_LinearSrgb.azsli
+    ShaderLib/Atom/Features/ColorManagement/GeneratedTransforms/AcesCcToAcesCg.azsli
+    ShaderLib/Atom/Features/ColorManagement/GeneratedTransforms/AcesCgToAcesCc.azsli
     ShaderLib/Atom/Features/CoreLights/PhotometricValue.azsli
     ShaderLib/Atom/Features/Decals/DecalTextureUtil.azsli
     ShaderLib/Atom/Features/LightCulling/LightCullingShared.azsli
@@ -289,9 +290,11 @@ set(FILES
     ShaderLib/Atom/Features/Shadow/Shadow.azsli
     ShaderLib/Atom/Features/Shadow/ShadowmapAtlasLib.azsli
     ShaderLib/Atom/Features/Vertex/VertexHelper.azsli
+    ShaderLib/3rdParty/Features/PostProcessing/KelvinToRgb.azsli
+    ShaderLib/3rdParty/Features/PostProcessing/PSstyleColorBlends_NonSeparable.azsli
+    ShaderLib/3rdParty/Features/PostProcessing/PSstyleColorBlends_Separable.azsli 
     ShaderResourceGroups/SceneSrg.azsli
     ShaderResourceGroups/SceneSrgAll.azsli
-    ShaderResourceGroups/SceneTimeSrg.azsli
     ShaderResourceGroups/ViewSrg.azsli
     ShaderResourceGroups/ViewSrgAll.azsli
     ShaderResourceGroups/CoreLights/SceneSrg.azsli
@@ -318,16 +321,10 @@ set(FILES
     Shaders/Depth/DepthPassTransparentMin.shader
     Shaders/DiffuseGlobalIllumination/DiffuseComposite.azsl
     Shaders/DiffuseGlobalIllumination/DiffuseComposite.shader
-    Shaders/DiffuseGlobalIllumination/DiffuseComposite_nomsaa.azsl
-    Shaders/DiffuseGlobalIllumination/DiffuseComposite_nomsaa.shader
     Shaders/DiffuseGlobalIllumination/DiffuseGlobalFullscreen.azsl
     Shaders/DiffuseGlobalIllumination/DiffuseGlobalFullscreen.shader
-    Shaders/DiffuseGlobalIllumination/DiffuseGlobalFullscreen_nomsaa.azsl
-    Shaders/DiffuseGlobalIllumination/DiffuseGlobalFullscreen_nomsaa.shader
     Shaders/DiffuseGlobalIllumination/DiffuseProbeGridDownsample.azsl
     Shaders/DiffuseGlobalIllumination/DiffuseProbeGridDownsample.shader
-    Shaders/DiffuseGlobalIllumination/DiffuseProbeGridDownsample_nomsaa.azsl
-    Shaders/DiffuseGlobalIllumination/DiffuseProbeGridDownsample_nomsaa.shader
     Shaders/ImGui/ImGui.azsl
     Shaders/ImGui/ImGui.shader
     Shaders/LightCulling/LightCulling.azsl
@@ -340,10 +337,6 @@ set(FILES
     Shaders/LightCulling/LightCullingTilePrepare.shader
     Shaders/LuxCore/RenderTexture.azsl
     Shaders/LuxCore/RenderTexture.shader
-    Shaders/Math/GaussianFilterFloatHorizontal.azsl
-    Shaders/Math/GaussianFilterFloatHorizontal.shader
-    Shaders/Math/GaussianFilterFloatVertical.azsl
-    Shaders/Math/GaussianFilterFloatVertical.shader
     Shaders/MorphTargets/MorphTargetCS.azsl
     Shaders/MorphTargets/MorphTargetCS.shader
     Shaders/MorphTargets/MorphTargetSRG.azsli
@@ -406,6 +399,8 @@ set(FILES
     Shaders/PostProcessing/FastDepthAwareBlurVer.shader
     Shaders/PostProcessing/FullscreenCopy.azsl
     Shaders/PostProcessing/FullscreenCopy.shader
+    Shaders/PostProcessing/HDRColorGrading.azsl
+    Shaders/PostProcessing/HDRColorGrading.shader
     Shaders/PostProcessing/LookModificationTransform.azsl
     Shaders/PostProcessing/LookModificationTransform.shader
     Shaders/PostProcessing/LuminanceHeatmap.azsl
@@ -440,12 +435,8 @@ set(FILES
     Shaders/Reflections/ReflectionCommon.azsli
     Shaders/Reflections/ReflectionComposite.azsl
     Shaders/Reflections/ReflectionComposite.shader
-    Shaders/Reflections/ReflectionComposite_nomsaa.azsl
-    Shaders/Reflections/ReflectionComposite_nomsaa.shader
     Shaders/Reflections/ReflectionGlobalFullscreen.azsl
     Shaders/Reflections/ReflectionGlobalFullscreen.shader
-    Shaders/Reflections/ReflectionGlobalFullscreen_nomsaa.azsl
-    Shaders/Reflections/ReflectionGlobalFullscreen_nomsaa.shader
     Shaders/Reflections/ReflectionProbeBlendWeight.azsl
     Shaders/Reflections/ReflectionProbeBlendWeight.shader
     Shaders/Reflections/ReflectionProbeRenderCommon.azsli
@@ -468,6 +459,8 @@ set(FILES
     Shaders/Reflections/ReflectionScreenSpaceTrace.shader
     Shaders/Shadow/DepthExponentiation.azsl
     Shaders/Shadow/DepthExponentiation.shader
+    Shaders/Shadow/KawaseShadowBlur.azsl
+    Shaders/Shadow/KawaseShadowBlur.shader
     Shaders/Shadow/Shadowmap.azsl
     Shaders/Shadow/Shadowmap.shader
     Shaders/SkinnedMesh/LinearSkinningCS.azsl

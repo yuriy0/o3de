@@ -185,14 +185,6 @@
                 "Path": "Passes/DepthOfFieldWriteFocusDepthFromGpu.pass"
             },
             {
-                "Name": "FilterDepthHorizontalTemplate",
-                "Path": "Passes/FilterDepthHorizontal.pass"
-            },
-            {
-                "Name": "FilterDepthVerticalTemplate",
-                "Path": "Passes/FilterDepthVertical.pass"
-            },
-            {
                 "Name": "EsmShadowmapsTemplate",
                 "Path": "Passes/EsmShadowmaps.pass"
             },
@@ -211,10 +203,6 @@
             {
                 "Name": "LightCullingTemplate",
                 "Path": "Passes/LightCulling.pass"
-            },
-            {
-                "Name": "LightCullingTilePrepareTemplate",
-                "Path": "Passes/LightCullingTilePrepare.pass"
             },
             {
                 "Name": "LightCullingTilePrepareMSAATemplate",
@@ -481,6 +469,14 @@
                 "Path": "Passes/OpaqueParent.pass"
             },
             {
+                "Name": "ThumbnailPipeline",
+                "Path": "Passes/ThumbnailPipeline.pass"
+            },
+            {
+                "Name": "ThumbnailPipelineRenderToTexture",
+                "Path": "Passes/ThumbnailPipelineRenderToTexture.pass"
+            },
+            {
                 "Name": "TransparentParentTemplate",
                 "Path": "Passes/TransparentParent.pass"
             },
@@ -520,49 +516,14 @@
                 "Name": "LowEndPipelineTemplate",
                 "Path": "Passes/LowEndPipeline.pass"
             },
-
-
-
             {
-                "Name": "HairSkinningComputePassTemplate",
-                "Path": "Passes/HairSkinningCompute.pass"
+                "Name": "KawaseShadowBlurTemplate",
+                "Path": "Passes/KawaseShadowBlur.pass"
             },
             {
-                "Name": "HairGlobalShapeConstraintsComputePassTemplate",
-                "Path": "Passes/HairGlobalShapeConstraintsCompute.pass"
-            },
-            {
-                "Name": "HairCalculateStrandLevelDataComputePassTemplate",
-                "Path": "Passes/HairCalculateStrandLevelDataCompute.pass"
-            },
-            {
-                "Name": "HairVelocityShockPropagationComputePassTemplate",
-                "Path": "Passes/HairVelocityShockPropagationCompute.pass"
-            },
-            {
-                "Name": "HairLocalShapeConstraintsComputePassTemplate",
-                "Path": "Passes/HairLocalShapeConstraintsCompute.pass"
-            },
-            {
-                "Name": "HairLengthConstraintsWindAndCollisionComputePassTemplate",
-                "Path": "Passes/HairLengthConstraintsWindAndCollisionCompute.pass"
-            },
-            {
-                "Name": "HairUpdateFollowHairComputePassTemplate",
-                "Path": "Passes/HairUpdateFollowHairCompute.pass"
-            },
-            {
-                "Name": "HairPPLLRasterPassTemplate",
-                "Path": "Passes/HairFillPPLL.pass"
-            },
-            {
-                "Name": "HairPPLLResolvePassTemplate",
-                "Path": "Passes/HairResolvePPLL.pass"
-            },
-            {
-                "Name": "HairParentPassTemplate",
-                "Path": "Passes/HairParentPass.pass"
-            }
+                "Name": "HDRColorGradingTemplate",
+                "Path": "Passes/HDRColorGrading.pass"
+            }            
         ]
     }
 }

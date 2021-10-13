@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -20,8 +21,6 @@
 #include <AzFramework/Components/EditorEntityEvents.h>
 #include "CameraComponent.h"
 #include "CameraComponentController.h"
-#include <IViewSystem.h>
-#include <Cry_Camera.h>
 
 #include <Atom/RPI.Public/Base.h>
 
@@ -53,7 +52,9 @@ namespace Camera
             const AzFramework::ViewportInfo& viewportInfo,
             AzFramework::DebugDisplayRequests& debugDisplay) override;
 
+        /// EditorCameraViewRequestBus::Handler interface
         void ToggleCameraAsActiveView() override { OnPossessCameraButtonClicked(); }
+        bool GetCameraState(AzFramework::CameraState& cameraState) override;
 
     protected:
         void EditorDisplay(AzFramework::DebugDisplayRequests& displayInterface, const AZ::Transform& world);

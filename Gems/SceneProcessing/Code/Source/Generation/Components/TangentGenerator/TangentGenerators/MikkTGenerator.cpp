@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -107,7 +108,8 @@ namespace AZ::TangentGeneration::Mesh::MikkT
     bool GenerateTangents(const AZ::SceneAPI::DataTypes::IMeshData* meshData,
         const AZ::SceneAPI::DataTypes::IMeshVertexUVData* uvData,
         AZ::SceneAPI::DataTypes::IMeshVertexTangentData* outTangentData,
-        AZ::SceneAPI::DataTypes::IMeshVertexBitangentData* outBitangentData)
+        AZ::SceneAPI::DataTypes::IMeshVertexBitangentData* outBitangentData,
+        AZ::SceneAPI::DataTypes::MikkTSpaceMethod tSpaceMethod)
     {
         // Provide the MikkT interface.
         SMikkTSpaceInterface mikkInterface;
@@ -115,9 +117,23 @@ namespace AZ::TangentGeneration::Mesh::MikkT
         mikkInterface.m_getNormal           = GetNormal;
         mikkInterface.m_getPosition         = GetPosition;
         mikkInterface.m_getTexCoord         = GetTexCoord;
-        mikkInterface.m_setTSpace           = SetTSpace;
-        mikkInterface.m_setTSpaceBasic      = nullptr;//SetTSpaceBasic;
         mikkInterface.m_getNumVerticesOfFace= GetNumVerticesOfFace;
+
+        switch (tSpaceMethod)
+        {
+        case AZ::SceneAPI::DataTypes::MikkTSpaceMethod::TSpaceBasic:
+        {
+            mikkInterface.m_setTSpace = nullptr;
+            mikkInterface.m_setTSpaceBasic = SetTSpaceBasic;
+            break;
+        }
+        default:
+        {
+            mikkInterface.m_setTSpace = SetTSpace;
+            mikkInterface.m_setTSpaceBasic = nullptr;
+            break;
+        }
+        }
 
         // Set the MikkT custom data.
         MikktCustomData customData;

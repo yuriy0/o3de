@@ -1,15 +1,18 @@
 #
-# Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
-# 
+# Copyright (c) Contributors to the Open 3D Engine Project.
+# For complete copyright and license terms please see the LICENSE at the root of this distribution.
+#
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 #
 #
 
 set(FILES
-    ../Common/Directory.Build.props
-    ../Common/VisualStudio_common.cmake
     ../Common/Configurations_common.cmake
     ../Common/MSVC/Configurations_msvc.cmake
+    ../Common/MSVC/CodeAnalysis.ruleset
+    ../Common/MSVC/Directory.Build.props
+    ../Common/MSVC/TestProject.props
+    ../Common/MSVC/VisualStudio_common.cmake
     ../Common/Install_common.cmake
     ../Common/LYWrappers_default.cmake
     ../Common/TargetIncludeSystemDirectories_unsupported.cmake

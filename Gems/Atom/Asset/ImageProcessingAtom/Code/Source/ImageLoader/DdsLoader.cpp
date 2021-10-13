@@ -1,11 +1,11 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
-#include "ImageProcessing_precompiled.h"
 
 #include <AzCore/Debug/Trace.h>
 #include <AzCore/Math/MathUtils.h>
@@ -87,10 +87,10 @@ namespace ImageProcessingAtom
                     if (dxgiFormat != DXGI_FORMAT_UNKNOWN)
                     {
                         int i = 0;
-                        for (i; i < ePixelFormat_Count; i++)
+                        for (; i < ePixelFormat_Count; i++)
                         {
                             const PixelFormatInfo* info = CPixelFormats::GetInstance().GetPixelFormatInfo((EPixelFormat)i);
-                            if (info->d3d10Format == dxgiFormat)
+                            if (static_cast<AZ::u32>(info->d3d10Format) == dxgiFormat)
                             {
                                 eFormat = (EPixelFormat)i;
                                 break;
@@ -506,10 +506,10 @@ namespace ImageProcessingAtom
                     if (dxgiFormat != DXGI_FORMAT_UNKNOWN)
                     {
                         uint32_t i = 0;
-                        for (i; i < ePixelFormat_Count; i++)
+                        for (; i < ePixelFormat_Count; i++)
                         {
                             const PixelFormatInfo* info = CPixelFormats::GetInstance().GetPixelFormatInfo((EPixelFormat)i);
-                            if (info->d3d10Format == dxgiFormat)
+                            if (static_cast<uint32_t>(info->d3d10Format) == dxgiFormat)
                             {
                                 format = (EPixelFormat)i;
                                 break;

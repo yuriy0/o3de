@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -14,8 +15,6 @@
 #include <AzCore/Debug/EventTrace.h>
 
 #include <Atom/RHI/Factory.h>
-
-#include <Atom/RHI/CpuProfiler.h>
 
 #include <Atom/RPI.Public/Pass/PassSystemInterface.h>
 #include <Atom/RPI.Public/RPISystemInterface.h>
@@ -160,7 +159,7 @@ namespace AZ
 
         void SMAAFeatureProcessor::Render([[maybe_unused]] const SMAAFeatureProcessor::RenderPacket& packet)
         {
-            AZ_ATOM_PROFILE_FUNCTION("RPI", "SMAAFeatureProcessor: Render");
+            AZ_PROFILE_SCOPE(RPI, "SMAAFeatureProcessor: Render");
 
             UpdateConvertToPerceptualPass();
             UpdateEdgeDetectionPass();

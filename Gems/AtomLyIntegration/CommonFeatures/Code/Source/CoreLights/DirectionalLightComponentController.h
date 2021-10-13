@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -77,12 +78,10 @@ namespace AZ
             void SetShadowFilterMethod(ShadowFilterMethod method) override;
             float GetSofteningBoundaryWidth() const override;
             void SetSofteningBoundaryWidth(float width) override;
-            uint32_t GetPredictionSampleCount() const override;
-            void SetPredictionSampleCount(uint32_t count) override;
             uint32_t GetFilteringSampleCount() const override;
             void SetFilteringSampleCount(uint32_t count) override;
-            PcfMethod GetPcfMethod() const override;
-            void SetPcfMethod(PcfMethod method) override;
+            bool GetShadowReceiverPlaneBiasEnabled() const override;
+            void SetShadowReceiverPlaneBiasEnabled(bool enable) override;
 
         private:
             friend class EditorDirectionalLightComponent;

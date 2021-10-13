@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -53,7 +54,7 @@ namespace AZ
                 double totalFramesAtDefaultTimeStep = totalTicks / AssImpAnimationImporter::s_defaultTimeStepBetweenFrames + 1;
                 if (!AZ::IsClose(totalFramesAtDefaultTimeStep, numKeys, 1))
                 {
-                    numKeys = AZStd::ceilf(totalFramesAtDefaultTimeStep);
+                    numKeys = static_cast<AZ::u32>(AZStd::ceilf(static_cast<float>(totalFramesAtDefaultTimeStep)));
                 }
                 return numKeys;
             }
@@ -126,7 +127,7 @@ namespace AZ
                     if (keys[lastIndex + 1].mTime != keys[lastIndex].mTime)
                     {
                         normalizedTimeBetweenFrames =
-                            (time - keys[lastIndex].mTime) / (keys[lastIndex + 1].mTime - keys[lastIndex].mTime);
+                            static_cast<float>((time - keys[lastIndex].mTime) / (keys[lastIndex + 1].mTime - keys[lastIndex].mTime));
                     }
                     else
                     {
@@ -451,11 +452,11 @@ namespace AZ
 
                 AZStd::unordered_set<AZStd::string> boneList;
 
-                for (int meshIndex = 0; meshIndex < scene->mNumMeshes; ++meshIndex)
+                for (unsigned int meshIndex = 0; meshIndex < scene->mNumMeshes; ++meshIndex)
                 {
                     aiMesh* mesh = scene->mMeshes[meshIndex];
 
-                    for (int boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
+                    for (unsigned int boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
                     {
                         aiBone* bone = mesh->mBones[boneIndex];
 
@@ -618,13 +619,13 @@ namespace AZ
                 ValueToKeyDataMap valueToKeyDataMap;
                 // Key time can be less than zero, normalize to have zero be the lowest time.
                 double keyOffset = 0;
-                for (int keyIdx = 0; keyIdx < meshMorphAnim->mNumKeys; keyIdx++)
+                for (unsigned int keyIdx = 0; keyIdx < meshMorphAnim->mNumKeys; keyIdx++)
                 {
                     aiMeshMorphKey& key = meshMorphAnim->mKeys[keyIdx];
-                    for (int valIdx = 0; valIdx < key.mNumValuesAndWeights; ++valIdx)
+                    for (unsigned int valIdx = 0; valIdx < key.mNumValuesAndWeights; ++valIdx)
                     {
                         int currentValue = key.mValues[valIdx];
-                        KeyData thisKey(key.mWeights[valIdx], key.mTime);
+                        KeyData thisKey(static_cast<float>(key.mWeights[valIdx]), static_cast<float>(key.mTime));
                         valueToKeyDataMap[currentValue].insert(
                         AZStd::upper_bound(valueToKeyDataMap[currentValue].begin(), valueToKeyDataMap[currentValue].end(),thisKey),
                             thisKey);
@@ -649,21 +650,20 @@ namespace AZ
                     AZStd::shared_ptr<SceneData::GraphData::BlendShapeAnimationData> morphAnimNode =
                         AZStd::make_shared<SceneData::GraphData::BlendShapeAnimationData>();
 
-                    const size_t numKeyFrames = GetNumKeyFrames(keys.size(), animation->mDuration, animation->mTicksPerSecond);
+                    const size_t numKeyFrames = GetNumKeyFrames(static_cast<AZ::u32>(keys.size()), animation->mDuration, animation->mTicksPerSecond);
                     morphAnimNode->ReserveKeyFrames(numKeyFrames);
                     morphAnimNode->SetTimeStepBetweenFrames(s_defaultTimeStepBetweenFrames);
 
                     aiAnimMesh* aiAnimMesh = mesh->mAnimMeshes[meshIdx];
                     AZStd::string_view nodeName(aiAnimMesh->mName.C_Str());
 
-                    const AZ::u32 maxKeys = keys.size();
                     AZ::u32 keyIdx = 0;
                     for (AZ::u32 frame = 0; frame < numKeyFrames; ++frame)
                     {
                         const double time = GetTimeForFrame(frame, animation->mTicksPerSecond);
 
                         float weight = 0;
-                        if (!SampleKeyFrame(weight, keys, keys.size(), time + keyOffset, keyIdx))
+                        if (!SampleKeyFrame(weight, keys, static_cast<AZ::u32>(keys.size()), time + keyOffset, keyIdx))
                         {
                             return Events::ProcessingResult::Failure;
                         }

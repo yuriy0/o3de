@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -31,19 +32,20 @@
 #include <Atom/RPI.Edit/Common/AssetUtils.h>
 
 #include <Atom/RPI.Reflect/Material/MaterialAsset.h>
+#include <AzCore/Settings/SettingsRegistry.h>
 
 namespace AZ
 {
     namespace RPI
     {
-        static const char* MaterialExporterName = "Scene Material Builder";
+        [[maybe_unused]] static const char* MaterialExporterName = "Scene Material Builder";
 
         void MaterialAssetDependenciesComponent::Reflect(ReflectContext* context)
         {
             if (auto* serialize = azrtti_cast<SerializeContext*>(context))
             {
                 serialize->Class<MaterialAssetDependenciesComponent, Component>()
-                    ->Version(4)
+                    ->Version(5) // Set materialtype dependency to OrderOnce
                     ->Attribute(Edit::Attributes::SystemComponentTags, AZStd::vector<Crc32>({ AssetBuilderSDK::ComponentTags::AssetBuilder }));
             }
         }
@@ -74,10 +76,10 @@ namespace AZ
             RPI::MaterialConverterBus::BroadcastResult(conversionEnabled, &RPI::MaterialConverterBus::Events::IsEnabled);
             
             // Right now, scene file importing only supports a single material type, once that changes, this will have to be re-designed, see ATOM-3554
-            const char* materialTypePath = nullptr;
+            AZStd::string materialTypePath;
             RPI::MaterialConverterBus::BroadcastResult(materialTypePath, &RPI::MaterialConverterBus::Events::GetMaterialTypePath);
 
-            if (conversionEnabled && materialTypePath)
+            if (conversionEnabled && !materialTypePath.empty())
             {
                 AssetBuilderSDK::SourceFileDependency materialTypeSource;
                 materialTypeSource.m_sourceFileDependencyPath = materialTypePath;
@@ -86,7 +88,15 @@ namespace AZ
                 jobDependency.m_jobKey = "Atom Material Builder";
                 jobDependency.m_sourceFile = materialTypeSource;
                 jobDependency.m_platformIdentifier = platformIdentifier;
-                jobDependency.m_type = AssetBuilderSDK::JobDependencyType::Order;
+
+                // If includeMaterialPropertyNames is false, then a job dependency is needed so the material builder can validate
+                // MaterialAsset properties against the MaterialTypeAsset at asset build time. If includeMaterialPropertyNames is true, the
+                // material properties will be validated at runtime when the material is loaded, so the job dependency is needed only for
+                // first-time processing to set up the initial MaterialAsset. This speeds up AP processing time when a materialtype file is
+                // edited (e.g. 10s when editing StandardPBR.materialtype on AtomTest project from 45s).
+                bool includeMaterialPropertyNames = true;
+                RPI::MaterialConverterBus::BroadcastResult(includeMaterialPropertyNames, &RPI::MaterialConverterBus::Events::ShouldIncludeMaterialPropertyNames);
+                jobDependency.m_type = includeMaterialPropertyNames ? AssetBuilderSDK::JobDependencyType::OrderOnce : AssetBuilderSDK::JobDependencyType::Order;
 
                 jobDependencyList.push_back(jobDependency);
             }
@@ -99,6 +109,10 @@ namespace AZ
             bool conversionEnabled = false;
             RPI::MaterialConverterBus::BroadcastResult(conversionEnabled, &RPI::MaterialConverterBus::Events::IsEnabled);
             fingerprintInfo.insert(AZStd::string::format("[MaterialConverter enabled=%d]", conversionEnabled));
+
+            bool includeMaterialPropertyNames = true;
+            RPI::MaterialConverterBus::BroadcastResult(includeMaterialPropertyNames, &RPI::MaterialConverterBus::Events::ShouldIncludeMaterialPropertyNames);
+            fingerprintInfo.insert(AZStd::string::format("[MaterialConverter includeMaterialPropertyNames=%d]", includeMaterialPropertyNames));
 
             if (!conversionEnabled)
             {
@@ -113,7 +127,7 @@ namespace AZ
             if (auto* serialize = azrtti_cast<SerializeContext*>(context))
             {
                 serialize->Class<MaterialAssetBuilderComponent, SceneAPI::SceneCore::ExportingComponent>()
-                    ->Version(18);  // Optional FBX material conversion 
+                    ->Version(16);  // Optional material conversion 
             }
         }
         
@@ -218,6 +232,8 @@ namespace AZ
                 }
             }
 
+            bool includeMaterialPropertyNames = true;
+            RPI::MaterialConverterBus::BroadcastResult(includeMaterialPropertyNames, &RPI::MaterialConverterBus::Events::ShouldIncludeMaterialPropertyNames);
             // Build material assets. 
             for (auto& itr : materialSourceDataByUid)
             {
@@ -225,7 +241,7 @@ namespace AZ
                 Data::AssetId assetId(sourceSceneUuid, GetMaterialAssetSubId(materialUid));
 
                 auto materialSourceData = itr.second;
-                Outcome<Data::Asset<MaterialAsset>> result = materialSourceData.m_data.CreateMaterialAsset(assetId, "", false);
+                Outcome<Data::Asset<MaterialAsset>> result = materialSourceData.m_data.CreateMaterialAsset(assetId, "", false, includeMaterialPropertyNames);
                 if (result.IsSuccess())
                 {
                     context.m_outputMaterialsByUid[materialUid] = { result.GetValue(), materialSourceData.m_name };
@@ -252,7 +268,6 @@ namespace AZ
             }
 
             const auto& scene = context.m_scene;
-            const Uuid sourceSceneUuid = scene.GetSourceGuid();
             const auto& sceneGraph = scene.GetGraph();
 
             auto names = sceneGraph.GetNameStorage();

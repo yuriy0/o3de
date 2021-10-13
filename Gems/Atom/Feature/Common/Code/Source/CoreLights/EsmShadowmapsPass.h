@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -20,12 +21,17 @@
 
 namespace AZ
 {
+    namespace RPI
+    {
+        class ShaderResourceGroup;
+    }
+
     namespace Render
     {
         AZ_ENUM_CLASS_WITH_UNDERLYING_TYPE(EsmChildPassKind, uint32_t,
             (Exponentiation, 0),
-            HorizontalFilter,
-            VerticalFilter);
+            KawaseBlur0,
+            KawaseBlur1);
 
         //! This pass outputs filtered shadowmap images used in ESM.
         //! ESM is an abbreviation of Exponential Shadow Maps.
@@ -87,6 +93,9 @@ namespace AZ
             void FrameBeginInternal(FramePrepareParams params) override;
 
             void UpdateChildren();
+            // Parameters for both the depth exponentiation pass along with the kawase blur passes
+            void SetBlurParameters(Data::Instance<RPI::ShaderResourceGroup> srg, const uint32_t childPassIndex);
+            void SetKawaseBlurSpecificParameters(Data::Instance<RPI::ShaderResourceGroup> srg, const uint32_t kawaseBlurIndex);
 
             bool m_computationEnabled = false;
             Name m_lightTypeName;
@@ -101,6 +110,8 @@ namespace AZ
             Data::Instance<RPI::Buffer> m_shadowmapIndexTableBuffer;
             AZStd::array<RHI::ShaderInputBufferIndex, EsmChildPassKindCount> m_filterParameterBufferIndices;
             Data::Instance<RPI::Buffer> m_filterParameterBuffer;
+
+            AZStd::array<RHI::ShaderInputConstantIndex, 2> m_kawaseBlurConstantIndices;
         };
     } // namespace Render
 } // namespace AZ

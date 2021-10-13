@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -80,11 +81,8 @@ namespace AZ
                 m_context->GetData()->m_view->SetCameraTransform(Matrix3x4::CreateFromTransform(cameraTransform));
             }
 
-            void CaptureStep::OnTick(float deltaTime, ScriptTimePoint time)
+            void CaptureStep::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] ScriptTimePoint time)
             {
-                m_context->GetData()->m_deltaTime = deltaTime;
-                m_context->GetData()->m_simulateTime = time.GetSeconds();
-
                 if (m_readyToCapture && m_ticksToCapture-- <= 0)
                 {
                     m_context->GetData()->m_renderPipeline->AddToRenderTickOnce();

@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -954,14 +955,14 @@ namespace LandscapeCanvasEditor
 
             auto redoAction = new QAction(QObject::tr("&Redo"), this);
             redoAction->setShortcut(AzQtComponents::RedoKeySequence);
-            QObject::connect(redoAction, &QAction::triggered, [this] {
+            QObject::connect(redoAction, &QAction::triggered, [] {
                 GetLegacyEditor()->Redo();
             });
             menu->insertAction(separatorAction, redoAction);
 
             auto undoAction = new QAction(QObject::tr("&Undo"), this);
             undoAction->setShortcut(QKeySequence::Undo);
-            QObject::connect(undoAction, &QAction::triggered, [this] {
+            QObject::connect(undoAction, &QAction::triggered, [] {
                 GetLegacyEditor()->Undo();
             });
             menu->insertAction(redoAction, undoAction);
@@ -2511,6 +2512,26 @@ namespace LandscapeCanvasEditor
     {
         // See comment above in OnPrefabInstancePropagationBegin
         m_prefabPropagationInProgress = false;
+
+        // After prefab propagation is complete, the entity tied to one of our open
+        // graphs might have been deleted (e.g. if a prefab was created from that entity).
+        // Any open graphs tied to an entity that no longer exists will need to be closed.
+        // We need to close them in a separate iterator because the CloseEditor API will
+        // end up modifying m_dockWidgetsByEntity.
+        AZStd::vector<GraphCanvas::DockWidgetId> dockWidgetsToDelete;
+        for (auto [entityId, dockWidgetId] : m_dockWidgetsByEntity)
+        {
+            AZ::Entity* entity = nullptr;
+            AZ::ComponentApplicationBus::BroadcastResult(entity, &AZ::ComponentApplicationRequests::FindEntity, entityId);
+            if (!entity)
+            {
+                dockWidgetsToDelete.push_back(dockWidgetId);
+            }
+        }
+        for (auto dockWidgetId : dockWidgetsToDelete)
+        {
+            CloseEditor(dockWidgetId);
+        }
     }
 
     void MainWindow::OnCryEditorEndCreate()
@@ -2851,7 +2872,7 @@ namespace LandscapeCanvasEditor
         // For any node with an Entity Name slot, we need to replace the string property display with a read-only version
         // instead until we have support for listening for GraphModel slot value changes.  We need to delay this because
         // when the node is added, the slots haven't been added to the element map yet.
-        QTimer::singleShot(0, [this, node, graphId]() {
+        QTimer::singleShot(0, [node, graphId]() {
             GraphModel::SlotPtr slot = node->GetSlot(LandscapeCanvas::ENTITY_NAME_SLOT_ID);
             if (slot)
             {
@@ -2975,7 +2996,7 @@ namespace LandscapeCanvasEditor
         AzToolsFramework::EntityIdList vegetationAreaIds;
         m_serializeContext->EnumerateObject(component,
             // beginElemCB
-            [this, &previewEntityId, &inboundShapeEntityId, &gradientSamplerIds, &vegetationAreaIds](void *instance, [[maybe_unused]] const AZ::SerializeContext::ClassData *classData, const AZ::SerializeContext::ClassElement *classElement) -> bool
+            [&previewEntityId, &inboundShapeEntityId, &gradientSamplerIds, &vegetationAreaIds](void *instance, [[maybe_unused]] const AZ::SerializeContext::ClassData *classData, const AZ::SerializeContext::ClassElement *classElement) -> bool
         {
             if (classElement && (classElement->m_typeId == azrtti_typeid<AZ::EntityId>()))
             {

@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -138,7 +139,7 @@ namespace AWSCore
         AZStd::chrono::seconds lastSendTimeStamp = AZStd::chrono::seconds(lastSendTimeStampSeconds);
         AZStd::chrono::seconds secondsSinceLastSend =
             AZStd::chrono::duration_cast<AZStd::chrono::seconds>(AZStd::chrono::system_clock::now().time_since_epoch()) - lastSendTimeStamp;
-        if (secondsSinceLastSend.count() >= delayInSeconds)
+        if (static_cast<AZ::u64>(secondsSinceLastSend.count()) >= delayInSeconds)
         {
             return true;
         }
@@ -297,7 +298,7 @@ namespace AWSCore
     {
         AZ::ModuleManagerRequestBus::Broadcast(
             &AZ::ModuleManagerRequestBus::Events::EnumerateModules,
-            [this, &gems](const AZ::ModuleData& moduleData)
+            [&gems](const AZ::ModuleData& moduleData)
             {
                 AZ::Entity* moduleEntity = moduleData.GetEntity();
                 auto moduleEntityName = moduleEntity->GetName();
@@ -337,7 +338,7 @@ namespace AWSCore
                 AZ_Printf("AWSAttributionManager", "AWSAttribution metric submit success");
 
             },
-            [this]([[maybe_unused]] ServiceAPI::AWSAttributionRequestJob* failJob)
+            []([[maybe_unused]] ServiceAPI::AWSAttributionRequestJob* failJob)
             {
                 AZ_Error("AWSAttributionManager", false, "Metrics send error: %s", failJob->error.message.c_str());
             },

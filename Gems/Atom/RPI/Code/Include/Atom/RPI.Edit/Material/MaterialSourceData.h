@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -67,12 +68,12 @@ namespace AZ
             //! @param assetId ID for the MaterialAsset
             //! @param materialSourceFilePath Indicates the path of the .material file that the MaterialSourceData represents. Used for resolving file-relative paths.
             //! @param elevateWarnings Indicates whether to treat warnings as errors
-            //! @param materialTypeSourceData The function sometimes needs metadata from the .materialtype file.
-            //!        It will either load the .materialtype file from disk, or use this MaterialTypeSourceData if it's provided.
+            //! @param includeMaterialPropertyNames Indicates whether to save material property names into the material asset file
             Outcome<Data::Asset<MaterialAsset>> CreateMaterialAsset(
                 Data::AssetId assetId,
                 AZStd::string_view materialSourceFilePath = "",
-                bool elevateWarnings = true
+                bool elevateWarnings = true,
+                bool includeMaterialPropertyNames = true
             ) const;
         };
     } // namespace RPI

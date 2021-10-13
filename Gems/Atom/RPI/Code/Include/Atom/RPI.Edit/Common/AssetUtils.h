@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -10,7 +11,6 @@
 #include <AzCore/Asset/AssetManager.h>
 #include <AzCore/JSON/document.h>
 
-#include <Atom/RPI.Reflect/Shader/ShaderResourceGroupAsset.h>
 #include <Atom/RPI.Reflect/Image/StreamingImageAsset.h>
 
 namespace AZ
@@ -37,8 +37,6 @@ namespace AZ
             template<typename AssetDataT>
             Outcome<AZ::Data::Asset<AssetDataT>> LoadAsset(const AZ::Data::AssetId& assetId);
 
-            uint32_t CalcSrgProductSubId(const Name& srgName);
-
             //! Attempts to resolve the full path to a product asset given its ID
             AZStd::string GetProductPathByAssetId(const AZ::Data::AssetId& assetId);
 
@@ -46,14 +44,14 @@ namespace AZ
             AZStd::string GetSourcePathByAssetId(const AZ::Data::AssetId& assetId);
 
             //! Tries to resolve a relative file reference, given the path of a referencing file.
-            //! @param originatingSourceFilePath  Path to the parent file that references referencedSourceFilePath. May be absolute or relative to asset-root.  
+            //! @param originatingSourceFilePath  Path to the parent file that references referencedSourceFilePath. May be absolute or relative to asset-root.
             //! @param referencedSourceFilePath   Path that the parent file references. May be relative to the parent file location or relative to asset-root.
             //! @return A full path for referencedSourceFilePath, if a full path was found. If a full path could not be constructed, returns referencedSourceFilePath unmodified.
             AZStd::string ResolvePathReference(const AZStd::string& originatingSourceFilePath, const AZStd::string& referencedSourceFilePath);
 
-            //! Returns the list of paths where a source asset file could possibly appear. 
+            //! Returns the list of paths where a source asset file could possibly appear.
             //! This is intended for use by AssetBuilders when reporting dependencies, to support relative paths between source files.
-            //! When a source data file references another file using a relative path, the path might be relative to the originating 
+            //! When a source data file references another file using a relative path, the path might be relative to the originating
             //! file or it might be a standard source asset path (i.e. relative to the logical asset-root). This function will help reporting
             //! dependencies on all possible locations where that file may appear at some point in the future.
             //! For example a file MyGem/Assets/Foo/a.json might reference another file as "Bar/b.json". In this case, calling
@@ -96,9 +94,9 @@ namespace AZ
             template<typename AssetDataT>
             Outcome<AZ::Data::Asset<AssetDataT>> LoadAsset(const AZ::Data::AssetId& assetId, [[maybe_unused]] const char* sourcePathForDebug)
             {
-                if (nullptr == AZ::IO::FileIOBase::GetInstance()->GetAlias("@assets@"))
+                if (nullptr == AZ::IO::FileIOBase::GetInstance()->GetAlias("@products@"))
                 {
-                    // The absence of "@assets@" is not necessarily the reason LoadAsset() can't be used in CreateJobs(), but it
+                    // The absence of "@products@" is not necessarily the reason LoadAsset() can't be used in CreateJobs(), but it
                     // is a symptom of calling LoadAsset() from CreateJobs() which is not supported.
                     AZ_Assert(false, "It appears AssetUtils::LoadAsset() is being called in CreateJobs(). It can only be used in ProcessJob().");
                     return AZ::Failure();

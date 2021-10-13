@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -502,7 +503,7 @@ void ToolbarManager::InitializeStandardToolbars()
     {
         auto macroToolbars = GetIEditor()->GetToolBoxManager()->GetToolbars();
 
-        m_standardToolbars.reserve(5 + macroToolbars.size());
+        m_standardToolbars.reserve(static_cast<int>(5 + macroToolbars.size()));
         m_standardToolbars.push_back(GetEditModeToolbar());
         m_standardToolbars.push_back(GetObjectToolbar());
         m_standardToolbars.push_back(GetPlayConsoleToolbar());
@@ -1216,7 +1217,6 @@ void EditableQToolBar::dropEvent(QDropEvent* ev)
         return;
     }
 
-    const int actionId = action->data().toInt();
     QWidget* beforeWidget = insertPositionForDrop(ev->pos());
     QAction* beforeAction = beforeWidget ? ActionForWidget(beforeWidget) : nullptr;
 

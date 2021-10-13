@@ -1,6 +1,7 @@
 #
-# Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
-# 
+# Copyright (c) Contributors to the Open 3D Engine Project.
+# For complete copyright and license terms please see the LICENSE at the root of this distribution.
+#
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 #
 #
@@ -23,6 +24,7 @@ ly_add_target(
             Gem::Atom_RHI.Public
         PUBLIC
             Gem::Atom_RHI.Reflect
+            3rdParty::libpng
 )
 
 ################################################################################
@@ -42,6 +44,7 @@ if(PAL_TRAIT_BUILD_TESTS_SUPPORTED)
         BUILD_DEPENDENCIES
             PRIVATE
                 AZ::AzTest
+                AZ::AzFramework
                 Gem::Atom_Utils.Static
     )
     ly_add_googletest(

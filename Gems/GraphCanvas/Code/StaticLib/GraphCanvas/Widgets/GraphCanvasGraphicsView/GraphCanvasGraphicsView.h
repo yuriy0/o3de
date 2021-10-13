@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -128,7 +129,7 @@ namespace GraphCanvas
         ToastId ShowToastAtCursor(const ToastConfiguration& toastConfiguration) override;
         ToastId ShowToastAtPoint(const QPoint& screenPosition, const QPointF& anchorPoint, const ToastConfiguration& toastConfiguration) override;
 
-        bool IsShowing() const;
+        bool IsShowing() const override;
         ////
 
         // TickBus
@@ -158,7 +159,7 @@ namespace GraphCanvas
 
         void wheelEvent(QWheelEvent* event) override;
 
-        void focusOutEvent(QFocusEvent* event);
+        void focusOutEvent(QFocusEvent* event) override;
 
         void resizeEvent(QResizeEvent* event) override;
         void moveEvent(QMoveEvent* event) override;

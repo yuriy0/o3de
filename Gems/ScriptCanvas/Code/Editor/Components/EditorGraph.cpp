@@ -1,11 +1,12 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
-#include "precompiled.h"
+#include <AzCore/PlatformDef.h>
 
 AZ_PUSH_DISABLE_WARNING(4251 4800 4244, "-Wunknown-warning-option")
 #include <QScopedValueRollback>
@@ -1034,16 +1035,9 @@ namespace ScriptCanvasEditor
 
         if (connection)
         {
-            ScriptCanvas::Endpoint scSourceEndpoint = connection->GetSourceEndpoint();
-            GraphCanvas::Endpoint sourceEndpoint = ConvertToGraphCanvasEndpoint(scSourceEndpoint);
-
-            ScriptCanvas::Endpoint scTargetEndpoint = connection->GetTargetEndpoint();
-            GraphCanvas::Endpoint targetEndpoint = ConvertToGraphCanvasEndpoint(scTargetEndpoint);
-
             ScriptCanvas::GraphNotificationBus::Event(GetScriptCanvasId(), &ScriptCanvas::GraphNotifications::OnDisonnectionComplete, connectionId);
 
             DisconnectById(scConnectionId);
-
         }
     }
 
@@ -2666,8 +2660,6 @@ namespace ScriptCanvasEditor
         AZStd::vector< GraphCanvas::SlotId > slotIds;
         GraphCanvas::NodeRequestBus::EventResult(slotIds, nodeId, &GraphCanvas::NodeRequests::GetSlotIds);
 
-        GraphCanvas::GraphId graphCanvasGraphId = GetGraphCanvasGraphId();
-
         for (const GraphCanvas::SlotId& slotId : slotIds)
         {
             GraphCanvas::SlotType slotType = GraphCanvas::SlotTypes::Invalid;
@@ -3476,11 +3468,12 @@ namespace ScriptCanvasEditor
         m_focusHelper.SetActiveGraph(GetGraphCanvasGraphId());
     }
 
-    bool Graph::UpgradeGraph(const AZ::Data::Asset<AZ::Data::AssetData>& asset)
+    bool Graph::UpgradeGraph(const AZ::Data::Asset<AZ::Data::AssetData>& asset, UpgradeRequest request, bool isVerbose)
     {
         m_upgradeSM.SetAsset(asset);
+        m_upgradeSM.SetVerbose(isVerbose);
 
-        if (!GetVersion().IsLatest())
+        if (request == UpgradeRequest::Forced || !GetVersion().IsLatest())
         {
             m_upgradeSM.Run(Start::StateID());
             return true;

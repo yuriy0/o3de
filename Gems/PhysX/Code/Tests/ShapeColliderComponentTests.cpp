@@ -1,11 +1,11 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
-#include "PhysX_precompiled.h"
 #include <AzCore/UnitTest/TestTypes.h>
 #include <AzToolsFramework/UnitTest/AzToolsFrameworkTestHelpers.h>
 #include <AzToolsFramework/ToolsComponents/EditorNonUniformScaleComponent.h>
@@ -299,7 +299,6 @@ namespace PhysXEditorTests
         
         // the bounding box of the rigid body should reflect the dimensions of the cylinder set above
         AZ::Aabb aabb = staticBody->GetAabb();
-        const float validDiameter = validRadius * 2.0f;
         
         // Check that the z positions of the bounding box match that of the cylinder
         EXPECT_NEAR(aabb.GetMin().GetZ(), -0.5f * validHeight, AZ::Constants::Tolerance);

@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -138,7 +139,7 @@ namespace AZ
                 bool isValidAll = true;
                 for (size_t i = 0; i < imageViews.size(); ++i)
                 {
-                    const bool isValid = ValidateImageViewAccess<ShaderInputImageUnboundedArrayIndex, ShaderInputImageUnboundedArrayDescriptor>(inputIndex, imageViews[i], i);
+                    const bool isValid = ValidateImageViewAccess<ShaderInputImageUnboundedArrayIndex, ShaderInputImageUnboundedArrayDescriptor>(inputIndex, imageViews[i], static_cast<uint32_t>(i));
                     if (isValid)
                     {
                         m_imageViewsUnboundedArray.push_back(imageViews[i]);
@@ -184,7 +185,7 @@ namespace AZ
                 bool isValidAll = true;
                 for (size_t i = 0; i < bufferViews.size(); ++i)
                 {
-                    const bool isValid = ValidateBufferViewAccess<ShaderInputBufferUnboundedArrayIndex, ShaderInputBufferUnboundedArrayDescriptor>(inputIndex, bufferViews[i], i);
+                    const bool isValid = ValidateBufferViewAccess<ShaderInputBufferUnboundedArrayIndex, ShaderInputBufferUnboundedArrayDescriptor>(inputIndex, bufferViews[i], static_cast<uint32_t>(i));
                     if (isValid)
                     {
                         m_bufferViewsUnboundedArray.push_back(bufferViews[i]);
@@ -329,9 +330,22 @@ namespace AZ
             return m_samplers;
         }
 
+        void ShaderResourceGroupData::ResetViews()
+        {
+            m_imageViews.assign(m_imageViews.size(), nullptr);
+            m_bufferViews.assign(m_bufferViews.size(), nullptr);
+            m_imageViewsUnboundedArray.assign(m_imageViewsUnboundedArray.size(), nullptr);
+            m_bufferViewsUnboundedArray.assign(m_bufferViewsUnboundedArray.size(), nullptr);
+        }
+
         AZStd::array_view<uint8_t> ShaderResourceGroupData::GetConstantData() const
         {
             return m_constantsData.GetConstantData();
+        }
+
+        const ConstantsData& ShaderResourceGroupData::GetConstantsData() const
+        {
+            return m_constantsData;
         }
 
     } // namespace RHI

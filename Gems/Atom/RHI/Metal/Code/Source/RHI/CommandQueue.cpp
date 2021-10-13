@@ -1,10 +1,10 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
-#include "Atom_RHI_Metal_precompiled.h"
 #include <Atom/RHI.Reflect/CpuTimingStatistics.h>
 #include <AzCore/Debug/EventTrace.h>
 #include <RHI/CommandQueue.h>
@@ -114,7 +114,7 @@ namespace AZ
                      //Autoreleasepool is to ensure that the driver is not leaking memory related to the command buffer and encoder
                      @autoreleasepool
                      {
-                         AZ_PROFILE_SCOPE(AZ::Debug::ProfileCategory::AzRender, "ExecuteWork");
+                         AZ_PROFILE_SCOPE(RHI, "ExecuteWork");
                          AZ_PROFILE_RHI_VARIABLE(m_lastExecuteDuration);
                          
                          if (request.m_signalFenceValue > 0)

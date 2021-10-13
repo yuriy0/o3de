@@ -1,13 +1,14 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
 #include <Atom/RHI.Edit/Utils.h>
 
-#include <AtomCore/Serialization/Json/JsonUtils.h>
+#include <AzCore/Serialization/Json/JsonUtils.h>
 
 #include <AzFramework/Process/ProcessCommunicator.h>
 #include <AzFramework/Process/ProcessWatcher.h>
@@ -29,7 +30,7 @@ namespace AZ
     namespace RHI
     {
         static AZStd::mutex s_profilingMutex;
-        static constexpr char ShaderPlatformInterfaceName[] = "ShaderPlatformInterface";
+        [[maybe_unused]] static constexpr char ShaderPlatformInterfaceName[] = "ShaderPlatformInterface";
 
         void ShaderCompilerProfiling::Entry::Reflect(ReflectContext* context)
         {
@@ -303,7 +304,7 @@ namespace AZ
             uint32_t exitCode = 0;
             bool timedOut = false;
 
-            const AZStd::sys_time_t maxWaitTimeSeconds = 120;
+            const AZStd::sys_time_t maxWaitTimeSeconds = 300;
             const AZStd::sys_time_t startTimeSeconds = AZStd::GetTimeNowSecond();
             const AZStd::sys_time_t startTime = AZStd::GetTimeNowTicks();
 

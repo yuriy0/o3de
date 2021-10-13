@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -20,7 +21,6 @@
 #include <Atom/RHI/Device.h>
 #include <Atom/RHI.Reflect/ReflectSystemComponent.h>
 
-#include <Atom/RPI.Reflect/Shader/ShaderResourceGroupAsset.h>
 #include <Atom/RPI.Reflect/ResourcePoolAsset.h>
 #include <Atom/RPI.Reflect/Asset/AssetHandler.h>
 
@@ -67,7 +67,7 @@ namespace UnitTest
 
         AZ::IO::Path assetPath = AZStd::string_view{ AZ::Utils::GetProjectPath() };
         assetPath /= "Cache";
-        AZ::IO::FileIOBase::GetInstance()->SetAlias("@assets@", assetPath.c_str());
+        AZ::IO::FileIOBase::GetInstance()->SetAlias("@products@", assetPath.c_str());
 
         m_jsonRegistrationContext = AZStd::make_unique<AZ::JsonRegistrationContext>();
         m_jsonSystemComponent = AZStd::make_unique<AZ::JsonSystemComponent>();
@@ -90,7 +90,7 @@ namespace UnitTest
         JobManagerThreadDesc threadDesc;
 #if AZ_TRAIT_SET_JOB_PROCESSOR_ID
         threadDesc.m_cpuId = 0; // Don't set processors IDs on windows
-#endif 
+#endif
 
         uint32_t numWorkerThreads = AZStd::thread::hardware_concurrency();
 
@@ -99,7 +99,7 @@ namespace UnitTest
             desc.m_workerThreads.push_back(threadDesc);
 #if AZ_TRAIT_SET_JOB_PROCESSOR_ID
             threadDesc.m_cpuId++;
-#endif 
+#endif
         }
 
         m_jobManager = AZStd::make_unique<JobManager>(desc);
@@ -145,9 +145,9 @@ namespace UnitTest
         return AZ::RHI::RHISystemInterface::Get()->GetDevice();
     }
 
-    void RPITestFixture::ProcessQueuedSrgCompilations(Data::Asset<ShaderResourceGroupAsset> srgAsset)
+    void RPITestFixture::ProcessQueuedSrgCompilations(Data::Asset<ShaderAsset> shaderAsset, const AZ::Name& srgName)
     {
-        Data::Instance<ShaderResourceGroupPool> srgPool = ShaderResourceGroupPool::FindOrCreate(srgAsset);
+        Data::Instance<ShaderResourceGroupPool> srgPool = ShaderResourceGroupPool::FindOrCreate(shaderAsset, RPI::DefaultSupervariantIndex, srgName);
         srgPool->GetRHIPool()->CompileGroupsBegin();
         srgPool->GetRHIPool()->CompileGroupsForInterval(RHI::Interval(0, srgPool->GetRHIPool()->GetGroupsToCompileCount()));
         srgPool->GetRHIPool()->CompileGroupsEnd();

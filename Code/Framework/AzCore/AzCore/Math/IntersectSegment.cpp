@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -627,7 +628,7 @@ int AZ::Intersect::IntersectRayCappedCylinder(
 int AZ::Intersect::IntersectRayCone(
     const Vector3& rayOrigin, const Vector3& rayDir,
     const Vector3& coneApex, const Vector3& coneDir, float coneHeight,
-    float coneBaseRaidus, float& t1, float& t2)
+    float coneBaseRadius, float& t1, float& t2)
 {
     // Q = rayOrgin, A = coneApex
     Vector3 AQ = rayOrigin - coneApex;
@@ -645,7 +646,7 @@ int AZ::Intersect::IntersectRayCone(
         return 0;
     }
 
-    float r2 = coneBaseRaidus * coneBaseRaidus;
+    float r2 = coneBaseRadius * coneBaseRadius;
     float h2 = coneHeight * coneHeight;
 
     float m2 = m * m;

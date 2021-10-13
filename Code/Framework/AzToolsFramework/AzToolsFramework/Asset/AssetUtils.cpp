@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -32,8 +33,6 @@ namespace AzToolsFramework::AssetUtils::Internal
         {
             return {};
         }
-
-        const int pathLen = sourceFolder.length() + 1;
 
         AZ::IO::Path sourceWildcard{ sourceFolder };
 
@@ -98,7 +97,8 @@ namespace AzToolsFramework::AssetUtils
     struct EnabledPlatformsVisitor
         : AZ::SettingsRegistryInterface::Visitor
     {
-        void Visit(AZStd::string_view path, AZStd::string_view valueName, AZ::SettingsRegistryInterface::Type, AZStd::string_view value);
+        using AZ::SettingsRegistryInterface::Visitor::Visit;
+        void Visit(AZStd::string_view path, AZStd::string_view valueName, AZ::SettingsRegistryInterface::Type, AZStd::string_view value) override;
 
         AZStd::vector<AZStd::string> m_enabledPlatforms;
     };
@@ -225,7 +225,7 @@ namespace AzToolsFramework::AssetUtils
             AZStd::vector<AzFramework::GemInfo> gemInfoList;
             if (!AzFramework::GetGemsInfo(gemInfoList, *settingsRegistry))
             {
-                AZ_Error("AzToolsFramework::AssetUtils", false, "Failed to read gems from project folder(%s).\n", projectPath);
+                AZ_Error("AzToolsFramework::AssetUtils", false, "Failed to read gems from project folder(%.*s).\n", AZ_STRING_ARG(projectPath));
                 return {};
             }
 

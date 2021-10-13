@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -8,7 +9,7 @@
 #pragma once
 
 #include <AzCore/Math/Transform.h>
-#include <RenderCommon.h>
+#include <Atom/Feature/RenderCommon.h>
 #include <Atom/Feature/Mesh/MeshFeatureProcessorInterface.h>
 #include <Atom/RPI.Public/Base.h>
 #include <Atom/RPI.Public/Model/Model.h>
@@ -16,7 +17,6 @@
 #include <Atom/RPI.Public/Pass/Specific/EnvironmentCubeMapPass.h>
 #include <Atom/RPI.Public/PipelineState.h>
 #include <Atom/RPI.Public/Shader/ShaderResourceGroup.h>
-#include <Atom/RPI.Reflect/Shader/ShaderResourceGroupAsset.h>
 #include <Atom/RPI.Public/Scene.h>
 
 namespace AZ
@@ -38,25 +38,30 @@ namespace AZ
             RPI::Ptr<RPI::PipelineStateForDraw> m_renderOuterPipelineState;
             RPI::Ptr<RPI::PipelineStateForDraw> m_renderInnerPipelineState;
 
-            Data::Asset<RPI::ShaderResourceGroupAsset> m_stencilSrgAsset;
-            Data::Asset<RPI::ShaderResourceGroupAsset> m_blendWeightSrgAsset;
-            Data::Asset<RPI::ShaderResourceGroupAsset> m_renderOuterSrgAsset;
-            Data::Asset<RPI::ShaderResourceGroupAsset> m_renderInnerSrgAsset;
+            Data::Instance<RPI::Shader> m_stencilShader;
+            RHI::Ptr<RHI::ShaderResourceGroupLayout> m_stencilSrgLayout;
+
+            Data::Instance<RPI::Shader> m_blendWeightShader;
+            RHI::Ptr<RHI::ShaderResourceGroupLayout> m_blendWeightSrgLayout;
+
+            Data::Instance<RPI::Shader> m_renderOuterShader;
+            RHI::Ptr<RHI::ShaderResourceGroupLayout> m_renderOuterSrgLayout;
+
+            Data::Instance<RPI::Shader> m_renderInnerShader;
+            RHI::Ptr<RHI::ShaderResourceGroupLayout> m_renderInnerSrgLayout;
 
             RHI::DrawListTag m_stencilDrawListTag;
             RHI::DrawListTag m_blendWeightDrawListTag;
             RHI::DrawListTag m_renderOuterDrawListTag;
             RHI::DrawListTag m_renderInnerDrawListTag;
 
-            RHI::ShaderInputConstantIndex m_modelToWorldStencilConstantIndex;
-            RHI::ShaderInputConstantIndex m_modelToWorldRenderConstantIndex;
-            RHI::ShaderInputConstantIndex m_aabbPosRenderConstantIndex;
-            RHI::ShaderInputConstantIndex m_outerAabbMinRenderConstantIndex;
-            RHI::ShaderInputConstantIndex m_outerAabbMaxRenderConstantIndex;
-            RHI::ShaderInputConstantIndex m_innerAabbMinRenderConstantIndex;
-            RHI::ShaderInputConstantIndex m_innerAabbMaxRenderConstantIndex;
-            RHI::ShaderInputConstantIndex m_useParallaxCorrectionRenderConstantIndex;
-            RHI::ShaderInputImageIndex m_reflectionCubeMapRenderImageIndex;
+            RHI::ShaderInputNameIndex m_modelToWorldStencilConstantIndex = "m_modelToWorld";
+            RHI::ShaderInputNameIndex m_modelToWorldRenderConstantIndex = "m_modelToWorld";
+            RHI::ShaderInputNameIndex m_modelToWorldInverseRenderConstantIndex = "m_modelToWorldInverse";
+            RHI::ShaderInputNameIndex m_outerObbHalfLengthsRenderConstantIndex = "m_outerObbHalfLengths";
+            RHI::ShaderInputNameIndex m_innerObbHalfLengthsRenderConstantIndex = "m_innerObbHalfLengths";
+            RHI::ShaderInputNameIndex m_useParallaxCorrectionRenderConstantIndex = "m_useParallaxCorrection";
+            RHI::ShaderInputNameIndex m_reflectionCubeMapRenderImageIndex = "m_reflectionCubeMap";
         };
 
         // ReflectionProbe manages all aspects of a single probe, including rendering, visualization, and cubemap generation
@@ -71,6 +76,7 @@ namespace AZ
             void Simulate(uint32_t probeIndex);
 
             const Vector3& GetPosition() const { return m_transform.GetTranslation(); }
+            const AZ::Transform& GetTransform() const { return m_transform; }
             void SetTransform(const AZ::Transform& transform);
 
             const AZ::Vector3& GetOuterExtents() const { return m_outerExtents; }
@@ -79,8 +85,8 @@ namespace AZ
             const AZ::Vector3& GetInnerExtents() const { return m_innerExtents; }
             void SetInnerExtents(const AZ::Vector3& innerExtents);
 
-            const Aabb& GetOuterAabbWs() const { return m_outerAabbWs; }
-            const Aabb& GetInnerAabbWs() const { return m_innerAabbWs; }
+            const Obb& GetOuterObbWs() const { return m_outerObbWs; }
+            const Obb& GetInnerObbWs() const { return m_innerObbWs; }
 
             const Data::Instance<RPI::Image>& GetCubeMapImage() const { return m_cubeMapImage; }
             void SetCubeMapImage(const Data::Instance<RPI::Image>& cubeMapImage, const AZStd::string& relativePath);
@@ -126,9 +132,9 @@ namespace AZ
             AZ::Vector3 m_outerExtents = AZ::Vector3(0.0f, 0.0f, 0.0f);
             AZ::Vector3 m_innerExtents = AZ::Vector3(0.0f, 0.0f, 0.0f);
 
-            // probe volume AABBs (world space), built from position and extents
-            Aabb m_outerAabbWs;
-            Aabb m_innerAabbWs;
+            // probe volume OBBs (world space), built from position and extents
+            Obb m_outerObbWs;
+            Obb m_innerObbWs;
 
             // cubemap
             Data::Instance<RPI::Image> m_cubeMapImage;

@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -53,6 +54,7 @@ namespace O3DE::ProjectManager
         QTabWidget* tabWidget = new QTabWidget();
         tabWidget->setObjectName("projectSettingsTab");
         tabWidget->tabBar()->setObjectName("projectSettingsTabBar");
+        tabWidget->tabBar()->setFocusPolicy(Qt::TabFocus);
         tabWidget->addTab(m_updateSettingsScreen, tr("General"));
 
         QPushButton* gemsButton = new QPushButton(tr("Configure Gems"), this);
@@ -93,7 +95,7 @@ namespace O3DE::ProjectManager
         Update();
 
         // Gather the available gems that will be shown in the gem catalog.
-        m_gemCatalogScreen->ReinitForProject(m_projectInfo.m_path, /*isNewProject=*/false);
+        m_gemCatalogScreen->ReinitForProject(m_projectInfo.m_path);
     }
 
     void UpdateProjectCtrl::HandleGemsButton()
@@ -240,7 +242,7 @@ namespace O3DE::ProjectManager
 
             if (!newProjectSettings.m_newPreviewImagePath.isEmpty())
             {
-                if (!ProjectUtils::ReplaceFile(
+                if (!ProjectUtils::ReplaceProjectFile(
                         QDir(newProjectSettings.m_path).filePath(newProjectSettings.m_iconPath), newProjectSettings.m_newPreviewImagePath))
                 {
                     QMessageBox::critical(this, tr("File replace failed"), tr("Failed to replace project preview image."));

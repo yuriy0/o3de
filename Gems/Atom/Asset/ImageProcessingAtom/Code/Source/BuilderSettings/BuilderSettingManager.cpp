@@ -1,11 +1,11 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
 
-#include "ImageProcessing_precompiled.h"
 
 #include "BuilderSettingManager.h"
 #include <QDirIterator>
@@ -37,7 +37,7 @@
 #include <AzFramework/Application/Application.h>
 #include <AzToolsFramework/API/EditorAssetSystemAPI.h>
 
-#include <AtomCore/Serialization/Json/JsonUtils.h>
+#include <AzCore/Serialization/Json/JsonUtils.h>
 
 namespace ImageProcessingAtom
 {
@@ -244,7 +244,7 @@ namespace ImageProcessingAtom
         }
 
         AZ::IO::FixedMaxPath projectConfigFolder;
-        if (auto sourceGameRoot = fileIoBase->ResolvePath("@devassets@"); sourceGameRoot.has_value())
+        if (auto sourceGameRoot = fileIoBase->ResolvePath("@projectroot@"); sourceGameRoot.has_value())
         {
             projectConfigFolder = *sourceGameRoot;
             projectConfigFolder /= s_projectConfigRelativeFolder;

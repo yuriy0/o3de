@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
- * 
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
@@ -152,7 +153,9 @@ namespace AZ
         void AssetCreator<AssetDataT>::ReportError([[maybe_unused]] const char* format, [[maybe_unused]] Args... args)
         {
             ++m_errorCount;
+#if defined(AZ_ENABLE_TRACING) // disabling since it requires argument expansion in this context
             AZ_Error(m_assetClassName, false, format, args...);
+#endif
         }
 
         template<typename AssetDataT>
@@ -160,7 +163,9 @@ namespace AZ
         void AssetCreator<AssetDataT>::ReportWarning([[maybe_unused]] const char* format, [[maybe_unused]] Args... args)
         {
             ++m_warningCount;
+#if defined(AZ_ENABLE_TRACING) // disabling since it requires argument expansion in this context
             AZ_Warning(m_assetClassName, false, format, args...);
+#endif
         }
 
         template<typename AssetDataT>

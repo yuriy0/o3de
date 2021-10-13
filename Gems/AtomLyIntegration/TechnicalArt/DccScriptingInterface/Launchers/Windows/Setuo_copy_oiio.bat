@@ -1,7 +1,8 @@
 @echo off
 REM 
-REM Copyright (c) Contributors to the Open 3D Engine Project. For complete copyright and license terms please see the LICENSE at the root of this distribution.
-REM 
+REM Copyright (c) Contributors to the Open 3D Engine Project.
+REM For complete copyright and license terms please see the LICENSE at the root of this distribution.
+REM
 REM SPDX-License-Identifier: Apache-2.0 OR MIT
 REM
 REM
@@ -17,7 +18,7 @@ set LY_DEV=..\..\..\..\..\..
 :: shared location for default O3DE python location
 set DCCSI_PYTHON_INSTALL=%LY_DEV%\Python
 
-set PY_SITE=%DCCSI_PYTHON_INSTALL%\runtime\python-3.7.10-rev1-windows\python\Lib\site-packages
+set PY_SITE=%DCCSI_PYTHON_INSTALL%\runtime\python-3.7.10-rev2-windows\python\Lib\site-packages
 
 set PACKAGE_LOC=C:\Depot\3rdParty\packages\openimageio-2.1.16.0-rev1-windows\OpenImageIO\2.1.16.0\win_x64\bin
 
