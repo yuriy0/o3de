@@ -74,6 +74,9 @@ namespace AZ
             creator.End(m_bufferAsset);
         }
 
+
+        // default value of 256mb supports roughly 42 character instances at 100,000 vertices per character x 64 bytes per vertex (12 byte position + 12 byte previous frame position + 12 byte normal + 16 byte tangent + 12 byte bitangent)
+        // This includes only the output of the skinning compute shader, not the input buffers or bone transforms
         AZ_CVAR(
             int,
             r_skinnedMeshInstanceMemoryPoolSize,
@@ -87,11 +90,6 @@ namespace AZ
         {
         }
 
-        void SkinnedMeshOutputStreamManager::EnsureInit() const
-        {
-            const_cast<SkinnedMeshOutputStreamManager*>(this)->EnsureInit();
-        }
-
         void SkinnedMeshOutputStreamManager::EnsureInit()
         {
             if (!m_needsInit)
@@ -100,10 +98,8 @@ namespace AZ
             }
             m_needsInit = false;
 
-            // 256mb supports roughly 42 character instances at 100,000 vertices per character x 64 bytes per vertex (12 byte position + 12 byte previous frame position + 12 byte normal + 16 byte tangent + 12 byte bitangent)
-            // This includes only the output of the skinning compute shader, not the input buffers or bone transforms
             const AZ::u64 sizeInMb = r_skinnedMeshInstanceMemoryPoolSize;
-            m_sizeInBytes = AZ::GetMax(sizeInMb, 256ull) * (1024u * 1024u);
+            m_sizeInBytes = sizeInMb * (1024u * 1024u);
 
             CalculateAlignment();
 
@@ -156,7 +152,7 @@ namespace AZ
             }
         }
 
-        Data::Asset<RPI::BufferAsset> SkinnedMeshOutputStreamManager::GetBufferAsset() const
+        Data::Asset<RPI::BufferAsset> SkinnedMeshOutputStreamManager::GetBufferAsset()
         {
             EnsureInit();
             return m_bufferAsset;
