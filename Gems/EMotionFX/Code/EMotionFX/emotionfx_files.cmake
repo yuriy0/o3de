@@ -269,6 +269,8 @@ set(FILES
     Source/BlendTreeSimulatedObjectNode.h
     Source/BlendTreeSmoothingNode.cpp
     Source/BlendTreeSmoothingNode.h
+    Source/BlendTreeWrappedSmoothingNode.cpp
+    Source/BlendTreeWrappedSmoothingNode.h
     Source/BlendTreeTransformNode.cpp
     Source/BlendTreeTransformNode.h
     Source/BlendTreeTwoLinkIKNode.cpp
@@ -331,6 +333,8 @@ set(FILES
     Source/AnimGraphParameterAction.h
     Source/AnimGraphVector2Condition.cpp
     Source/AnimGraphVector2Condition.h
+    Source/AnimGraphRandomChoiceCondition.cpp
+    Source/AnimGraphRandomChoiceCondition.h
     Source/AnimGraphFollowerParameterAction.cpp
     Source/AnimGraphFollowerParameterAction.h
     Source/AnimGraphSymbolicFollowerParameterAction.cpp

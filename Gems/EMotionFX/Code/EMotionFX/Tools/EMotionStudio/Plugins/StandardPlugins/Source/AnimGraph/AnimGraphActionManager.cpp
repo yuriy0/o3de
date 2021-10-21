@@ -457,7 +457,7 @@ namespace EMStudio
         EMotionFX::AnimGraph* referencedGraph = referenceNode->GetReferencedAnimGraph();
         if (referencedGraph)
         {
-            EMotionFX::MotionSet* motionSet = referenceNode->GetMotionSet();
+            EMotionFX::MotionSet* motionSet = referenceNode->GetMotionSetOverride();
             ActivateGraphForSelectedActors(referencedGraph, motionSet);
         }
     }

@@ -73,7 +73,8 @@ namespace EMotionFX
         bool GetHasOutputPose() const override                      { return true; }
         bool GetIsLastInstanceDeletable() const override            { return true; }
         bool GetHasVisualOutputPorts() const override               { return false; }
-        bool GetCanBeInsideChildStateMachineOnly() const override   { return true; }
+        bool GetCanBeInsideChildStateMachineOnly() const override   { return false; }
+        bool GetCanBeInsideStateMachineOnly() const override        { return true; }
         bool GetCanHaveOnlyOneInsideParent() const override         { return true; }
 
         const char* GetPaletteName() const override;

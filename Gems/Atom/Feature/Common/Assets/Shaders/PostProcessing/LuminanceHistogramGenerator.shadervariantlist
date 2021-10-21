@@ -1,0 +1,4 @@
+{
+    "Shader": "LuminanceHistogramGenerator.shader",
+    "Variants": []
+}

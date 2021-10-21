@@ -16,6 +16,8 @@
 #include <AzCore/Component/TickBus.h>
 #include <AzCore/Console/ILogger.h>
 #include <AzCore/Math/Color.h>
+#include <AzCore/Debug/TraceMessagesDrillerBus.h>
+#include <AzCore/Console/IConsole.h>
 
 #include <AzCore/std/containers/deque.h>
 #include <AzCore/std/string/string.h>
@@ -39,6 +41,7 @@ namespace AZ
     //! - The fourth finger press on a touch screen.
     class DebugConsole : public AzFramework::InputChannelEventListener
                        , public AZ::RPI::ViewportContextNotificationBus::Handler
+        , private AZ::Debug::TraceMessageDrillerBus::Handler
     {
         ////////////////////////////////////////////////////////////////////////////////////////////
         //! The default maximum number of entries to display in the debug log.
@@ -77,10 +80,36 @@ namespace AZ
         bool OnInputChannelEventFiltered(const AzFramework::InputChannel& inputChannel) override;
 
         ////////////////////////////////////////////////////////////////////////////////////////////
+        //! TraceMessageDrillerBus
+        void OnPreAssert(const char* /*fileName*/, int /*line*/, const char* /*func*/, const char* /*message*/) override;
+        void OnException(const char* /*message*/) override;
+        void OnPreError(const char* /*window*/, const char* /*fileName*/, int /*line*/, const char* /*func*/, const char* /*message*/) override;
+        void OnPreWarning(const char* /*window*/, const char* /*fileName*/, int /*line*/, const char* /*func*/, const char* /*message*/) override;
+        void OnPrintf(const char* /*window*/, const char* /*message*/) override;
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
         //! Add a string to the debug log display.
         //! \param[in] debugLogString The string to add to the debug log display.
         //! \param[in] color The color in which to display the above string.
-        void AddDebugLog(const AZStd::string& debugLogString, const AZ::Color& color = AZ::Colors::White);
+
+        struct MessageWithTracing
+        {
+            AZStd::string_view message;
+            AZStd::optional<AZStd::tuple<const char*, int, const char*>> sourceLocation;
+            bool callstack = false;
+            AZStd::string_view tracePrefix;
+            AZStd::string_view window;
+            AZ::LogLevel level;
+        };
+        void AddLogMessageWithTracing(MessageWithTracing);
+
+        template<class Str>
+        void AddLogMessage(Str&& debugLogString, AZ::LogLevel level);
+
+        template<class Str>
+        void AddSystemLogMessage(Str&& debugLogString, const AZ::Color& color);
+
+        void RenderLogEntries();
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         //! Clears the debug log display.
@@ -111,9 +140,43 @@ namespace AZ
         void ToggleIsShowing();
 
     private:
+        struct TextLogEntry
+        {
+            AZStd::string entryText;
+
+            void ImGuiRender() const;
+        };
+
+        struct ColoredTextLogEntry
+        {
+            AZStd::string entryText;
+            AZ::Color textColor = AZ::Colors::White;
+
+            void ImGuiRender() const;
+        };
+
+        struct SameLineLogEntry
+        {
+            void ImGuiRender() const;
+        };
+
+        struct SeperatorLogEntry
+        {
+            void ImGuiRender() const;
+        };
+
+        struct DebugLogEntry
+        {
+            AZStd::variant<TextLogEntry, ColoredTextLogEntry, SameLineLogEntry, SeperatorLogEntry> logEntry;
+            AZStd::optional<AZ::LogLevel> logLevel;
+        };
+
+        void AddLogEntry(DebugLogEntry entry);
+
         ////////////////////////////////////////////////////////////////////////////////////////////
         // Variables
-        AZStd::deque<AZStd::pair<AZStd::string, AZ::Color>> m_debugLogEntires; //!< All debug logs.
+        AZStd::deque<DebugLogEntry> m_debugLogEntires; //!< All debug logs.
+
         AZStd::deque<AZStd::string> m_textInputHistory; //!< History of input that has been entered.
         AZ::ILogger::LogEvent::Handler m_logHandler; //!< Handler that receives log events to display.
         AzFramework::InputContext m_inputContext; //!< Input context used to open/close the console.
@@ -125,6 +188,7 @@ namespace AZ
         bool m_isShowing = false; //!< Is the debug console currently being displayed?
         bool m_autoScroll = true; //!< Should we auto-scroll as new entries are added?
         bool m_forceScroll = false; //!< Do we need to force scroll after input entered?
+        AZ::DispatchCommandNotFoundEvent::Handler m_commandNotFoundHandler;
     };
 #endif // defined(IMGUI_ENABLED)
 } // namespace AZ

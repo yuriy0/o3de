@@ -50,6 +50,7 @@ namespace EMotionFX
 
         void SetParameterValue(const AZStd::any& parameterValue);
         const AZStd::any& GetParameterValue() const;
+        AZ::TypeId GetParameterType() const;
 
         void SetTriggerValue(float value) { m_parameterValue = value; }
         float GetTriggerValue() const {

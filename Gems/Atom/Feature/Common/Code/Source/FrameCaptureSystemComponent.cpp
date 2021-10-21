@@ -35,7 +35,7 @@
 #include <AzCore/Preprocessor/EnumReflectUtils.h>
 #include <AzCore/Console/Console.h>
 
-#include <OpenImageIO/imageio.h>
+//#include <OpenImageIO/imageio.h>
 
 namespace AZ
 {
@@ -108,6 +108,9 @@ namespace AZ
             return FrameCaptureOutputResult{FrameCaptureResult::InternalError, "Unable to save frame capture output to '" + outputFilePath + "'"};
         }
 
+        /*
+        * TODO: OIIO removed?
+        * 
         AZStd::optional<AZStd::pair<OIIO::TypeDesc, OIIO::TypeDesc>> GetFormatOIIOType(AZ::RHI::Format format)
         {
             using namespace AZ::RHI;
@@ -163,7 +166,7 @@ namespace AZ
             }
 
             return FrameCaptureOutputResult{ FrameCaptureResult::InternalError, "Unable to save frame capture output to " + outputFilePath };
-        }
+        }*/
 
         FrameCaptureOutputResult DdsFrameCaptureOutput(
             const AZStd::string& outputFilePath, const AZ::RPI::AttachmentReadback::ReadbackResult& readbackResult)
@@ -567,16 +570,17 @@ namespace AZ
                             m_result = FrameCaptureResult::UnsupportedFormat;
                         }
                     }
-                    else if (extension == "tiff" || extension == "tif")
-                    {
-                        AZStd::string folderPath;
-                        AzFramework::StringFunc::Path::GetFolderPath(m_outputFilePath.c_str(), folderPath);
-                        AZ::IO::SystemFile::CreateDir(folderPath.c_str());
+                    // TODO: OIIO removed?
+                    //else if (extension == "tiff" || extension == "tif")
+                    //{
+                    //    AZStd::string folderPath;
+                    //    AzFramework::StringFunc::Path::GetFolderPath(m_outputFilePath.c_str(), folderPath);
+                    //    AZ::IO::SystemFile::CreateDir(folderPath.c_str());
 
-                        const auto frameCaptureResult = TiffFrameCaptureOutput(m_outputFilePath, readbackResult);
-                        m_result = frameCaptureResult.m_result;
-                        m_latestCaptureInfo = frameCaptureResult.m_errorMessage.value_or("");
-                    }
+                    //    const auto frameCaptureResult = TiffFrameCaptureOutput(m_outputFilePath, readbackResult);
+                    //    m_result = frameCaptureResult.m_result;
+                    //    m_latestCaptureInfo = frameCaptureResult.m_errorMessage.value_or("");
+                    //}
                     else
                     {
                         m_latestCaptureInfo = AZStd::string::format("Only supports saving image to ppm or dds files");

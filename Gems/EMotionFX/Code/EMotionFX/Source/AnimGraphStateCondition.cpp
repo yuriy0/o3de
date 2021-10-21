@@ -222,7 +222,7 @@ namespace EMotionFX
     {
         AnimGraphTransitionCondition::Update(animGraphInstance, timePassedInSeconds);
         UniqueData* uniqueData = static_cast<UniqueData*>(animGraphInstance->FindOrCreateUniqueObjectData(this));
-        if (!uniqueData->mEventHandler)
+        if (!uniqueData->m_eventHandler)
         {
             uniqueData->CreateEventHandler();
         }

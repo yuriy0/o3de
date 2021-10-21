@@ -118,6 +118,11 @@ PSDepthOutput MainPS(VertexOutput IN, bool isFrontFace : SV_IsFrontFace)
 
         OUT.m_depth = depthNDC;
     }
+
+    // Disintegrate effect
+    DisintegrateClipParams disintegrateEffect;
+    disintegrateEffect.uv = IN.m_uv[MaterialSrg::m_parallaxUvIndex];
+    DisintegratePostClipState disintegrateState = ClipDisintegrateEffect(disintegrateEffect);
     
     return OUT;
 }

@@ -52,6 +52,11 @@ namespace EMStudio
         void keyPressEvent(QKeyEvent* event) override;
         void keyReleaseEvent(QKeyEvent* event) override;
 
+        void AddNodesFromSkeletonOutlinerButtonPressed();
+
+        template<class C, class Proj>
+        void AddSelectNodes(const C& nodes, Proj&& proj, CommandSystem::CommandAdjustNodeGroup::NodeAction action);
+
     private:
         EMotionFX::Actor*               m_actor;
 
@@ -65,5 +70,6 @@ namespace EMStudio
         QPushButton*                    m_selectNodesButton;
         QPushButton*                    m_addNodesButton;
         QPushButton*                    m_removeNodesButton;
+        QPushButton*                    m_addNodesFromSkeletonOutlinerButton;
     };
 } // namespace EMStudio

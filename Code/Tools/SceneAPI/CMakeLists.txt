@@ -7,7 +7,7 @@
 #
 
 add_subdirectory(SceneBuilder)
-add_subdirectory(FbxSDKWrapper)
 add_subdirectory(SceneCore)
 add_subdirectory(SceneData)
 add_subdirectory(SceneUI)
+add_subdirectory(SDKWrapper)

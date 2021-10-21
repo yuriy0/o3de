@@ -690,6 +690,10 @@ namespace ScriptCanvas
 
         void AbstractCodeModel::CheckForKnownNullDereference(ExecutionTreeConstPtr execution, const ExecutionInput& input, const Slot& inputSlot)
         {
+            // APC: don't do null check as it has absolutely no meaning in a context where "null" is not formally defined
+            (void)(execution, input, inputSlot);
+
+            /*
             if (Data::IsValueType(inputSlot.GetDataType())
             || !execution->GetId().m_node
             || !execution->GetId().m_slot
@@ -708,6 +712,7 @@ namespace ScriptCanvas
             {
                 AddError(execution->GetId().m_node->GetEntityId(), nullptr, ParseErrors::NullInputKnown);
             }
+            */
         }
 
         void AbstractCodeModel::CheckConversion(ConversionByIndex& conversion, VariableConstPtr source, size_t index, const Data::Type& targetType)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <AzCore/Component/Component.h>
+#include <Atom/RPI.Public/Pass/PassSystemInterface.h>
 
 namespace ApcAtomExt
 {
@@ -26,5 +27,7 @@ namespace ApcAtomExt
         void Activate() override;
         void Deactivate() override;
         ////////////////////////////////////////////////////////////////////////
+
+        AZ::RPI::PassSystemInterface::OnReadyLoadTemplatesEvent::Handler m_loadTemplatesHandler;
     };
 }

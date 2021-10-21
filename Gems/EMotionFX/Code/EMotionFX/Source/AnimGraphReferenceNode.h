@@ -76,6 +76,7 @@ namespace EMotionFX
             };
             AZStd::vector<ValueParameterMappingCacheEntry> m_parameterMappingCache;
             bool m_parameterMappingCacheDirty = true;
+            AZStd::unique_ptr<MotionSet> m_overridenMotionSet;
         };
 
 
@@ -125,7 +126,7 @@ namespace EMotionFX
         void SetAnimGraphAsset(AZ::Data::Asset<Integration::AnimGraphAsset> asset);
 
         AnimGraph* GetReferencedAnimGraph() const;
-        MotionSet* GetMotionSet() const;
+        MotionSet* GetMotionSetOverride() const;
         AZ::Data::Asset<Integration::AnimGraphAsset> GetReferencedAnimGraphAsset() const;
         AZ::Data::Asset<Integration::MotionSetAsset> GetReferencedMotionSetAsset() const;
         AnimGraphInstance* GetReferencedAnimGraphInstance(AnimGraphInstance* animGraphInstance) const;
@@ -149,6 +150,9 @@ namespace EMotionFX
         AZ::Data::Asset<Integration::MotionSetAsset>* GetMotionSetAsset() { return &m_motionSetAsset; }
         bool HasMotionSetAsset() const { return static_cast<bool>(m_motionSetAsset); }
 
+        MotionSet* SetMotionSetForInstance(MotionSet* newMotionSet, AnimGraphInstance* animGraphInstance, UniqueData* uniqueData = nullptr);
+        MotionSet* InitMotionSetForInstance(AnimGraphInstance* animGraphInstance, UniqueData* uniqueData = nullptr);
+
         void ReleaseAnimGraphInstances();
 
         // Callbacks from the Reflected Property Editor
@@ -168,9 +172,22 @@ namespace EMotionFX
         
         void UpdateParameterMappingCache(AnimGraphInstance* animGraphInstance);
 
+        bool IsMotionRemappingVisible() const;
+
+        ///////////////////////
+        // Reflected data
+        ///////////////////////
+
+        using MotionRemapping = AZStd::unordered_map<AZStd::string, AZStd::string>;
+
         AZ::Data::Asset<Integration::AnimGraphAsset> m_animGraphAsset;
         AZ::Data::Asset<Integration::MotionSetAsset> m_motionSetAsset;
         AZStd::string                                m_activeMotionSetName;
+        MotionRemapping                              m_motionRemapping;
+
+        ///////////////////////
+        // Runtime data
+        ///////////////////////
 
         // Since changing the anim graph asset could trigger its destructor (since
         // it could be the last anim graph being used) and produce anim graph instances

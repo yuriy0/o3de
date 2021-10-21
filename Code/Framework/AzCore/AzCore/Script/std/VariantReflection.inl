@@ -84,7 +84,7 @@ namespace AZ {
                     ->Attribute(AZ::Script::Attributes::Storage, AZ::Script::Attributes::StorageType::Value)
                     ->Attribute(AZ::Script::Attributes::Ignore, true)
 
-                    ->template Constructor<typename ThisType>()
+                    ->template Constructor<ThisType>()
                     ->Attribute(AZ::Script::Attributes::ConstructorOverride, &CustomConstructor)
 
                     ->Attribute(AZ::Script::Attributes::ReaderWriterOverride, AZ::ScriptContext::CustomReaderWriter(&ToLua, &FromLua))

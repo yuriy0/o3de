@@ -1,0 +1,4 @@
+{
+    "Shader": "DownsampleLuminanceMinAvgMaxCS.shader",
+    "Variants": []
+}

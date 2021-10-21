@@ -158,7 +158,7 @@ namespace EMotionFX
     void AnimGraphParameterAction::SetParameterValue(const AZStd::any& parameterValue)
     {
         m_parameterValue = parameterValue;
-        if (mAnimGraph)
+        if (m_animGraph)
         {
             Reinit();
         }

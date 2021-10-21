@@ -1,0 +1,4 @@
+{
+    "Shader": "DepthOfFieldWriteFocusDepthFromGpu.shader",
+    "Variants": []
+}

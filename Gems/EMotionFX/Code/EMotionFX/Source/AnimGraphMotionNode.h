@@ -21,6 +21,31 @@ namespace EMotionFX
     class ActorInstance;
     class MotionSet;
 
+    /* A simple wrapper around a motion instance which increases the refcount of the motion.
+     * This ensures that while the motion node still wants to play the motion, the instance which it holds
+     * does not get destroyed (the motion manager will call UniqueData::Reset to handle this case).
+     */
+    class OwningMotionInstancePtr
+    {
+    public:
+        OwningMotionInstancePtr() = default;
+        OwningMotionInstancePtr(MotionInstance* instance);
+        ~OwningMotionInstancePtr();
+
+        OwningMotionInstancePtr(const OwningMotionInstancePtr&) = delete;
+        OwningMotionInstancePtr& operator=(const OwningMotionInstancePtr&) = delete;
+
+        OwningMotionInstancePtr(OwningMotionInstancePtr&&);
+        OwningMotionInstancePtr& operator=(OwningMotionInstancePtr&&);
+
+        operator MotionInstance* () const;
+        MotionInstance* operator->() const;
+
+        void reset();
+    private:
+        MotionInstance* m_instance = nullptr;
+    };
+
     /**
      *
      *
@@ -72,9 +97,15 @@ namespace EMotionFX
             void Update() override;
 
         public:
-            uint32 m_motionSetId = InvalidIndex32;
-            uint32 m_activeMotionIndex = InvalidIndex32;
-            MotionInstance* m_motionInstance = nullptr;
+            using CDF = AZStd::vector<float>;
+            using Chain = AZStd::vector<size_t>;
+            using SingleValueMotion = size_t;
+
+            AZStd::variant<AZStd::monostate, CDF, Chain, SingleValueMotion> m_prunedMotionChoiceData;
+            size_t m_countPrunedMotionChoices = 0;
+            uint32 m_motionSetID = InvalidIndex32;
+            size_t m_activeMotionIndex = InvalidIndex32;
+            OwningMotionInstancePtr m_motionInstance;
             bool m_reload = false;
         };
 
@@ -112,6 +143,7 @@ namespace EMotionFX
         void PickNewActiveMotion(AnimGraphInstance* animGraphInstance);
         void PickNewActiveMotion(AnimGraphInstance* animGraphInstance, UniqueData* uniqueData);
 
+        size_t GetNumValidMotions(UniqueData* uniqueData) const;
         size_t GetNumMotions() const;
         const char* GetMotionId(size_t index) const;
         void ReplaceMotionId(const char* what, const char* replaceWith);
@@ -137,7 +169,7 @@ namespace EMotionFX
         void SetIndexMode(EIndexMode eIndexMode);
         void SetNextMotionAfterLoop(bool nextMotionAfterLoop);
         void SetRewindOnZeroWeight(bool rewindOnZeroWeight);
-        int FindCumulativeProbabilityIndex(float randomValue) const;
+        int FindCumulativeProbabilityIndex(float randomValue, UniqueData* uniqueData) const;
 
         bool GetIsInPlace(AnimGraphInstance* animGraphInstance) const;
 
@@ -162,8 +194,11 @@ namespace EMotionFX
         bool                                                m_rewindOnZeroWeight;
         bool                                                m_inPlace;
 
+        size_t PickRandomizedNewActiveMotion(const UniqueData::CDF& cdf, size_t prevActiveMotion, float uniformRandomSample);
+
         void ReloadAndInvalidateUniqueDatas();
         MotionInstance* CreateMotionInstance(ActorInstance* actorInstance, UniqueData* uniqueData);
+        MotionInstance* CheckCreateMotionInstance(ActorInstance* actorInstance, UniqueData* uniqueData);
         void TopDownUpdate(AnimGraphInstance* animGraphInstance, float timePassedInSeconds) override;
         void Update(AnimGraphInstance* animGraphInstance, float timePassedInSeconds) override;
         void Output(AnimGraphInstance* animGraphInstance) override;
@@ -173,7 +208,6 @@ namespace EMotionFX
 
         AZ::Crc32 GetRewindOnZeroWeightVisibility() const;
         AZ::Crc32 GetMultiMotionWidgetsVisibility() const;
-        void SelectAnyRandomMotionIndex(EMotionFX::AnimGraphInstance* animGraphInstance, EMotionFX::AnimGraphMotionNode::UniqueData* uniqueData);
 
         void UpdateNodeInfo();
     };

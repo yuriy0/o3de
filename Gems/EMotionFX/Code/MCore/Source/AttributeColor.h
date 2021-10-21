@@ -78,7 +78,7 @@ namespace MCore
             : Base(TYPE_ID)                    { m_value.Set(0.0f, 0.0f, 0.0f, 1.0f); }
         AttributeColor(const RGBAColor& value)
             : Base(TYPE_ID)
-            , mValue(value)     { }
+            , m_value(value)     { }
         ~AttributeColor() {}
     };
 }   // namespace MCore

@@ -25,7 +25,7 @@ namespace ScriptCanvas
         {
             if (!contract)
             {
-                return false;
+                return true;
             }
 
             outcome = contract->Evaluate(firstSlot, secondSlot);

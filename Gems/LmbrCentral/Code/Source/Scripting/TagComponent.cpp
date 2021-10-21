@@ -143,20 +143,32 @@ namespace LmbrCentral
     //=========================================================================
     void TagComponent::Activate()
     {
+        // Connect to tag buses
         for (const Tag& tag : m_tags)
         {
             TagGlobalRequestBus::MultiHandler::BusConnect(tag);
-            SendAddTagEvent(tag);
         }
         TagComponentRequestBus::Handler::BusConnect(GetEntityId());
+
+        // Send events
+        for (const Tag& tag : m_tags)
+        {
+            SendAddTagEvent(tag);
+        }
     }
 
     void TagComponent::Deactivate()
-    { 
+    {
+        // Disconnect from tag buses
         TagComponentRequestBus::Handler::BusDisconnect();
         for (const Tag& tag : m_tags)
         {
             TagGlobalRequestBus::MultiHandler::BusDisconnect(tag);
+        }
+
+        // Send events
+        for (const Tag& tag : m_tags)
+        {
             SendRemoveTagEvent(tag);
         }
     }
@@ -181,8 +193,8 @@ namespace LmbrCentral
     {
         if (m_tags.insert(tag).second)
         {
-            SendAddTagEvent(tag);
             TagGlobalRequestBus::MultiHandler::BusConnect(tag);
+            SendAddTagEvent(tag);
         }
     }
 
@@ -198,8 +210,8 @@ namespace LmbrCentral
     {
         if (m_tags.erase(tag) > 0)
         {
-            SendRemoveTagEvent(tag);
             TagGlobalRequestBus::MultiHandler::BusDisconnect(tag);
+            SendRemoveTagEvent(tag);
         }
     }
 

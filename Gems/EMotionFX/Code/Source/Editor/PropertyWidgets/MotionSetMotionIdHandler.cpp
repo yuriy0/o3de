@@ -17,19 +17,12 @@
 
 namespace EMotionFX
 {
-    float MotionSelectionIdWidgetController::s_displayedRoundingError = 0.0f;
-
     AZ_CLASS_ALLOCATOR_IMPL(MotionSetMotionIdPicker, EditorAllocator, 0)
     AZ_CLASS_ALLOCATOR_IMPL(MotionIdRandomSelectionWeightsHandler, EditorAllocator, 0)
     AZ_CLASS_ALLOCATOR_IMPL(MotionSetMultiMotionIdHandler, EditorAllocator, 0)
     AZ_CLASS_ALLOCATOR_IMPL(MotionSelectionIdWidgetController, EditorAllocator, 0)
 
     const float MotionSetMotionIdPicker::s_defaultWeight = 1.0f;
-
-    void MotionSelectionIdWidgetController::ResetDisplayedRoundingError()
-    {
-        s_displayedRoundingError = 0.0f;
-    }
 
     MotionSelectionIdWidgetController::MotionSelectionIdWidgetController(QGridLayout* layout,
         int graphicLayoutRowIndex, 
@@ -50,6 +43,7 @@ namespace EMotionFX
         layoutX->setAlignment(Qt::AlignRight);
         layoutX->setSpacing(2);
         layoutX->setMargin(2);
+
         m_randomWeightSpinbox = new AzQtComponents::DoubleSpinBox();
         m_randomWeightSpinbox->setSingleStep(0.1);
         m_randomWeightSpinbox->setDecimals(1);
@@ -60,14 +54,14 @@ namespace EMotionFX
 
         layout->addLayout(layoutX, graphicLayoutRowIndex, column);
         column++;
-        m_normalizedProbabilityText = new QLineEdit();
 
-        // The read only text for the normalized probabilities does not need the space for the SpinBox buttons
-        m_normalizedProbabilityText->setMaximumWidth(aznumeric_cast<int>(m_randomWeightSpinbox->maximumWidth() * 0.5));
-        m_normalizedProbabilityText->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-        m_normalizedProbabilityText->setEnabled(false);
+        m_normalizedProbabilitySliderCombo = new AzQtComponents::SliderDoubleCombo();
 
-        layout->addWidget(m_normalizedProbabilityText, graphicLayoutRowIndex, column);
+        m_normalizedProbabilitySliderCombo->spinbox()->setDisplayDecimals(2);
+        m_normalizedProbabilitySliderCombo->setRange(0., 100.);
+        m_normalizedProbabilitySliderCombo->setEnabled(false);
+
+        layout->addWidget(m_normalizedProbabilitySliderCombo, graphicLayoutRowIndex, column);
         column++;
 
         const int iconSize = 20;
@@ -83,7 +77,7 @@ namespace EMotionFX
         if (!m_displayMotionSelectionWeight)
         {
             m_randomWeightSpinbox->setVisible(false);
-            m_normalizedProbabilityText->setVisible(false);
+            m_normalizedProbabilitySliderCombo->setVisible(false);
         }
     }
 
@@ -93,7 +87,7 @@ namespace EMotionFX
         if (m_displayMotionSelectionWeight)
         {
             m_randomWeightSpinbox->hide();
-            m_normalizedProbabilityText->hide();
+            m_normalizedProbabilitySliderCombo->hide();
         }
         m_removeButton->hide();
     }
@@ -104,7 +98,7 @@ namespace EMotionFX
         if (m_displayMotionSelectionWeight)
         {
             m_randomWeightSpinbox->show();
-            m_normalizedProbabilityText->show();
+            m_normalizedProbabilitySliderCombo->show();
         }
         m_removeButton->show();
     }
@@ -119,7 +113,7 @@ namespace EMotionFX
         m_labelMotion->deleteLater();
         m_removeButton->deleteLater();
         m_randomWeightSpinbox->deleteLater();
-        m_normalizedProbabilityText->deleteLater();
+        m_normalizedProbabilitySliderCombo->deleteLater();
     }
 
     size_t MotionSelectionIdWidgetController::GetId() const
@@ -129,14 +123,15 @@ namespace EMotionFX
 
     void MotionSelectionIdWidgetController::Update()
     {
+        // Update weight value
         const double weight = m_dataContainer->GetWeight(m_id);
         m_randomWeightSpinbox->setValue(weight);
-        const double actualPercentage = 100.0 * weight / m_dataContainer->GetWeightSum();
-        const double compensatedValue = actualPercentage - s_displayedRoundingError;
-        const double roundedValue = qRound(compensatedValue);
-        s_displayedRoundingError = aznumeric_cast<float>(roundedValue - compensatedValue);
-        QString str = m_normalizedProbabilityText->locale().toString(roundedValue, 'f', 1);
-        m_normalizedProbabilityText->setText(str);
+
+        // Update probability value
+        const double actualPercentage = 100.0 * (weight / m_dataContainer->GetWeightSum());
+        m_normalizedProbabilitySliderCombo->setValue(actualPercentage);
+
+        // Update motion name text
         m_labelMotion->setText(m_dataContainer->GetMotionId(m_id).c_str());
     }
 
@@ -315,9 +310,9 @@ namespace EMotionFX
             motionsLayout->setHorizontalSpacing(0);
             AzQtComponents::ElidingLabel* labelColumn0 = new AzQtComponents::ElidingLabel();
             motionsLayout->addWidget(labelColumn0, 0, 0);
-            AzQtComponents::ElidingLabel* labelColumn1 = new AzQtComponents::ElidingLabel("Probability weight");
+            AzQtComponents::ElidingLabel* labelColumn1 = new AzQtComponents::ElidingLabel("Weight");
             motionsLayout->addWidget(labelColumn1, 0, 1);
-            AzQtComponents::ElidingLabel* labelColumn2 = new AzQtComponents::ElidingLabel("Probability (100%)");
+            AzQtComponents::ElidingLabel* labelColumn2 = new AzQtComponents::ElidingLabel("Probability (%)");
             motionsLayout->addWidget(labelColumn2, 0, 2);
             if (!m_displaySelectionWeights)
             {
@@ -350,12 +345,14 @@ namespace EMotionFX
             {
                 m_motionWidgetControllers.emplace_back(AZStd::make_unique<MotionSelectionIdWidgetController>(m_motionsLayout, static_cast<int>(layoutRowIndex++), this, m_displaySelectionWeights));
                 MotionSelectionIdWidgetController* motionWidget = m_motionWidgetControllers.back().get();
+
                 connect(motionWidget->m_randomWeightSpinbox, qOverload<double>(&QDoubleSpinBox::valueChanged), this,
                     [this, motionWidget](double value)
                     {
                         OnRandomWeightChanged(motionWidget->GetId(), value);
                     }
                 );
+
                 connect(motionWidget->m_removeButton, &QPushButton::clicked, [this, motionWidget]()
                 {
                     OnRemoveMotion(motionWidget->GetId());
@@ -403,7 +400,6 @@ namespace EMotionFX
 
     void MotionSetMotionIdPicker::UpdateGui()
     {
-        MotionSelectionIdWidgetController::ResetDisplayedRoundingError();
         auto widgetsIterator = m_motionWidgetControllers.begin();
         size_t validGuisCount = 0;
         for(; validGuisCount < m_motions.size() && widgetsIterator != m_motionWidgetControllers.end(); ++widgetsIterator, ++validGuisCount)
@@ -425,7 +421,6 @@ namespace EMotionFX
     {
         m_weightsSum -= m_motions[id].second;
         m_motions.erase(m_motions.begin() + id);
-        MotionSelectionIdWidgetController::ResetDisplayedRoundingError();
         InitializeWidgets();
 
         UpdateGui();

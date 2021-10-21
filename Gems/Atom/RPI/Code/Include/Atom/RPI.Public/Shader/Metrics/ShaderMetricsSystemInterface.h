@@ -48,6 +48,12 @@ namespace AZ
             //! @param[in]  value true to enable the metrics; otherwise, false.
             virtual void SetEnabled(bool value) = 0;
 
+            //! true iff the shader metrics system will add any missing variants (i.e. variants with dynamic branches which map to the root variant) to the .shaderlistvariant file.
+            virtual bool IsAutomaticallyAddingMissingShaderVariants() const = 0;
+
+            //! see 'IsAutomaticallyAddingMissingShaderVariants'
+            virtual void SetAutomaticallyAddingMissingShaderVariants(bool value) = 0;
+
             //! Gets the shader metrics.
             virtual const ShaderVariantMetrics& GetMetrics() const = 0;
 

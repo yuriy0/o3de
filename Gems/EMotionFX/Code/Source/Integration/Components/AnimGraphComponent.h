@@ -147,6 +147,9 @@ namespace EMotionFX
             void SyncAnimGraph(AZ::EntityId leaderEntityId) override;
             void DesyncAnimGraph(AZ::EntityId leaderEntityId) override;
 			void SetMotionSet(const AZStd::string& motionSetName) override;
+            AZStd::string GetMotionSet() override;
+            AZ::u64 PushMotionSet(const AZStd::string& motionSetName) override;
+            void PopMotionSet(AZ::u64) override;
             //////////////////////////////////////////////////////////////////////////
 
             //////////////////////////////////////////////////////////////////////////
@@ -161,6 +164,7 @@ namespace EMotionFX
 			void SetPlaySpeed(const char* nodeName, float playtime) override;
 
 			void Rewind(const char* nodeName) override;
+            AZStd::vector<AZStd::string_view> GetActiveNodes(const AZ::TypeId& nodeType = AZ::TypeId::CreateNull()) override;
 			//////////////////////////////////////////////////////////////////////////
 
             //////////////////////////////////////////////////////////////////////////
@@ -230,12 +234,16 @@ namespace EMotionFX
             void AnimGraphInstancePostCreate();
             void AnimGraphInstancePreDestroy();
             
-            void SendParameterChangeEvent(const AZStd::any& prev, const AZStd::any& current, AZ::u32 parameterIndex);
+            void SendParameterChangeEvent(const AZStd::any& prev, const AZStd::any& current, size_t parameterIndex);
+
+            void SetTopMotionSet();
 
             Configuration                               m_configuration;        ///< Component configuration.
 
             EMotionFXPtr<EMotionFX::ActorInstance>      m_actorInstance;        ///< Associated actor instance (retrieved from Actor Component).
             EMotionFXPtr<EMotionFX::AnimGraphInstance>  m_animGraphInstance;    ///< Live anim graph instance.
+            AZStd::map<size_t, AZStd::string>           m_motionSetStack;
+            size_t                                      m_nextMotionSetStackToken = 1;
         };
 
     } // namespace Integration

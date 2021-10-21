@@ -87,12 +87,12 @@ namespace SandboxEditor
 
                 m_notifyEventHandler = registry->RegisterNotifier(
                     [this](const AZStd::string_view path, [[maybe_unused]] const AZ::SettingsRegistryInterface::Type type)
+                {
+                    if (IsPathAncestorDescendantOrEqual(GridSnappingSetting, path))
                     {
-                        if (IsPathAncestorDescendantOrEqual(GridSnappingSetting, path))
-                        {
-                            m_gridSnappingChanged.Signal(GridSnappingEnabled());
-                        }
-                    });
+                        m_gridSnappingChanged.Signal(GridSnappingEnabled());
+                    }
+                });
             }
         }
 
@@ -115,7 +115,7 @@ namespace SandboxEditor
         return GetRegistry(GridSnappingSetting, false);
     }
 
-    void SetGridSnappingSize(const float size)
+    void SetGridSnapping(const bool enabled)
     {
         SetRegistry(GridSnappingSetting, enabled);
     }
@@ -125,7 +125,7 @@ namespace SandboxEditor
         return aznumeric_cast<float>(GetRegistry(GridSizeSetting, 0.1));
     }
 
-    bool AngleSnappingEnabled()
+    void SetGridSnappingSize(const float size)
     {
         SetRegistry(GridSizeSetting, size);
     }

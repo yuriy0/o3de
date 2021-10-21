@@ -64,8 +64,16 @@ namespace AZ
                     ConstructDefault
                 };
 
-                static const AZ::EBusHandlerPolicy HandlerPolicy = AZ::EBusHandlerPolicy::Multiple;
+                static const AZ::EBusHandlerPolicy HandlerPolicy = AZ::EBusHandlerPolicy::MultipleAndOrdered;
                 using MutexType = AZStd::recursive_mutex;
+
+                struct BusHandlerOrderCompare
+                {
+                    AZ_FORCE_INLINE bool operator()(const AssetImportRequest* r0, const AssetImportRequest* r1) const
+                    {
+                        return r0->GetAssetImportRequestPriority() < r1->GetAssetImportRequestPriority();
+                    }
+                };
 
                 static AZ::Crc32 GetAssetImportRequestComponentTag()
                 {
@@ -115,6 +123,8 @@ namespace AZ
                     }
                  */
                 virtual void GetManifestDependencyPaths(AZStd::vector<AZStd::string>& paths);
+
+                virtual int GetAssetImportRequestPriority() const { return 0; }
 
                 //! Utility function to load an asset and manifest from file by using the EBus functions above.
                 //! @param assetFilePath The absolute path to the source file (not the manifest).

@@ -2570,13 +2570,18 @@ namespace AZ
 
 /// include AZStd containers generics
 #include <AzCore/Serialization/AZStdContainers.inl>
-#include <AzCore/Serialization/std/VariantReflection.inl>
 
 // Forward declare asset serialization helper specialization
 namespace AZ
 {
     template<typename T>
     struct SerializeGenericTypeInfo< Data::Asset<T> >;
+}
+
+namespace AZ
+{
+    template<typename... Types>
+    struct SerializeGenericTypeInfo<AZStd::variant<Types...>>;
 }
 
 /// include implementation of SerializeContext::EnumBuilder

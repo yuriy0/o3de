@@ -175,6 +175,20 @@ namespace EMotionFX
         return nullptr;
     }
 
+    AZStd::vector<Node*> SkeletonOutlinerPlugin::GetSelectedRowNodes()
+    {
+        AZStd::vector<Node*> nodes;
+        const QModelIndexList selectedIndices = m_skeletonModel->GetSelectionModel().selectedRows();
+        for (QModelIndex index : selectedIndices)
+        {
+            if (Node* selectedNode = index.data(SkeletonModel::ROLE_POINTER).value<Node*>())
+            {
+                nodes.push_back(selectedNode);
+            }
+        }
+        return nodes;
+    }
+
     QModelIndex SkeletonOutlinerPlugin::GetSingleSelectedModelIndex()
     {
         const QModelIndexList selectedIndices = m_skeletonModel->GetSelectionModel().selectedRows();

@@ -100,6 +100,12 @@ namespace EMotionFX
             virtual void SetActorAsset(AZ::Data::Asset<EMotionFX::Integration::ActorAsset> actorAsset) = 0;
 
             static const size_t s_invalidJointIndex = std::numeric_limits<size_t>::max();
+
+            /// Find the internal index of the given morph target name
+            virtual AZ::Outcome<size_t, AZStd::string> GetMorphTargetIndex(const char* morphTarget) = 0;
+
+            /// Set the weight of the given morph target
+            virtual void SetMorphTargetWeight(size_t morphTargetIndex, float weight) = 0;
         };
 
         using ActorComponentRequestBus = AZ::EBus<ActorComponentRequests>;

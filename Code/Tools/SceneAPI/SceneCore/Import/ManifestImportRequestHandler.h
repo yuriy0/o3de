@@ -34,7 +34,8 @@ namespace AZ
                 void GetGeneratedManifestExtension(AZStd::string& result) override;
                 Events::LoadingResult LoadAsset(Containers::Scene& scene, const AZStd::string& path, const Uuid& guid,
                     RequestingApplication requester) override;
-                
+                int GetAssetImportRequestPriority() const override;
+
             private:
                 static const char* s_extension;
                 static const char* s_generated;

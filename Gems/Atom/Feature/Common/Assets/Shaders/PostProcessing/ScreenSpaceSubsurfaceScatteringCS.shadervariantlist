@@ -1,0 +1,4 @@
+{
+    "Shader": "ScreenSpaceSubsurfaceScatteringCS.shader",
+    "Variants": []
+}

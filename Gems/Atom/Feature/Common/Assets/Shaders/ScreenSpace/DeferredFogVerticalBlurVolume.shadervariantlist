@@ -1,0 +1,4 @@
+{
+    "Shader": "DeferredFogVerticalBlurVolume.shader",
+    "Variants": []
+}

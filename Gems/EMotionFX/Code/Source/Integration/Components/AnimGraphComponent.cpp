@@ -13,8 +13,6 @@
 //#pragma warning(disable : 4800) // forcing value to bool 'true' or 'false' (performance warning)
 //#pragma warning(disable : 4267) // conversion from 'size_t' to 'AZ::u32', possible loss of data
 
-#include "EMotionFX_precompiled.h"
-
 #include <AzCore/Component/Entity.h>
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzCore/Serialization/EditContext.h>
@@ -31,6 +29,7 @@
 
 #include <Integration/Components/AnimGraphComponent.h>
 #include <EMotionFX/Source/Parameter/StringParameter.h>
+#include <EMotionFX/Source/AnimGraphNode.h>
 
 namespace EMotionFX
 {
@@ -85,7 +84,7 @@ namespace EMotionFX
                 Call(FN_OnAnimGraphVector3ParameterChanged, animGraphInstance, parameterIndex, beforeValue, afterValue);
             }
 
-            void OnAnimGraphParameterChanged(EMotionFX::AnimGraphInstance* animGraphInstance, AZ::u32 parameterIndex, AZStd::any beforeValue, AZStd::any afterValue) override
+            void OnAnimGraphParameterChanged(EMotionFX::AnimGraphInstance* animGraphInstance, size_t parameterIndex, AZStd::any beforeValue, AZStd::any afterValue) override
 			{
                 Call(FN_OnAnimGraphParameterChanged, animGraphInstance, parameterIndex, beforeValue, afterValue);
             };
@@ -233,6 +232,7 @@ namespace EMotionFX
 					->Event("SetPlaySpeed", &AnimGraphNodeRequestBus::Events::SetPlaySpeed)
 					// Special Functions
 					->Event("Rewind", &AnimGraphNodeRequestBus::Events::Rewind)
+					->Event("GetActiveNodes", &AnimGraphNodeRequestBus::Events::GetActiveNodes)
 					;
 
                 behaviorContext->EBus<AnimGraphComponentNotificationBus>("AnimGraphComponentNotificationBus")
@@ -273,6 +273,9 @@ namespace EMotionFX
         //////////////////////////////////////////////////////////////////////////
         void AnimGraphComponent::Activate()
         {
+            m_nextMotionSetStackToken = 1;
+            m_motionSetStack.clear();
+
             m_animGraphInstance.reset();
 
             AZ::Data::AssetBus::MultiHandler::BusDisconnect();
@@ -518,7 +521,7 @@ namespace EMotionFX
                 EMotionFX::MotionSet* motionSet = rootMotionSet;
                 if (!cfg.m_activeMotionSetName.empty())
                 {
-                    motionSet = rootMotionSet->RecursiveFindMotionSetByName(cfg.m_activeMotionSetName, true);
+                    motionSet = rootMotionSet->RecursiveFindMotionSetByName(cfg.m_activeMotionSetName);
                     if (!motionSet)
                     {
                         AZ_Warning("EMotionFX", false, "Failed to find motion set \"%s\" in motion set file %s.",
@@ -945,7 +948,7 @@ namespace EMotionFX
         }
 
         //////////////////////////////////////////////////////////////////////////
-        void AnimGraphComponent::SetParameterString(AZ::u32 parameterIndex, const char* cStringValue)
+        void AnimGraphComponent::SetParameterString(size_t parameterIndex, const char* cStringValue)
         {
             if (parameterIndex == InvalidIndex)
             {
@@ -1599,6 +1602,25 @@ namespace EMotionFX
 		}
 
         //////////////////////////////////////////////////////////////////////////
+        AZStd::vector<AZStd::string_view> AnimGraphComponent::GetActiveNodes(const AZ::TypeId& nodeType)
+        {
+            AZStd::vector<AZStd::string_view> res;
+            if (m_animGraphInstance)
+            {
+                AZStd::vector<AnimGraphNode*> activeNodes;
+                m_animGraphInstance->CollectActiveAnimGraphNodes(&activeNodes, nodeType);
+
+                res.reserve(activeNodes.size());
+                for (AnimGraphNode* activeNode : activeNodes)
+                {
+                    res.push_back(activeNode->GetName());
+                }
+            }
+
+            return res;
+        }
+
+        //////////////////////////////////////////////////////////////////////////
         void AnimGraphComponent::SyncAnimGraph(AZ::EntityId leaderEntityId)
         {
             if (m_animGraphInstance)
@@ -1621,7 +1643,7 @@ namespace EMotionFX
             }
         }
 
-        void AnimGraphComponent::SetMotionSet(const AZStd::string& motionSetName)
+        void AnimGraphComponent::SetTopMotionSet()
         {
             if (m_animGraphInstance)
             {
@@ -1630,7 +1652,14 @@ namespace EMotionFX
                     const auto rootMotionSet = currentMotionSet->FindRootMotionSet();
                     AZ_Assert(rootMotionSet, AZ_FUNCTION_SIGNATURE " - root motion set is null?");
 
-                    if (auto newMotionSet = rootMotionSet->RecursiveFindMotionSetByName(motionSetName, false))
+                    // Get motion set to activate - if the motionset stack is empty, use the root motion set
+                    const auto newMotionSet
+                        = m_motionSetStack.empty()
+                        ? rootMotionSet
+                        : rootMotionSet->RecursiveFindMotionSetByName(m_motionSetStack.rbegin()->second)
+                        ;
+
+                    if (newMotionSet)
                     {
                         if (newMotionSet != currentMotionSet)
                         {
@@ -1640,11 +1669,51 @@ namespace EMotionFX
                     else
                     {
                         AZ_Warning("EMotionFX", false, "Failed to find motion set \"%s\" in motion set file %s.",
-                            motionSetName.c_str(),
+                            m_motionSetStack.rbegin()->second.c_str(),
                             rootMotionSet->GetName());
                     }
                 }
             }
         }
+
+        AZStd::string AnimGraphComponent::GetMotionSet()
+        {
+            if (m_animGraphInstance)
+            {
+                if (const auto currentMotionSet = m_animGraphInstance->GetMotionSet())
+                {
+                    return currentMotionSet->GetNameString();
+                }
+            }
+
+            return "";
+        }
+
+        void AnimGraphComponent::SetMotionSet(const AZStd::string& motionSetName)
+        {
+            PushMotionSet(motionSetName);
+        }
+
+        AZ::u64 AnimGraphComponent::PushMotionSet(const AZStd::string& motionSetName)
+        {
+            AZ::u64 token = 0;
+            if (m_animGraphInstance)
+            {
+                token = m_nextMotionSetStackToken;
+                m_nextMotionSetStackToken = m_nextMotionSetStackToken == std::numeric_limits<size_t>::max() ? 1 : m_nextMotionSetStackToken + 1;
+
+                m_motionSetStack.emplace(token, motionSetName);
+                SetTopMotionSet();
+            }
+
+            return token;
+        }
+
+        void AnimGraphComponent::PopMotionSet(AZ::u64 token)
+        {
+            m_motionSetStack.erase(token);
+            SetTopMotionSet();
+        }
+
     } // namespace Integration
 } // namespace EMotionFXAnimation

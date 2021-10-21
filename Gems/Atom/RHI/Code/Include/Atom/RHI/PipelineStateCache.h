@@ -12,6 +12,7 @@
 #include <Atom/RHI/ThreadLocalContext.h>
 #include <AzCore/std/containers/bitset.h>
 #include <AzCore/Utils/TypeHash.h>
+#include <AzCore/std/containers/variant.h>
 
 namespace UnitTest
 {

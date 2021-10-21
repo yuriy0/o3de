@@ -25,6 +25,7 @@
 #include "AnimGraph.h"
 #include <EMotionFX/Source/MotionData/MotionData.h>
 
+#include <AzCore/std/match.h>
 
 namespace EMotionFX
 {
@@ -172,7 +173,7 @@ namespace EMotionFX
         UniqueData* uniqueData = static_cast<UniqueData*>(FindOrCreateUniqueNodeData(animGraphInstance));
 
         // check if we have multiple motions in this node
-        const size_t numMotions = GetNumMotions();
+        const size_t numMotions = GetNumValidMotions(uniqueData);
         if (numMotions > 1)
         {
             // check if we reached the end of the motion, if so, pick a new one
@@ -224,7 +225,8 @@ namespace EMotionFX
 
         // update the motion instance (current time etc)
         UniqueData* uniqueData = static_cast<UniqueData*>(FindOrCreateUniqueNodeData(animGraphInstance));
-        MotionInstance* motionInstance = uniqueData->m_motionInstance;
+        MotionInstance* motionInstance = CheckCreateMotionInstance(animGraphInstance->GetActorInstance(), uniqueData);
+
         if (motionInstance == nullptr || m_disabled)
         {
             if (GetEMotionFX().GetIsInEditorMode())
@@ -330,7 +332,7 @@ namespace EMotionFX
         {
             GetMotionInstancePool().Free(uniqueData->m_motionInstance);
             uniqueData->m_motionInstance = nullptr;
-            uniqueData->m_motionSetId    = MCORE_INVALIDINDEX32;
+            uniqueData->m_motionSetID    = MCORE_INVALIDINDEX32;
             uniqueData->m_reload         = false;
         }
 
@@ -360,7 +362,7 @@ namespace EMotionFX
             return nullptr;
         }
 
-        uniqueData->m_motionSetId = motionSet->GetID();
+        uniqueData->m_motionSetID = motionSet->GetID();
 
         // create the motion instance
         MotionInstance* motionInstance = GetMotionInstancePool().RequestNew(motion, actorInstance);
@@ -416,17 +418,8 @@ namespace EMotionFX
 
         // create and register the motion instance when this is the first time its being when it hasn't been registered yet
         ActorInstance* actorInstance = animGraphInstance->GetActorInstance();
-        MotionInstance* motionInstance = nullptr;
         UniqueData* uniqueData = static_cast<UniqueData*>(FindOrCreateUniqueNodeData(animGraphInstance));
-        if (uniqueData->m_reload)
-        {
-            motionInstance = CreateMotionInstance(actorInstance, uniqueData);
-            uniqueData->m_reload = false;
-        }
-        else
-        {
-            motionInstance = uniqueData->m_motionInstance;
-        }
+        MotionInstance* motionInstance = CheckCreateMotionInstance(actorInstance, uniqueData);
 
         // update the motion instance output port
         GetOutputMotionInstance(animGraphInstance, OUTPUTPORT_MOTION)->SetValue(motionInstance);
@@ -525,7 +518,7 @@ namespace EMotionFX
         }
 
         // reset the unique data
-        m_motionSetId    = MCORE_INVALIDINDEX32;
+        m_motionSetID    = MCORE_INVALIDINDEX32;
         m_motionInstance = nullptr;
         m_reload         = true;
         m_playSpeed      = 1.0f;
@@ -533,6 +526,8 @@ namespace EMotionFX
         m_duration       = 0.0f;
         m_activeMotionIndex = MCORE_INVALIDINDEX32;
         SetSyncTrack(nullptr);
+        m_prunedMotionChoiceData = AZStd::monostate{};
+        m_countPrunedMotionChoices = 0;
 
         Invalidate();
     }
@@ -544,13 +539,103 @@ namespace EMotionFX
         AnimGraphMotionNode* motionNode = azdynamic_cast<AnimGraphMotionNode*>(m_object);
         AZ_Assert(motionNode, "Unique data linked to incorrect node type.");
 
+        // remove any unassigned motions
+        {
+            m_countPrunedMotionChoices = 0;
+            const auto& baseCDF = motionNode->m_motionRandomSelectionCumulativeWeights;
+            const size_t numMotions = baseCDF.size();
+            if (numMotions > 1)
+            {
+                const auto IsMotionAvailable =
+                [
+                    motionSet = GetAnimGraphInstance()->GetMotionSet()
+                ](const AZStd::string& motionId)
+                {
+                    return motionSet->RecursiveFindMotionById(motionId, false) != nullptr;
+                };
+
+                uint32 singleValidEntry;
+
+                const auto IterBaseCDF = [&](auto&& fn)
+                {
+                    for (uint32 entryIndex = 0; entryIndex < numMotions; ++entryIndex)
+                    {
+                        const auto& entry = baseCDF[entryIndex];
+                        const bool isAvailable = IsMotionAvailable(entry.first);
+                        m_countPrunedMotionChoices += isAvailable;
+                        singleValidEntry = entryIndex;
+
+                        fn(entryIndex, entry, isAvailable);
+                    }
+                };
+
+                if (motionNode->m_indexMode == INDEXMODE_SEQUENTIAL)
+                {
+                    AZStd::vector<size_t> validEntries;
+                    validEntries.reserve(numMotions);
+
+                    IterBaseCDF([&](uint32 entryIndex, const auto&, bool isAvailable)
+                    {
+                        if (isAvailable)
+                        {
+                            validEntries.emplace_back(entryIndex);
+                        }
+                    });
+
+                    // Construct the chain of indices from the list of valid entries
+                    if (validEntries.size() > 0)
+                    {
+                        Chain& chain = m_prunedMotionChoiceData.emplace<Chain>();
+                        chain.resize(validEntries.size());
+
+                        for (size_t i = 0; i < validEntries.size(); ++i)
+                        {
+                            const size_t prev = i != 0 ? 0 : validEntries.size() - 1;
+                            chain[validEntries[prev]] = validEntries[i];
+                        }
+                    }
+                }
+                else
+                {
+                    CDF& cdf = m_prunedMotionChoiceData.emplace<CDF>();
+                    cdf.reserve(numMotions);
+
+                    // always keep the same number of nodes to keep indexing consistent;
+                    // Simple method of erasing unwanted nodes while keeping same number of
+                    // elements in the CDF - set the PDF of unwanted nodes to zero; which is
+                    // equivalent to setting the CDF of an element to the CDF of its predecessor.
+                    float prevEntryCdf = 0.f;
+
+                    IterBaseCDF([&](uint32, const auto& entry, bool isAvailable)
+                    {
+                        const float entryCdf = isAvailable ? entry.second : prevEntryCdf;
+                        cdf.emplace_back(entryCdf);
+                        prevEntryCdf = entryCdf;
+                    });
+                }
+
+                // Handle special cases
+                if (m_countPrunedMotionChoices == 1)
+                {
+                    m_prunedMotionChoiceData.emplace<SingleValueMotion>() = singleValidEntry;
+                }
+                else if (m_countPrunedMotionChoices == 0)
+                {
+                    m_prunedMotionChoiceData.emplace<AZStd::monostate>();
+                }
+            }
+            else
+            {
+                m_prunedMotionChoiceData.emplace<SingleValueMotion>() = 0;
+            }
+        }
+
+        // Pick a new motion index
         AnimGraphInstance* animGraphInstance = GetAnimGraphInstance();
         motionNode->PickNewActiveMotion(animGraphInstance, this);
 
-        if (!m_motionInstance)
-        {
-            motionNode->CreateMotionInstance(animGraphInstance->GetActorInstance(), this);
-        }
+        // Create the selected motion instance if it doesn't exist
+        motionNode->CheckCreateMotionInstance(animGraphInstance->GetActorInstance(), this);
 
         // get the id of the currently used the motion set
         MotionSet* motionSet = animGraphInstance->GetMotionSet();
@@ -587,23 +672,30 @@ namespace EMotionFX
             return;
         }
 
-        // find the motion instance for the given anim graph and return directly in case it is invalid
-        MotionInstance* motionInstance = uniqueData->m_motionInstance;
-        if (motionInstance == nullptr)
-        {
-            return;
-        }
-
-        // reset several settings to rewind the motion instance
-        motionInstance->ResetTimes();
-        motionInstance->SetIsFrozen(false);
         SetSyncIndex(animGraphInstance, MCORE_INVALIDINDEX32);
-        uniqueData->SetCurrentPlayTime(motionInstance->GetCurrentTime());
-        uniqueData->SetDuration(motionInstance->GetDuration());
-        uniqueData->SetPreSyncTime(uniqueData->GetCurrentPlayTime());
-        //uniqueData->SetPlaySpeed( uniqueData->GetPlaySpeed() );
 
-        PickNewActiveMotion(animGraphInstance, uniqueData);
+        // Check if the motion set changed since we finished this motion node; if so we must
+        // recompute cached data and create a new motion instance.
+        if (uniqueData->m_motionSetID != InvalidIndex32 && uniqueData->m_motionSetID != animGraphInstance->GetMotionSet()->GetID())
+        {
+            uniqueData->m_reload = true;
+            uniqueData->Invalidate();
+        }
+        else
+        {
+            if (MotionInstance* motionInstance = uniqueData->m_motionInstance)
+            {
+                // reset several settings to rewind the motion instance
+                motionInstance->ResetTimes();
+                motionInstance->SetIsFrozen(false);
+                uniqueData->SetCurrentPlayTime(motionInstance->GetCurrentTime());
+                uniqueData->SetDuration(motionInstance->GetDuration());
+                uniqueData->SetPreSyncTime(uniqueData->GetCurrentPlayTime());
+                //uniqueData->SetPlaySpeed( uniqueData->GetPlaySpeed() );
+
+                PickNewActiveMotion(animGraphInstance, uniqueData);
+            }
+        }
     }
 
     // get the speed from the connection if there is one connected, if not use the node's playspeed
@@ -631,6 +723,47 @@ namespace EMotionFX
         PickNewActiveMotion(animGraphInstance, uniqueData);
     }
 
+    size_t AnimGraphMotionNode::PickRandomizedNewActiveMotion(const UniqueData::CDF& cdf, size_t prevActiveMotion, float uniformRandomSample)
+    {
+        float selectedRandomValue;
+        {
+            if (prevActiveMotion == MCORE_INVALIDINDEX32 || m_indexMode == INDEXMODE_RANDOMIZE)
+            {
+                // Either randomize with repititions or randomize without repititions but we haven't picked a first motion yet.
+                // Selecting a random number between [0, m_motionIdRandomWeights.back().second)
+                selectedRandomValue = uniformRandomSample * cdf.back();
+            }
+            else
+            {
+                // Make sure we're in a valid range.
+                const size_t curIndex = AZ::GetMin(prevActiveMotion, GetNumMotions() - 1);
+
+                // Removing the cumulative probability range for the element that we do not want to choose
+                const float previousIndexCumulativeWeight = curIndex > 0 ? cdf[curIndex - 1] : 0;
+                const float currentIndexCumulativeWeight = cdf[curIndex];
+                const float randomRange = previousIndexCumulativeWeight + cdf.back() - currentIndexCumulativeWeight;
+
+                // Picking a random number between [0, randomRange)
+                const float randomValue = uniformRandomSample * randomRange;
+
+                // Remapping the value onto the existing non normalized cumulative probabilities
+                selectedRandomValue = randomValue > previousIndexCumulativeWeight
+                    ? randomValue - previousIndexCumulativeWeight + currentIndexCumulativeWeight
+                    : randomValue;
+            }
+        }
+
+        // Use sample from CDF to find index of selected element
+        for (size_t i = 0; i < cdf.size(); ++i)
+        {
+            if (selectedRandomValue < cdf[i])
+            {
+                return i;
+            }
+        }
+        return MCORE_INVALIDINDEX32;
+    }
+
     // pick a new motion from the list
     void AnimGraphMotionNode::PickNewActiveMotion(AnimGraphInstance* animGraphInstance, UniqueData* uniqueData)
     {
@@ -639,101 +772,32 @@ namespace EMotionFX
             return;
         }
 
-        const size_t numMotions = m_motionRandomSelectionCumulativeWeights.size();
-        if (numMotions == 1)
-        {
-            uniqueData->m_activeMotionIndex = 0;
-        }
-        else if (numMotions > 1)
-        {
-            uniqueData->m_reload = true;
-            switch (m_indexMode)
+        AZStd::match(
+            uniqueData->m_prunedMotionChoiceData,
+            [&](AZStd::monostate)
             {
-            // pick a random one, but make sure its not the same as the last one we played
-            case INDEXMODE_RANDOMIZE_NOREPEAT:
+                uniqueData->m_activeMotionIndex = MCORE_INVALIDINDEX32;
+            },
+            [&](const UniqueData::CDF& cdf)
             {
-                if (uniqueData->m_activeMotionIndex == MCORE_INVALIDINDEX32)
-                {
-                    SelectAnyRandomMotionIndex(animGraphInstance, uniqueData);
-                    return;
-                }
-
-                AZ::u32 curIndex = uniqueData->m_activeMotionIndex;
-
-                // Make sure we're in a valid range.
-                if (curIndex >= numMotions)
-                {
-                    curIndex = static_cast<AZ::u32>(numMotions - 1);
-                }
-
-                // Removing the cumulative probability range for the element that we do not want to choose
-                const float previousIndexCumulativeWeight = curIndex > 0 ? m_motionRandomSelectionCumulativeWeights[curIndex - 1].second : 0;
-                const float currentIndexCumulativeWeight = m_motionRandomSelectionCumulativeWeights[curIndex].second;
-                const float randomRange = previousIndexCumulativeWeight + m_motionRandomSelectionCumulativeWeights.back().second - currentIndexCumulativeWeight;
-
-                // Picking a random number between [0, randomRange)
-                const float randomValue = animGraphInstance->GetLcgRandom().GetRandomFloat() * randomRange;
-                // Remapping the value onto the existing non normalized cumulative probabilities
-                float remappedRandomValue = randomValue;
-                if (randomValue > previousIndexCumulativeWeight)
-                {
-                    remappedRandomValue = randomValue - previousIndexCumulativeWeight + currentIndexCumulativeWeight;
-                }
-                const int index = FindCumulativeProbabilityIndex(remappedRandomValue);
-                AZ_Assert(index >= 0, "Unable to find random value in motion random weights");
-                uniqueData->m_activeMotionIndex = index;
-            }
-            break;
-
-            // pick the next motion from the list
-            case INDEXMODE_SEQUENTIAL:
+                uniqueData->m_reload = true;
+                uniqueData->m_activeMotionIndex = PickRandomizedNewActiveMotion(cdf, uniqueData->m_activeMotionIndex, animGraphInstance->GetLcgRandom().GetRandomFloat());
+            },
+            [&](const UniqueData::Chain& chain)
             {
-                uniqueData->m_activeMotionIndex++;
-                if (uniqueData->m_activeMotionIndex >= numMotions)
-                {
-                    uniqueData->m_activeMotionIndex = 0;
-                }
-            }
-            break;
-
-            // just pick a random one, this can result in the same one we already play
-            case INDEXMODE_RANDOMIZE:
-            default:
+                uniqueData->m_reload = true;
+                uniqueData->m_activeMotionIndex = chain[uniqueData->m_activeMotionIndex];
+            },
+            [&](UniqueData::SingleValueMotion singleValidMotion)
             {
-                SelectAnyRandomMotionIndex(animGraphInstance, uniqueData);
+                uniqueData->m_activeMotionIndex = singleValidMotion;
             }
-            }
-        }
-        else
-        {
-            uniqueData->m_activeMotionIndex = MCORE_INVALIDINDEX32;
-        }
+        );
     }
 
-    void AnimGraphMotionNode::SelectAnyRandomMotionIndex(EMotionFX::AnimGraphInstance* animGraphInstance, EMotionFX::AnimGraphMotionNode::UniqueData* uniqueData)
+    size_t AnimGraphMotionNode::GetNumValidMotions(UniqueData* uniqueData) const
     {
-        // Selecting a random number between [0, m_motionIdRandomWeights.back().second)
-        const float randomValue = animGraphInstance->GetLcgRandom().GetRandomFloat() * m_motionRandomSelectionCumulativeWeights.back().second;
-        const int index = FindCumulativeProbabilityIndex(randomValue);
-        AZ_Assert(index >= 0, "Error: unable to find random value among motion random weights");
-        uniqueData->m_activeMotionIndex = index;
-    }
-
-    int AnimGraphMotionNode::FindCumulativeProbabilityIndex(float randomValue) const
-    {
-        for (unsigned int i = 0; i < m_motionRandomSelectionCumulativeWeights.size(); ++i)
-        {
-            if (randomValue < m_motionRandomSelectionCumulativeWeights[i].second)
-            {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    size_t AnimGraphMotionNode::GetNumMotions() const
-    {
-        return m_motionRandomSelectionCumulativeWeights.size();
+        return uniqueData->m_countPrunedMotionChoices;
     }
 
 
@@ -759,6 +823,11 @@ namespace EMotionFX
         }
 
         UpdateNodeInfo();
+    }
+
+    size_t AnimGraphMotionNode::GetNumMotions() const
+    {
+        return m_motionRandomSelectionCumulativeWeights.size();
     }
 
 
@@ -829,7 +898,7 @@ namespace EMotionFX
         const size_t numMotions = m_motionRandomSelectionCumulativeWeights.size();
         if (numMotions == 1)
         {
-            SetNodeInfo(GetMotionId(0));
+            SetNodeInfo(m_motionRandomSelectionCumulativeWeights[0].first);
         }
         else if (numMotions > 1)
         {
@@ -841,6 +910,20 @@ namespace EMotionFX
         }
     }
 
+    MotionInstance* AnimGraphMotionNode::CheckCreateMotionInstance(ActorInstance* actorInstance, UniqueData* uniqueData)
+    {
+        if (!uniqueData->m_motionInstance || uniqueData->m_reload)
+        {
+            auto motionInstance = CreateMotionInstance(actorInstance, uniqueData);
+            uniqueData->m_reload = false;
+            return motionInstance;
+        }
+        else
+        {
+            return uniqueData->m_motionInstance;
+        }
+    }
+
     AZ::Crc32 AnimGraphMotionNode::GetRewindOnZeroWeightVisibility() const
     {
         return m_loop ? AZ::Edit::PropertyVisibility::Hide : AZ::Edit::PropertyVisibility::Show;
@@ -849,7 +932,7 @@ namespace EMotionFX
 
     AZ::Crc32 AnimGraphMotionNode::GetMultiMotionWidgetsVisibility() const
     {
-        return GetNumMotions() > 1 ? AZ::Edit::PropertyVisibility::Show : AZ::Edit::PropertyVisibility::Hide;
+        return m_motionRandomSelectionCumulativeWeights.size() > 1 ? AZ::Edit::PropertyVisibility::Show : AZ::Edit::PropertyVisibility::Hide;
     }
 
     void AnimGraphMotionNode::SetRewindOnZeroWeight(bool rewindOnZeroWeight)
@@ -1014,5 +1097,59 @@ namespace EMotionFX
             ->DataElement(AZ::Edit::UIHandlers::Default, &AnimGraphMotionNode::m_rewindOnZeroWeight, "Rewind On Zero Weight", "Rewind the motion when its local weight is near zero. Useful to restart non-looping motions. Looping needs to be disabled for this to work.")
             ->Attribute(AZ::Edit::Attributes::Visibility, &AnimGraphMotionNode::GetRewindOnZeroWeightVisibility)
         ;
+    }
+
+    OwningMotionInstancePtr::OwningMotionInstancePtr(MotionInstance* instance)
+        : m_instance(instance)
+    {
+        if (m_instance)
+        {
+            m_instance->GetMotion()->IncreaseReferenceCount();
+        }
+    }
+
+    OwningMotionInstancePtr::~OwningMotionInstancePtr()
+    {
+        reset();
+    }
+
+    void OwningMotionInstancePtr::reset()
+    {
+        // first setting the member to `null', and then deleting the motion,
+        // allows this method to be called recursively.
+        auto* instance = m_instance;
+        m_instance = nullptr;
+
+        if (instance)
+        {
+            auto m = instance->GetMotion();
+            //if (m->GetReferenceCount() > 0)
+            {
+                m->Destroy();
+            }
+        }
+    }
+
+    OwningMotionInstancePtr::OwningMotionInstancePtr(OwningMotionInstancePtr&& other)
+    {
+        operator=(AZStd::move(other));
+    }
+
+    OwningMotionInstancePtr& OwningMotionInstancePtr::operator=(OwningMotionInstancePtr&& other)
+    {
+        reset();
+        m_instance = other.m_instance;
+        other.m_instance = nullptr;
+        return *this;
+    }
+
+    OwningMotionInstancePtr::operator MotionInstance* () const
+    {
+        return m_instance;
+    }
+
+    MotionInstance* OwningMotionInstancePtr::operator->() const
+    {
+        return m_instance;
     }
 } // namespace EMotionFX

@@ -1,0 +1,4 @@
+{
+    "Shader": "BloomDownsampleCS.shader",
+    "Variants": []
+}

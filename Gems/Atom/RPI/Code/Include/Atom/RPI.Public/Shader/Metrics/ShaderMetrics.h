@@ -20,10 +20,21 @@ namespace AZ
     {
         class ShaderAsset;
 
+        struct PrettyShaderVariantId
+        {
+            AZ_TYPE_INFO(PrettyShaderVariantId, "{BE1F6C6F-087C-4EA8-BF54-DDA5E7C5213A}");
+            static void Reflect(AZ::ReflectContext* context);
+
+            AZStd::unordered_map<AZStd::string, AZStd::string> m_options;
+        };
+
         struct ShaderVariantRequest
         {
-            AZ_TYPE_INFO(ShaderVariantRequest, "{E85512A6-1B6C-4082-857F-6D9FA6247FD6}");
+            AZ_TYPE_INFO(ShaderVariantRequest, "{013FF2BB-6510-47CD-88C1-4CA855968E29}");
             static void Reflect(AZ::ReflectContext* context);
+
+            bool operator==(const ShaderVariantRequest& other) const;
+            bool operator<(const ShaderVariantRequest& other) const;
 
             //! The ID of the shader.
             AZ::Data::AssetId m_shaderId;
@@ -34,14 +45,23 @@ namespace AZ
             //! The ID of the shader variant.
             ShaderVariantId m_shaderVariantId;
 
+            //! Human-readable shader variant ID
+            PrettyShaderVariantId m_prettyShaderVariantId;
+        };
+
+        struct ShaderVariantResult
+        {
+            AZ_TYPE_INFO(ShaderVariantResult, "{C35727AE-0E3C-480E-9551-0537B79B10D6}");
+            static void Reflect(AZ::ReflectContext* context);
+
+            bool operator==(const ShaderVariantResult& other) const;
+            bool operator<(const ShaderVariantResult& other) const;
+
             //! The index of the shader variant.
             ShaderVariantStableId m_shaderVariantStableId;
 
             //! The number of dynamic options in the variant.
             uint32_t m_dynamicOptionCount;
-
-            //! The number of requests for the variant.
-            uint32_t m_requestCount;
         };
 
         struct ShaderVariantMetrics
@@ -51,7 +71,7 @@ namespace AZ
 
             static void Reflect(AZ::ReflectContext* context);
 
-            AZStd::vector<ShaderVariantRequest> m_requests;
+            AZStd::map<ShaderVariantRequest, AZStd::map<ShaderVariantResult, size_t>> m_requests;
         };
 
         //////////////////////////////////////////////////////////////////////////

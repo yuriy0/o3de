@@ -34,6 +34,7 @@
 #include <EMotionFX/Source/BlendTreeGetTransformNode.h>
 #include <EMotionFX/Source/BlendTreeBoolLogicNode.h>
 #include <EMotionFX/Source/BlendTreeSmoothingNode.h>
+#include <EMotionFX/Source/BlendTreeWrappedSmoothingNode.h>
 #include <EMotionFX/Source/BlendTreeMaskNode.h>
 #include <EMotionFX/Source/BlendTreeMaskLegacyNode.h>
 #include <EMotionFX/Source/BlendTreeMorphTargetNode.h>
@@ -79,6 +80,7 @@
 #include "AnimGraphMotionCondition.h"
 #include "AnimGraphStateCondition.h"
 #include "AnimGraphTimeCondition.h"
+#include "AnimGraphRandomChoiceCondition.h"
 #include "AnimGraphTagCondition.h"
 #include "AnimGraphVector2Condition.h"
 #include "AnimGraphPlayTimeCondition.h"
@@ -135,6 +137,7 @@ namespace EMotionFX
         AnimGraphMotionCondition::Reflect(context);
         AnimGraphStateCondition::Reflect(context);
         AnimGraphTimeCondition::Reflect(context);
+        AnimGraphRandomChoiceCondition::Reflect(context);
         AnimGraphTransitionCondition::Reflect(context);
         AnimGraphPlayTimeCondition::Reflect(context);
         AnimGraphTagCondition::Reflect(context);
@@ -178,6 +181,7 @@ namespace EMotionFX
         BlendTreeRotationLimitNode::Reflect(context);
         BlendTreeVector4ComposeNode::Reflect(context);
         BlendTreeSmoothingNode::Reflect(context);
+        BlendTreeWrappedSmoothingNode::Reflect(context);
         BlendTreeRangeRemapperNode::Reflect(context);
         BlendTreeDirectionToWeightNode::Reflect(context);
         BlendTreeMirrorPoseNode::Reflect(context);
@@ -234,6 +238,7 @@ namespace EMotionFX
             azrtti_typeid<BlendTreeVector3ComposeNode>(),
             azrtti_typeid<BlendTreeVector4ComposeNode>(),
             azrtti_typeid<BlendTreeSmoothingNode>(),
+            azrtti_typeid<BlendTreeWrappedSmoothingNode>(),
             azrtti_typeid<BlendTreeRangeRemapperNode>(),
             azrtti_typeid<BlendTreeDirectionToWeightNode>(),
             azrtti_typeid<BlendTreeMirrorPoseNode>(),
@@ -259,6 +264,7 @@ namespace EMotionFX
             azrtti_typeid<AnimGraphTimeCondition>(),
             azrtti_typeid<AnimGraphPlayTimeCondition>(),
             azrtti_typeid<AnimGraphTagCondition>(),
+            azrtti_typeid<AnimGraphRandomChoiceCondition>(),
             azrtti_typeid<AnimGraphParameterAction>(),
             azrtti_typeid<AnimGraphFollowerParameterAction>(),
             azrtti_typeid<AnimGraphSymbolicFollowerParameterAction>(),

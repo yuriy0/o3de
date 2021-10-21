@@ -1187,29 +1187,10 @@ namespace AZ
                 ReflectionProbeFeatureProcessor::ReflectionProbeVector reflectionProbes;
                 reflectionProbeFeatureProcessor->FindReflectionProbes(reflectionProbes);
 
-                // Get the mesh world bbox
-                TransformServiceFeatureProcessor* transformServiceFeatureProcessor = m_scene->GetFeatureProcessor<TransformServiceFeatureProcessor>();
-                const Transform localToWorld = transformServiceFeatureProcessor->GetTransformForId(m_objectId);
-                const Vector3 nonUniformScale = transformServiceFeatureProcessor->GetNonUniformScaleForId(m_objectId);
-                const AZ::Aabb worldBbox = [&]()
-                {
-                    auto bb = m_aabb;
-                    bb.MultiplyByScale(nonUniformScale);
-                    return bb.GetTransformedAabb(localToWorld);
-                }();
-
-                // filter out only those which overlap the mesh bbox
-                const auto probeIntersectsMeshBBox = [&](const AZStd::shared_ptr<ReflectionProbe>& probe)
-                {
-                    return !probe || !worldBbox.Overlaps(probe->GetOuterAabbWs());
-                };
-                reflectionProbes.erase(
-                    AZStd::remove_if(reflectionProbes.begin(), reflectionProbes.end(), probeIntersectsMeshBBox),
-                    reflectionProbes.end()
-                );
-
                 if (!reflectionProbes.empty())
                 {
+                    const auto& probe = reflectionProbes[0];
+
                     m_shaderResourceGroup->SetConstant(modelToWorldConstantIndex, reflectionProbes[0]->GetTransform());
                     m_shaderResourceGroup->SetConstant(modelToWorldInverseConstantIndex, Matrix3x4::CreateFromTransform(reflectionProbes[0]->GetTransform()).GetInverseFull());
                     m_shaderResourceGroup->SetConstant(outerObbHalfLengthsConstantIndex, reflectionProbes[0]->GetOuterObbWs().GetHalfLengths());

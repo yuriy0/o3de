@@ -1,0 +1,13 @@
+{
+    "Shader": "LinearSkinningCS.shader",
+    "Variants": [
+        {
+            "StableId": 1,
+            "Options": {
+                "o_applyColorMorphTargets": "false",
+                "o_applyMorphTargets": "false",
+                "o_skinningMethod": "SkinningMethod::DualQuaternion"
+            }
+        }
+    ]
+}

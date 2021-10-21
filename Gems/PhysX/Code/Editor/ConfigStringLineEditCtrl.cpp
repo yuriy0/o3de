@@ -29,7 +29,7 @@ namespace PhysX
         return AZStd::string(m_pLineEdit->text().toUtf8().data());
     }
 
-    void ConfigStringLineEditCtrl::setValue(AZStd::string& value)
+    void ConfigStringLineEditCtrl::setValue(const AZStd::string& value)
     {
         QString text = m_pLineEdit->text();
         if (text.compare(value.data()) != 0)

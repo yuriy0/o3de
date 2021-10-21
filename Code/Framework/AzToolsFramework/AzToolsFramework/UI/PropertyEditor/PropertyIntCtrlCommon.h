@@ -269,7 +269,7 @@ namespace AzToolsFramework
                                                                                          const ValueType& instance, 
                                                                                          [[maybe_unused]] InstanceDataNode* node)
     {
-        GUI->setValue(instance);
+        GUI->setValueFromSystem(instance);
         return false;
     }
     

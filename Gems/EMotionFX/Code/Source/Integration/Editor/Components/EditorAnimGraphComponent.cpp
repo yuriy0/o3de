@@ -158,7 +158,7 @@ namespace EMotionFX
                         EMotionFX::MotionSet* motionSet = rootMotionSet;
                         if (!m_activeMotionSetName.empty())
                         {
-                            motionSet = rootMotionSet->RecursiveFindMotionSetByName(m_activeMotionSetName, true);
+                            motionSet = rootMotionSet->RecursiveFindMotionSetByName(m_activeMotionSetName);
                             if (!motionSet)
                             {
                                 AZ_Warning("EMotionFX", false, "Failed to find motion set \"%s\" in motion set file %s.",
@@ -335,7 +335,7 @@ namespace EMotionFX
                         }
                         else
                         {
-                            const EMotionFX::MotionSet* motionSet = rootMotionSet->RecursiveFindMotionSetByName(m_activeMotionSetName, /*isOwnedByRuntime = */true);
+                            const EMotionFX::MotionSet* motionSet = rootMotionSet->RecursiveFindMotionSetByName(m_activeMotionSetName);
                             if (!motionSet)
                             {
                                 m_activeMotionSetName = rootMotionSet->GetName();

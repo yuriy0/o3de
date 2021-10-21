@@ -1,0 +1,4 @@
+{
+    "Shader": "SsaoCompute.shader",
+    "Variants": []
+}

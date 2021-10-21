@@ -200,13 +200,6 @@ namespace AzToolsFramework
             void SaveAllDirtyTemplates(TemplateId rootTemplateId) override;
 
             AZStd::set<AZ::IO::PathView> GetDirtyTemplatePaths(TemplateId rootTemplateId) override;
-
-            bool AreDirtyTemplatesPresent(TemplateId rootTemplateId) override;
-
-            void SaveAllDirtyTemplates(TemplateId rootTemplateId) override;
-
-            AZStd::set<AZ::IO::PathView> GetDirtyTemplatePaths(TemplateId rootTemplateId) override;
-
             //////////////////////////////////////////////////////////////////////////
 
             /**

@@ -25,6 +25,7 @@
 #include <AzCore/std/string/wildcard.h>
 #include <AzCore/std/sort.h>
 #include <AzCore/StringFunc/StringFunc.h>
+#include <AzCore/Settings/SettingsRegistry.h>
 
 #include <AzFramework/API/ApplicationAPI.h>
 #include <AzFramework/Asset/AssetBundleManifest.h>
@@ -1931,6 +1932,16 @@ namespace AZ::IO
             AZ_Error("Archive", getCvarResult == AZ::GetValueResult::Success, "Lookup of 'sys_PakPriority console variable failed with error %s", AZ::GetEnumString(getCvarResult));
         }
 #endif
+
+        if (auto* registry = AZ::SettingsRegistry::Get())
+        {
+            AZ::u64 regVal;
+            if (registry->Get(regVal, "/Amazon/AzCore/Bootstrap/PakPriority"))
+            {
+                pakPriority = static_cast<int>(regVal);
+            }
+        }
+
         return static_cast<ArchiveLocationPriority>(pakPriority);
     }
 

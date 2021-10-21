@@ -74,14 +74,14 @@ namespace EMotionFX
         void SimpleLODComponent::Configuration::GenerateDefaultValue(size_t numLODs)
         {
             // Expect one fewer LOD distance values than LODs, because last LOD is always displayed if no other distance check matches
-            const AZ::u32 expectedNumLodDistance = numLODs - 1;
+            const size_t expectedNumLodDistance = numLODs - 1;
 
             if (expectedNumLodDistance != m_lodDistances.size())
             {
                 // Generate the default LOD (max) distance to 10, 20, 30....
                 const auto prevSize = m_lodDistances.size();
                 m_lodDistances.resize(expectedNumLodDistance);
-                for (AZ::u32 i = prevSize; i < expectedNumLodDistance; ++i)
+                for (size_t i = prevSize; i < expectedNumLodDistance; ++i)
                 {
                     m_lodDistances[i] = i * 10.0f + 10.0f;
                 }

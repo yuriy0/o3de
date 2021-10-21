@@ -11,6 +11,7 @@
 #include <RPI.Private/Module.h>
 
 #include <RPI.Private/RPISystemComponent.h>
+#include <RPI.Edit/Shader/ShaderVariantEditorManipulationSystemComponent.h>
 
 namespace AZ
 {
@@ -25,12 +26,13 @@ namespace AZ
             EditorModule()
             : AZ::RPI::Module()
             {
+                m_descriptors.push_back(ShaderVariantEditorManipulationSystemComponent::CreateDescriptor());
             }
 
             AZ::ComponentTypeList GetRequiredSystemComponents() const override
             {
                 AZ::ComponentTypeList ctl = AZ::RPI::Module::GetRequiredSystemComponents();
-                // add any editor module required systems here.
+                ctl.push_back(azrtti_typeid<ShaderVariantEditorManipulationSystemComponent>());
                 return ctl;
             }
         };

@@ -88,6 +88,8 @@ namespace EMotionFX
 
         void SetParentAnimGraphInstance(AnimGraphInstance* parentAnimGraphInstance);
         MCORE_INLINE AnimGraphInstance* GetParentAnimGraphInstance() const { return m_parentAnimGraphInstance; }
+        AnimGraphInstance* GetTransitiveParentAnimGraphInstance();
+        const AnimGraphInstance* GetTransitiveParentAnimGraphInstance() const;
         void RemoveChildAnimGraphInstance(AnimGraphInstance* childAnimGraphInstance);
 
         bool GetParameterValueAsFloat(const char* paramName, float* outValue);
@@ -211,6 +213,9 @@ namespace EMotionFX
 
         AnimGraphNode* GetRootNode() const;
 
+        // Get the global animgraph playtime, which is the playtime relative to when the animgraph is first created
+        float GetGlobalPlaytime();
+
         //-----------------------------------------------------------------------------------------------------------------
 
         /**
@@ -277,6 +282,7 @@ namespace EMotionFX
 
         const InitSettings& GetInitSettings() const;
         const AnimGraphEventBuffer& GetEventBuffer() const;
+        AnimGraphEventBuffer& GetEventBufferForModify();
 
         AnimGraphPlaySpeedModifierPtr AddPlayspeedModifier(float mod);
 
@@ -315,6 +321,7 @@ namespace EMotionFX
         AZStd::vector<EventHandlerVector>                   m_eventHandlersByEventType; /**< The event handler to use to process events organized by EventTypes. */
         AZStd::vector<MCore::Attribute*>                    m_internalAttributes;
         MotionSet*                                          m_motionSet;             // the used motion set
+        MotionSet*                                          mMotionSetToSet = nullptr;
         MCore::Mutex                                        m_mutex;
         InitSettings                                        m_initSettings;
         AnimGraphEventBuffer                                m_eventBuffer;           /**< The event buffer of the last update. */

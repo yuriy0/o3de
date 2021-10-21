@@ -96,6 +96,19 @@ struct PbrLightingOutput
 };
 
 
+float3 EstimatedSpecularOcclusionInSpecularF0(Surface surface, LightingData lightingData)
+{
+    return surface.specularF0;
+
+    // const float2 brdf = lightingData.brdf;
+    // float3 specularF0 = surface.specularF0;
+    // specularF0 = specularF0 * brdf.x + brdf.y;
+    // specularF0 *= lightingData.specularOcclusion;
+    // specularF0 = (specularF0 - brdf.y) / brdf.x;
+    // return specularF0;
+}
+
+
 PbrLightingOutput GetPbrLightingOutput(Surface surface, LightingData lightingData)
 {
     PbrLightingOutput lightingOutput;
@@ -104,7 +117,7 @@ PbrLightingOutput GetPbrLightingOutput(Surface surface, LightingData lightingDat
     lightingOutput.m_specularColor = float4(lightingData.specularLighting, 1.0f);
 
     // albedo, specularF0, roughness, and normals for later passes (specular IBL, Diffuse GI, SSR, AO, etc)
-    lightingOutput.m_specularF0 = float4(surface.specularF0, surface.roughnessLinear);
+    lightingOutput.m_specularF0 = float4(EstimatedSpecularOcclusionInSpecularF0(surface, lightingData), surface.roughnessLinear);
     lightingOutput.m_albedo.rgb = surface.albedo * lightingData.diffuseResponse * lightingData.diffuseAmbientOcclusion * lightingData.ssao;
     lightingOutput.m_albedo.a = lightingData.specularOcclusion;
     lightingOutput.m_normal.rgb = EncodeNormalSignedOctahedron(surface.normal);

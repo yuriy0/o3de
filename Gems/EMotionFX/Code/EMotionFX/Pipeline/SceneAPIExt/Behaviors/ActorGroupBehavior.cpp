@@ -36,6 +36,7 @@
 #include <SceneAPIExt/Rules/MorphTargetRule.h>
 #include <SceneAPIExt/Rules/LodRule.h>
 #include <SceneAPIExt/Rules/SkeletonOptimizationRule.h>
+#include <SceneAPIExt/Rules/BoneRenamingRule.h>
 
 namespace EMotionFX
 {
@@ -55,6 +56,7 @@ namespace EMotionFX
                 Rule::MorphTargetRule::Reflect(context);
                 Rule::LodRule::Reflect(context);
                 Rule::SkeletonOptimizationRule::Reflect(context);
+                Rule::BoneRenamingRule::Reflect(context);
 
                 AZ::SerializeContext* serializeContext = azrtti_cast<AZ::SerializeContext*>(context);
                 if (serializeContext)
@@ -117,6 +119,10 @@ namespace EMotionFX
                     if (existingRules.find(Rule::SkeletonOptimizationRule::TYPEINFO_Uuid()) == existingRules.end())
                     {
                         modifiers.push_back(Rule::SkeletonOptimizationRule::TYPEINFO_Uuid());
+                    }
+                    if (existingRules.find(Rule::BoneRenamingRule::TYPEINFO_Uuid()) == existingRules.end())
+                    {
+                        modifiers.push_back(Rule::BoneRenamingRule::TYPEINFO_Uuid());
                     }
                     if (existingRules.find(Rule::MorphTargetRule::TYPEINFO_Uuid()) == existingRules.end())
                     {

@@ -575,10 +575,7 @@ namespace EMotionFX
     void AnimGraphInstance::SetMotionSet(MotionSet* motionSet)
     {
         // update the local motion set pointer
-        m_motionSet = motionSet;
-
-        // get the number of state machines, iterate through them and recursively call the callback
-        GetRootNode()->RecursiveOnChangeMotionSet(this, motionSet);
+        mMotionSetToSet = motionSet;
     }
 
 
@@ -833,6 +830,13 @@ namespace EMotionFX
         return m_animGraph->GetRootStateMachine();
     }
 
+    float AnimGraphInstance::GetGlobalPlaytime()
+    {
+        auto animGraphInstance = GetTransitiveParentAnimGraphInstance();
+        auto rootNodeUniqueData = animGraphInstance->GetRootNode()->FindOrCreateUniqueNodeData(animGraphInstance);
+        return rootNodeUniqueData->GetCurrentPlayTime();
+    }
+
 
     // apply motion extraction
     void AnimGraphInstance::ApplyMotionExtraction()
@@ -871,6 +875,14 @@ namespace EMotionFX
             m_snapshot->Restore(*this);
         }
 
+        // handle changed motion set: get the number of state machines, iterate through them and recursively call the callback
+        if (mMotionSetToSet)
+        {
+            m_motionSet = mMotionSetToSet;
+            mMotionSetToSet = nullptr;
+            GetRootNode()->RecursiveOnChangeMotionSet(this, m_motionSet);
+        }
+
         // Apply play speed modifiers
         {
             MCore::LockGuard _(mPlaySpeedModifiersMutex);
@@ -888,10 +900,6 @@ namespace EMotionFX
         // reset the output is ready flags, so we return cached copies of the outputs, but refresh/recalculate them
         AnimGraphNode* rootNode = GetRootNode();
         AnimGraphNodeData* rootNodeUniqueData = rootNode->FindOrCreateUniqueNodeData(this);
-
-        // Increment anim graph instance playtime
-        rootNodeUniqueData->SetCurrentPlayTime(rootNodeUniqueData->GetCurrentPlayTime() + timePassedInSeconds);
-        rootNodeUniqueData->SetDuration(0.f);
         
         // reset the output is ready flags, so we return cached copies of the outputs, but refresh/recalculate them
         ResetFlagsForAllObjects();
@@ -1140,6 +1148,11 @@ namespace EMotionFX
 
 
     const AnimGraphEventBuffer& AnimGraphInstance::GetEventBuffer() const
+    {
+        return m_eventBuffer;
+    }
+
+    AnimGraphEventBuffer& AnimGraphInstance::GetEventBufferForModify()
     {
         return m_eventBuffer;
     }
@@ -1441,6 +1454,21 @@ namespace EMotionFX
         }
     }
 
+
+    AnimGraphInstance* AnimGraphInstance::GetTransitiveParentAnimGraphInstance()
+    {
+        auto animGraphInstance = this;
+        while (animGraphInstance->m_parentAnimGraphInstance)
+        {
+            animGraphInstance = animGraphInstance->m_parentAnimGraphInstance;
+        }
+        return animGraphInstance;
+    }
+
+    const AnimGraphInstance* AnimGraphInstance::GetTransitiveParentAnimGraphInstance() const
+    {
+        return const_cast<const AnimGraphInstance*>(const_cast<AnimGraphInstance*>(this)->GetTransitiveParentAnimGraphInstance());
+    }
 
     void AnimGraphInstance::RemoveChildAnimGraphInstance(AnimGraphInstance* childAnimGraphInstance)
     {

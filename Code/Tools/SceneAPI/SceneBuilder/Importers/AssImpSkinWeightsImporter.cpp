@@ -19,6 +19,9 @@
 #include <SceneAPI/SceneData/GraphData/SkinWeightData.h>
 #include <SceneAPI/SDKWrapper/AssImpNodeWrapper.h>
 #include <SceneAPI/SDKWrapper/AssImpSceneWrapper.h>
+#include <SceneAPI/SceneCore/DataTypes/Rules/IBoneRenamingRule.h>
+#include <SceneAPI/SceneCore/DataTypes/Groups/IGroup.h>
+#include <SceneAPI/SceneCore/Containers/Utilities/Filters.h>
 
 namespace AZ
 {
@@ -119,15 +122,34 @@ namespace AZ
                 return combinedSkinWeightsResult.GetResult();
             }
 
-            Events::ProcessingResult AssImpSkinWeightsImporter::SetupNamedBoneLinks(AssImpFinalizeSceneContext& /*context*/)
+            Events::ProcessingResult AssImpSkinWeightsImporter::SetupNamedBoneLinks(AssImpFinalizeSceneContext& context)
             {
                 AZ_TraceContext("Importer", "Skin Weights");
+
+                // Get the bone renaming rule
+                DataTypes::IBoneRenamingRule::BoneRenamer boneRenamer;
+                {
+                    const Containers::SceneManifest& manifest = context.m_scene.GetManifest();
+                    auto valueStorage = manifest.GetValueStorage();
+                    auto view = Containers::MakeDerivedFilterView<DataTypes::IGroup>(valueStorage);
+                    for (const DataTypes::IGroup& group : view)
+                    {
+                        if (auto boneRenamingRule = group.GetRuleContainerConst().FindFirstByType<DataTypes::IBoneRenamingRule>())
+                        {
+                            boneRenamer = boneRenamingRule->GetBoneRenamer();
+                        }
+                    }
+                }
 
                 for (auto& it : m_pendingSkinWeights)
                 {
                     it.m_skinWeightData->ResizeContainerSpace(it.m_numVertices);
 
                     AZStd::string boneName = it.m_bone->mName.C_Str();
+                    if (boneRenamer)
+                    {
+                        boneName = boneRenamer(boneName);
+                    }
                     int boneId = it.m_skinWeightData->GetBoneId(boneName);
 
                     for(unsigned weight = 0; weight < it.m_bone->mNumWeights; ++weight)

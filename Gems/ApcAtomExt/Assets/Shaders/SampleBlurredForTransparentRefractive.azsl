@@ -1,0 +1,48 @@
+#include <scenesrg.srgi>
+#include <viewsrg.srgi>
+
+#include <Atom/Features/SrgSemantics.azsli>
+
+#include <Atom/Features/PostProcessing/FullscreenPixelInfo.azsli>
+#include <Atom/Features/PostProcessing/FullscreenVertex.azsli>
+#include <Atom/Features/PostProcessing/PostProcessUtil.azsli>
+
+ShaderResourceGroup PassSrg : SRG_PerPass
+{
+    Texture2D<float4> m_opaqueCopy;
+    Texture2D<float4> m_alpha;
+    Sampler LinearSampler
+    {
+        MinFilter = Linear;
+        MagFilter = Linear;
+        MipFilter = Linear;
+        AddressU = Clamp;
+        AddressV = Clamp;
+        AddressW = Clamp;
+    };
+}
+
+PSOutput MainPS(VSOutput IN)
+{
+    PSOutput OUT;
+    
+	float reveal = PassSrg::m_alpha.Sample(PassSrg::LinearSampler, IN.m_texCoord).r;
+	
+	// The smallest mip in the blur chain which we will sample
+	static const float smallestMip = 7;
+	
+	// How quickly will we reach max blur (large values = reach max blur faster)
+	static const float blurFarDistStrengthCurve = 0.25;
+	
+	float blurAmount = min(blurFarDistStrengthCurve*((1/reveal)-1), smallestMip);
+	
+	float3 bgColor = PassSrg::m_opaqueCopy.SampleLevel(PassSrg::LinearSampler, IN.m_texCoord, blurAmount).rgb;
+	
+	// DEBUG
+	// bgColor = float3(blurAmount, blurAmount, blurAmount);
+	// END DEBUG
+	
+	OUT.m_color = float4(bgColor, 1.0);
+
+    return OUT;
+}

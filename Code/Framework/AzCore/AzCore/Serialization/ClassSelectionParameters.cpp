@@ -57,13 +57,13 @@ namespace AZ
     {
         ClassSet out;
         GetClassesImpl(context, out);
-        if (out.empty()) { return EmptySelectionError(context); }
+        if (out.empty()) { return AZ::Failure(EmptySelectionError(context)); }
 
         AZStd::vector<const AZ::SerializeContext::ClassData*> vout;
         vout.reserve(out.size());
         for (const auto& cl : out) { vout.push_back(cl); };
 
-        return vout;
+        return AZ::Success(vout);
     }
 
     template<class S0, class S1>

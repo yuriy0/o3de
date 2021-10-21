@@ -82,6 +82,17 @@ namespace AZ
                     ->Event("SetPropertyOverrides", &MaterialComponentRequestBus::Events::SetPropertyOverrides)
                     ->Event("GetPropertyOverrides", &MaterialComponentRequestBus::Events::GetPropertyOverrides)
                     ;
+
+
+                behaviorContext->EBus<MaterialReceiverRequestBus>("MaterialReceiverRequestBus")
+                    ->Attribute(AZ::Script::Attributes::Scope, AZ::Script::Attributes::ScopeFlags::Common)
+                    ->Attribute(AZ::Script::Attributes::Category, "render")
+                    ->Attribute(AZ::Script::Attributes::Module, "render")
+                    ->Event("FindMaterialAssignmentId", &MaterialReceiverRequestBus::Events::FindMaterialAssignmentId)
+                    ->Event("GetModelMaterialSlots", &MaterialReceiverRequestBus::Events::GetModelMaterialSlots)
+                    ->Event("GetMaterialAssignments", &MaterialReceiverRequestBus::Events::GetMaterialAssignments)
+                    ->Event("GetModelUvNames", &MaterialReceiverRequestBus::Events::GetModelUvNames)
+                    ;
             }
         }
 

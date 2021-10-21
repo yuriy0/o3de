@@ -16,14 +16,32 @@
 #include <AzCore/Memory/SystemAllocator.h>
 #include <AzQtComponents/Components/Widgets/SliderCombo.h>
 #include "PropertyEditorAPI.h"
+#include <AzToolsFramework/UI/PropertyEditor/TextBoxLikePropertyCtrl.hxx>
 
 #endif
 
 namespace AzToolsFramework
 {
+    namespace Internal
+    {
+        struct PropertyDoubleSliderCtrl_DeferredTextboxLikeEdit_traits
+            : public DeferredTextboxLikeEdit_default_traits
+        {
+            static constexpr bool set_is_idempotent = false;
+
+            template<class C>
+            static bool isUserEditing(const C* obj)
+            {
+                return obj->m_sliderCombo->spinbox()->hasFocus();
+            }
+        };
+    }
+
     class PropertyDoubleSliderCtrl
         : public QWidget
+        , public DeferredTextboxLikeEdit<PropertyDoubleSliderCtrl, double, Internal::PropertyDoubleSliderCtrl_DeferredTextboxLikeEdit_traits>
     {
+        friend struct Internal::PropertyDoubleSliderCtrl_DeferredTextboxLikeEdit_traits;
         Q_OBJECT
     public:
         AZ_CLASS_ALLOCATOR(PropertyDoubleSliderCtrl, AZ::SystemAllocator, 0);
@@ -62,6 +80,8 @@ namespace AzToolsFramework
         void editingFinished();
 
     private:
+        //void setValueFromSystem(const double& val);
+
         AzQtComponents::SliderDoubleCombo* m_sliderCombo = nullptr;
         double m_multiplier = 1;
         Q_DISABLE_COPY(PropertyDoubleSliderCtrl)

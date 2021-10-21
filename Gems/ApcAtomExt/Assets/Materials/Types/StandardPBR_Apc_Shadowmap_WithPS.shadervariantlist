@@ -1,0 +1,4 @@
+{
+    "Shader": "StandardPBR_Apc_Shadowmap_WithPS.shader",
+    "Variants": []
+}

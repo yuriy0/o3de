@@ -37,6 +37,7 @@ set(FILES
     DataTypes/ManifestBase/ISceneNodeSelectionList.h
     DataTypes/Rules/IRule.h
     DataTypes/Rules/IBlendShapeRule.h
+    DataTypes/Rules/IBoneRenamingRule.h
     DataTypes/Rules/ICommentRule.h
     DataTypes/Rules/ILodRule.h
     DataTypes/Rules/IMeshAdvancedRule.h

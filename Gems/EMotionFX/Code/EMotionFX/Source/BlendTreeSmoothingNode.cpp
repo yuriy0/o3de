@@ -109,7 +109,7 @@ namespace EMotionFX
         // perform interpolation
         const float sourceValue = uniqueData->m_currentValue;
         const float interpolationSpeed = m_interpolationSpeed * uniqueData->m_frameDeltaTime * 10.0f;
-        const float interpolationResult = (interpolationSpeed < 0.99999f) ? MCore::LinearInterpolate<float>(sourceValue, destValue, interpolationSpeed) : destValue;
+        const float interpolationResult = DoSmoothing(sourceValue, destValue, interpolationSpeed, uniqueData);
         // If the interpolation result is close to the dest value within the tolerance, snap to the destination value.
         if (AZ::IsClose((interpolationResult - destValue), 0.0f, m_snapTolerance))
         {
@@ -120,11 +120,16 @@ namespace EMotionFX
             // pass the interpolated result to the output port and the current value of the unique data
             uniqueData->m_currentValue = interpolationResult;
         }
+
         GetOutputFloat(animGraphInstance, OUTPUTPORT_RESULT)->SetValue(interpolationResult);
 
         uniqueData->m_frameDeltaTime = timePassedInSeconds;
     }
 
+    float BlendTreeSmoothingNode::DoSmoothing(float sourceValue, float destValue, float lerpStrength, UniqueData*)
+    {
+         return (lerpStrength < 0.99999f) ? MCore::LinearInterpolate<float>(sourceValue, destValue, lerpStrength) : destValue;
+    }
 
     // rewind
     void BlendTreeSmoothingNode::Rewind(AnimGraphInstance* animGraphInstance)

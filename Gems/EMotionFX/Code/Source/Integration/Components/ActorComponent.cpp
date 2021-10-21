@@ -30,6 +30,7 @@
 #include <EMotionFX/Source/Node.h>
 #include <EMotionFX/Source/TransformData.h>
 #include <EMotionFX/Source/AttachmentNode.h>
+#include <EMotionFX/Source/MorphSetup.h>
 
 #include <MCore/Source/AzCoreConversions.h>
 
@@ -412,6 +413,79 @@ namespace EMotionFX
         SkinningMethod ActorComponent::GetSkinningMethod() const
         {
             return m_configuration.m_skinningMethod;
+        }
+
+        AZ::Outcome<size_t, AZStd::string> ActorComponent::GetMorphTargetIndex(const char* morphTarget)
+        {
+            if (m_actorInstance)
+            {
+                const EMotionFX::MorphSetup* morphSetup = m_actorInstance->GetActor()->GetMorphSetup(m_actorInstance->GetLODLevel());
+                if (morphSetup)
+                {
+                    const auto morphTargetIndex = morphSetup->FindMorphTargetIndexByName(morphTarget);
+                    if (morphTargetIndex != MCORE_INVALIDINDEX32)
+                    {
+                        return AZ::Success(morphTargetIndex);
+                    }
+                    else
+                    {
+                        return AZ::Failure(AZStd::string::format("Invalid morph target name '%s' for actor '%s'",
+                            morphTarget,
+                            m_actorInstance->GetActor()->GetName()
+                        ));
+                    }
+                }
+                else
+                {
+                    return AZ::Failure(AZStd::string::format("Invalid morph target name '%s' for actor '%s' (because it has no morph targets)",
+                        morphTarget,
+                        m_actorInstance->GetActor()->GetName()
+                    ));
+                }
+            }
+            else
+            {
+                return AZ::Failure(AZStd::string("Actor instance not initialized"));
+            }
+        }
+
+        void ActorComponent::SetMorphTargetWeight(size_t morphTargetIndex, float weight)
+        {
+            if (m_actorInstance)
+            {
+                const EMotionFX::MorphSetup* morphSetup = m_actorInstance->GetActor()->GetMorphSetup(m_actorInstance->GetLODLevel());
+                if (morphSetup)
+                {
+                    EMotionFX::TransformData* transformData = m_actorInstance->GetTransformData();
+                    EMotionFX::Pose* pose = transformData ? transformData->GetCurrentPose() : nullptr;
+                    if (pose)
+                    {
+                        if (morphTargetIndex < pose->GetNumMorphWeights())
+                        {
+                            pose->SetMorphWeight(morphTargetIndex, weight);
+                        }
+                        else
+                        {
+                            AZ_Error("EMotionFX", false, "SetMorphTargetWeight - Invalid morph target index '%u' for actor '%s'",
+                                morphTargetIndex,
+                                m_actorInstance->GetActor()->GetName()
+                            );
+                        }
+                    }
+                    else
+                    {
+                        AZ_Warning("EMotionFX", false, "SetMorphTargetWeight - Actor '%s' has no output pose this frame, morph target weight will be ignored",
+                            m_actorInstance->GetActor()->GetName()
+                        );
+                    }
+                }
+                else
+                {
+                    AZ_Error("EMotionFX", false, "SetMorphTargetWeight - Actor '%s' has no morph targets",
+                        m_actorInstance->GetActor()->GetName()
+                    );
+                }
+            }
         }
 
         //////////////////////////////////////////////////////////////////////////

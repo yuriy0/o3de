@@ -15,6 +15,7 @@
 #include <EMotionFX/Source/Node.h>
 #include <EMotionFX/Source/PoseDataRagdoll.h>
 #include <EMotionFX/Source/RagdollInstance.h>
+#include <EMotionFX/Source/NodeGroup.h>
 
 
 namespace EMotionFX
@@ -42,14 +43,34 @@ namespace EMotionFX
         // joints selected by this node and not for all dynamic ones.
         m_simulatedJointStates.resize(jointCount);
         m_simulatedJointStates.assign(m_simulatedJointStates.size(), false);
+        m_hasSimulatedJoints = false;
 
-        const AZStd::vector<AZStd::string>& simulatedJointNames = ragdollNode->GetSimulatedJointNames();
+        // Handle literal joint names
+        const AZStd::vector<AZStd::string>& simulatedJointNames = ragdollNode->m_simulatedJointNames;
         for (const AZStd::string& jointName : simulatedJointNames)
         {
             const Node* node = skeleton->FindNodeByName(jointName);
             if (node)
             {
                 m_simulatedJointStates[node->GetNodeIndex()] = true;
+                m_hasSimulatedJoints = true;
+            }
+        }
+
+        // Handle node group
+        if (!ragdollNode->m_simulatedJointsNodeGroup.empty())
+        {
+            if (auto nodeGroup = actor->FindNodeGroupByNameNoCase(ragdollNode->m_simulatedJointsNodeGroup.c_str()))
+            {
+                for (uint16 nodeGroupIndex = 0; nodeGroupIndex < nodeGroup->GetNumNodes(); ++nodeGroupIndex)
+                {
+                    const uint16 nodeIndex = nodeGroup->GetNode(nodeGroupIndex);
+                    if (const Node* node = skeleton->GetNode(nodeIndex))
+                    {
+                        m_simulatedJointStates[node->GetNodeIndex()] = true;
+                        m_hasSimulatedJoints = true;
+                    }
+                }
             }
         }
 
@@ -69,6 +90,11 @@ namespace EMotionFX
             }
         }
 
+    }
+
+    bool BlendTreeRagdollNode::UniqueData::HasSimulatedJoints() const
+    {
+        return m_hasSimulatedJoints;
     }
 
     //---------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -225,10 +251,10 @@ namespace EMotionFX
         const bool isActivated = IsActivated(animGraphInstance);
 
         RagdollInstance* ragdollInstance = actorInstance->GetRagdollInstance();
-        if (isActivated && ragdollInstance && !m_simulatedJointNames.empty())
-        {
-            UniqueData* uniqueData = static_cast<UniqueData*>(FindOrCreateUniqueNodeData(animGraphInstance));
+        UniqueData* uniqueData = static_cast<UniqueData*>(FindOrCreateUniqueNodeData(animGraphInstance));
 
+        if (isActivated && ragdollInstance && uniqueData->HasSimulatedJoints())
+        {
             // Make sure the output pose contains a ragdoll pose data linked to our actor instance (assures enough space for the ragdoll node state array).
             PoseDataRagdoll* outputPoseData = outputPose.GetAndPreparePoseData<PoseDataRagdoll>(actorInstance);
 
@@ -396,8 +422,9 @@ namespace EMotionFX
         if (serializeContext)
         {
             serializeContext->Class<BlendTreeRagdollNode, AnimGraphNode>()
-                ->Version(1)
+                ->Version(2)
                 ->Field("simulatedJoints", &BlendTreeRagdollNode::m_simulatedJointNames)
+                ->Field("simulatedJointsNodeGroup", &BlendTreeRagdollNode::m_simulatedJointsNodeGroup)
             ;
 
             AZ::EditContext* editContext = serializeContext->GetEditContext();
@@ -414,6 +441,7 @@ namespace EMotionFX
                         ->Attribute(AZ::Edit::Attributes::AutoExpand, true)
                         ->Attribute(AZ::Edit::Attributes::IndexedChildNameLabelOverride, &BlendTreeRagdollNode::GetSimulatedJointName)
                         ->ElementAttribute(AZ::Edit::UIHandlers::Handler, AZ_CRC("ActorJointElement", 0xedc8946c))
+                    ->DataElement(0, &BlendTreeRagdollNode::m_simulatedJointsNodeGroup, "Simulated Joints Node Group", "The node group will be simulated as part of the ragdoll.")
                 ;
             }
         }

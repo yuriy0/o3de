@@ -666,59 +666,62 @@ namespace EMotionFX
             const AzFramework::ViewportInfo& viewportInfo,
             const AZ::Vector3& src, const AZ::Vector3& dir, float& distance)
         {
-            if (!m_actorAsset.Get() || !m_actorAsset.Get()->GetActor() || !m_actorInstance || !m_actorInstance->GetTransformData() || !m_renderCharacter)
-            {
-                return false;
-            }
+            (void)(viewportInfo, src, dir, distance);
+            //if (!m_actorAsset.Get() || !m_actorAsset.Get()->GetActor() || !m_actorInstance || !m_actorInstance->GetTransformData() || !m_renderCharacter)
+            //{
+            //    return false;
+            //}
 
-            distance = std::numeric_limits<float>::max();
+            //distance = std::numeric_limits<float>::max();
 
-            // Get the MCore::Ray used by Mesh::Intersects
-            // Convert the input source position and direction to a line segment by using the frustum depth as line length.
-            const AzFramework::CameraState cameraState = AzToolsFramework::GetCameraState(viewportInfo.m_viewportId);
-            const float frustumDepth = cameraState.m_farClip - cameraState.m_nearClip;
-            const AZ::Vector3 dest = src + dir * frustumDepth;
-            const MCore::Ray ray(src, dest);
+            //// Get the MCore::Ray used by Mesh::Intersects
+            //// Convert the input source position and direction to a line segment by using the frustum depth as line length.
+            //const AzFramework::CameraState cameraState = AzToolsFramework::GetCameraState(viewportInfo.m_viewportId);
+            //const float frustumDepth = cameraState.m_farClip - cameraState.m_nearClip;
+            //const AZ::Vector3 dest = src + dir * frustumDepth;
+            //const MCore::Ray ray(src, dest);
 
-            // Update the mesh deformers (apply software skinning and morphing) so the intersection test will hit the actor
-            // if it is being animated by a motion component that is previewing the animation in the editor.
-            m_actorInstance->UpdateMeshDeformers(0.0f, true);
+            //// Update the mesh deformers (apply software skinning and morphing) so the intersection test will hit the actor
+            //// if it is being animated by a motion component that is previewing the animation in the editor.
+            //m_actorInstance->UpdateMeshDeformers(0.0f, true);
 
-            const TransformData* transformData = m_actorInstance->GetTransformData();
-            const Pose* currentPose = transformData->GetCurrentPose();
-            bool isHit = false;
+            //const TransformData* transformData = m_actorInstance->GetTransformData();
+            //const Pose* currentPose = transformData->GetCurrentPose();
+            //bool isHit = false;
 
-            // Iterate through the meshes in the actor, looking for the closest hit
-            const size_t lodLevel = m_actorInstance->GetLODLevel();
-            Actor* actor = m_actorAsset.Get()->GetActor();
-            const size_t numNodes = actor->GetNumNodes();
-            for (size_t nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex)
-            {
-                Mesh* mesh = actor->GetMesh(lodLevel, nodeIndex);
-                if (!mesh || mesh->GetIsCollisionMesh())
-                {
-                Mesh* mesh = actor->GetMesh(lodLevel, nodeIndex);
-                    if (!mesh || mesh->GetIsCollisionMesh())
-                    {
-                        continue;
-                    }
+            return false;
 
-                    // Use the actor instance transform for skinned meshes (as the vertices are pre-transformed and in model space) and the node world transform otherwise.
-                const Transform meshTransform = currentPose->GetMeshNodeWorldSpaceTransform(lodLevel, nodeIndex);
+        //    // Iterate through the meshes in the actor, looking for the closest hit
+        //    const size_t lodLevel = m_actorInstance->GetLODLevel();
+        //    Actor* actor = m_actorAsset.Get()->GetActor();
+        //    const size_t numNodes = actor->GetNumNodes();
+        //    for (size_t nodeIndex = 0; nodeIndex < numNodes; ++nodeIndex)
+        //    {
+        //        Mesh* mesh = actor->GetMesh(lodLevel, nodeIndex);
+        //        if (!mesh || mesh->GetIsCollisionMesh())
+        //        {
+        //        Mesh* mesh = actor->GetMesh(lodLevel, nodeIndex);
+        //            if (!mesh || mesh->GetIsCollisionMesh())
+        //            {
+        //                continue;
+        //            }
 
-                    AZ::Vector3 hitPoint;
-                    if (mesh->Intersects(meshTransform, ray, &hitPoint))
-                    {
-                        isHit = true;
-                        float hitDistance = (src - hitPoint).GetLength();
-                        if (hitDistance < distance)
-                        {
-                            distance = hitDistance;
-                        }
-                    }
-                }
+        //            // Use the actor instance transform for skinned meshes (as the vertices are pre-transformed and in model space) and the node world transform otherwise.
+        //        const Transform meshTransform = currentPose->GetMeshNodeWorldSpaceTransform(lodLevel, nodeIndex);
 
-            return isHit;
+        //            AZ::Vector3 hitPoint;
+        //            if (mesh->Intersects(meshTransform, ray, &hitPoint))
+        //            {
+        //                isHit = true;
+        //                float hitDistance = (src - hitPoint).GetLength();
+        //                if (hitDistance < distance)
+        //                {
+        //                    distance = hitDistance;
+        //                }
+        //            }
+        //        }
+
+        //    return isHit;
         }
 
         // Check if the given attachment is valid.

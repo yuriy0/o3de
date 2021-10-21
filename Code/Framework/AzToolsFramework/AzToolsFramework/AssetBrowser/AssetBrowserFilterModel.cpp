@@ -315,6 +315,31 @@ namespace AzToolsFramework
             }
         }
 
+        AssetBrowserFilterModel::FilterKey::FilterKey(const QModelIndex& ix)
+            : m_ix(ix)
+        {
+        }
+
+        AssetBrowserFilterModel::FilterKey::operator size_t() const
+        {
+            return qHash(m_ix);
+        }
+
+        bool AssetBrowserFilterModel::FilterKey::operator==(const FilterKey& other) const
+        {
+            return m_ix == other.m_ix;
+        }
+
+        bool AssetBrowserFilterModel::FilterKey::operator!=(const FilterKey& other) const
+        {
+            return !(*this == other);
+        }
+
+        bool AssetBrowserFilterModel::FilterKey::operator<(const FilterKey& other) const
+        {
+            return m_ix < other.m_ix;
+        }
+
     } // namespace AssetBrowser
 } // namespace AzToolsFramework
 

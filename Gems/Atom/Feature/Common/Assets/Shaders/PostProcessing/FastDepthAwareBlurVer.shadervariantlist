@@ -1,0 +1,4 @@
+{
+    "Shader": "FastDepthAwareBlurVer.shader",
+    "Variants": []
+}

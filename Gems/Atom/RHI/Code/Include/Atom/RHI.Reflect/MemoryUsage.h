@@ -60,7 +60,7 @@ namespace AZ
                 if (Validation::IsEnabled())
                 {
                     AZ_Assert(
-                        m_budgetInBytes >= m_reservedInBytes,
+                        m_budgetInBytes == 0 || m_budgetInBytes >= m_reservedInBytes,
                         "Reserved memory is larger than memory budget. Memory budget %zu Reserved %zu", m_budgetInBytes, m_reservedInBytes.load());
                     AZ_Assert(
                         m_reservedInBytes >= m_residentInBytes,

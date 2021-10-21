@@ -4,7 +4,10 @@ set (APC_ATOM_EXT_COMMON_BUILD_DEPENDENCIES_PRIVATE
 	AZ::AzCore
 	AZ::AtomCore
 	AZ::AzFramework
+	Gem::Atom_RHI.Public
 	Gem::Atom_RPI.Public
+    Gem::ApcUtilities.Static
+    Gem::AtomLyIntegration_CommonFeatures.Public
 )
 
 ly_add_target(

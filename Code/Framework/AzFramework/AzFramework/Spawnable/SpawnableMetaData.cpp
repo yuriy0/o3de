@@ -13,6 +13,7 @@
 #include <AzCore/std/algorithm.h>
 #include <AzCore/std/typetraits/typetraits.h>
 #include <AzFramework/Spawnable/SpawnableMetaData.h>
+#include <AzCore/Serialization/std/VariantReflection.inl>
 
 namespace AzFramework
 {

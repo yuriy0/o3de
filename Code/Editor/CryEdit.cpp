@@ -4196,6 +4196,18 @@ extern "C" int AZ_DLL_EXPORT CryEditMain(int argc, char* argv[])
         AZ::SettingsRegistryMergeUtils::MergeSettingsToRegistry_AddBuildSystemTargetSpecialization(
             registry, Editor::GetBuildTargetName());
 
+        // At this point if there is no project_path key editor startup will fail.
+        // Open the project manager instead
+        {
+            const auto projectPathKey = AZ::SettingsRegistryInterface::FixedValueString(AZ::SettingsRegistryMergeUtils::BootstrapSettingsRootKey) + "/project_path";
+            AZStd::string projectPath;
+            if (!registry.Get(projectPath, projectPathKey))
+            {
+                AzFramework::ProjectManager::LaunchProjectManager();
+                return 0;
+            }
+        }
+
         if (!AZToolsApp.Start())
         {
             return -1;

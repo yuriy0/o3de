@@ -57,6 +57,8 @@ set(FILES
     Rules/MotionAdditiveRule.cpp
     Rules/SkeletonOptimizationRule.h
     Rules/SkeletonOptimizationRule.cpp
+    Rules/BoneRenamingRule.h
+    Rules/BoneRenamingRule.cpp
     Rules/IMotionZeroRule.h
     Rules/IMotionZeroRule.cpp
     Rules/MotionZeroRule.h

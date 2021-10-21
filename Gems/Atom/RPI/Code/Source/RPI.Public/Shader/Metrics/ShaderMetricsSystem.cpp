@@ -9,11 +9,14 @@
 #include <Atom/RPI.Public/Shader/Metrics/ShaderMetricsSystem.h>
 #include <Atom/RPI.Public/Shader/Metrics/ShaderMetrics.h>
 #include <Atom/RPI.Reflect/Shader/ShaderAsset.h>
+#include <Atom/RPI.Reflect/Shader/ShaderOptionGroup.h>
 
+
+#include <Atom/RPI.Edit/Shader/ShaderVariantEditorManipulationBus.h>
 
 #include <AzCore/Interface/Interface.h>
 #include <AzCore/IO/SystemFile.h>
-#include <AzCore/Utils//Utils.h>
+#include <AzCore/Utils/Utils.h>
 
 #include <AzCore/Serialization/Json/JsonUtils.h>
 
@@ -37,7 +40,6 @@ namespace AZ
 
         void ShaderMetricsSystem::Reflect(ReflectContext* context)
         {
-            ShaderVariantRequest::Reflect(context);
             ShaderVariantMetrics::Reflect(context);
         }
 
@@ -101,9 +103,39 @@ namespace AZ
             m_isEnabled = value;
         }
 
+        bool ShaderMetricsSystem::IsAutomaticallyAddingMissingShaderVariants() const
+        {
+            return m_isAddingMissingShaderVariants;
+        }
+
+        void ShaderMetricsSystem::SetAutomaticallyAddingMissingShaderVariants(bool value)
+        {
+            m_isAddingMissingShaderVariants = value;
+        }
+
         const ShaderVariantMetrics& ShaderMetricsSystem::GetMetrics() const
         {
             return m_metrics;
+        }
+
+        static PrettyShaderVariantId GetPrettyShaderVariantId(const ShaderAsset* shader, const ShaderVariantId& shaderVariantId)
+        {
+            PrettyShaderVariantId prettyId;
+
+            ConstPtr<ShaderOptionGroupLayout> shaderOptions = shader->GetShaderOptionGroupLayout();
+            const ShaderOptionGroup shaderOptionGroup(shaderOptions, shaderVariantId);
+
+            for (const ShaderOptionDescriptor& option : shaderOptions->GetShaderOptions())
+            {
+                const ShaderOptionValue optionValue = option.Get(shaderOptionGroup);
+                const Name optionValueName = option.GetValueName(optionValue);
+                if (!optionValueName.IsEmpty())
+                {
+                    prettyId.m_options[option.GetName().GetStringView()] = optionValueName.GetStringView();
+                }
+            }
+
+            return prettyId;
         }
 
         void ShaderMetricsSystem::RequestShaderVariant(const ShaderAsset* shader, const ShaderVariantId& shaderVariantId, const ShaderVariantSearchResult& result)
@@ -115,31 +147,38 @@ namespace AZ
 
             AZ_PROFILE_SCOPE(RPI, "ShaderMetricsSystem: RequestShaderVariant");
 
-            AZStd::lock_guard<AZStd::mutex> lock(m_metricsMutex);
+            ShaderVariantRequest request;
+            request.m_shaderId = shader->GetId();
+            request.m_shaderName = shader->GetName();
+            request.m_shaderVariantId = shaderVariantId;
+            request.m_prettyShaderVariantId = GetPrettyShaderVariantId(shader, shaderVariantId);
 
-            // Log a new request
-            ShaderVariantRequest newRequest;
-            newRequest.m_shaderId = shader->GetId();
-            newRequest.m_shaderName = shader->GetName();
-            newRequest.m_shaderVariantId = shaderVariantId;
-            newRequest.m_shaderVariantStableId = result.GetStableId();
-            newRequest.m_dynamicOptionCount = result.GetDynamicOptionCount();
-            newRequest.m_requestCount = 1;
+            ShaderVariantResult newResult;
+            newResult.m_shaderVariantStableId = result.GetStableId();
+            newResult.m_dynamicOptionCount = result.GetDynamicOptionCount();
 
-            // Check if the specific shader variant was already requested to increase its request count
-            for (auto request = m_metrics.m_requests.begin(); request != m_metrics.m_requests.end(); ++request)
             {
-                if (request->m_shaderId == newRequest.m_shaderId &&
-                    request->m_shaderVariantId == newRequest.m_shaderVariantId)
+                AZStd::lock_guard<AZStd::mutex> lock(m_metricsMutex);
+
+                AZStd::map<ShaderVariantResult, size_t>& results = m_metrics.m_requests[request];
+                auto [resultIt, didInsertNewResult] = results.emplace(newResult, 1);
+                if (!didInsertNewResult)
                 {
-                    request->m_requestCount++;
-                    return;
+                    resultIt->second++;
                 }
             }
 
-            // Otherwise, add a new request
-            m_metrics.m_requests.push_back(newRequest);
+            if (IsAutomaticallyAddingMissingShaderVariants())
+            {
+                // Only add the new variant if there are dynamic branches in the root variant
+                if (result.GetDynamicOptionCount() > 0)
+                {
+                    ShaderVariantEditorManipulationBus::Broadcast(
+                        &ShaderVariantEditorManipulationBus::Events::AddOptionsToShaderVariant,
+                        request.m_shaderId, request.m_prettyShaderVariantId.m_options
+                    );
+                }
+            }
         }
-
     }; // namespace RPI
 }; // namespace AZ

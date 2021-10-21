@@ -290,7 +290,7 @@ namespace AZ
     bool Entity::Modify(const ComponentArrayType& componentsToRemove,
                         const ComponentArrayType& componentsToAdd)
     {
-        AZ_PROFILE_FUNCTION(AZ::Debug::ProfileCategory::AzCore);
+        AZ_PROFILE_FUNCTION(AzCore);
 
         if (componentsToAdd.size() == 0 && componentsToRemove.size() == 0) { return true; }
 
@@ -327,7 +327,7 @@ namespace AZ
             // Check for components to remove. Iterate over the components in dependency sort order
             // to preserve the order in which these eventually must be deactivated.
             {
-                AZ_PROFILE_SCOPE(AZ::Debug::ProfileCategory::AzCore, "Find to remove");
+                AZ_PROFILE_SCOPE(AzCore, "Find to remove");
                 for (auto c_it = m_components.begin(); c_it != m_components.end(); /**/) { 
                     ComponentArrayType::const_iterator it = AZStd::find(componentsToRemove.begin(), componentsToRemove.end(), *c_it);
                     if (it != componentsToRemove.end()) { 
@@ -342,7 +342,7 @@ namespace AZ
 
             // Check for components to add.
             {
-                AZ_PROFILE_SCOPE(AZ::Debug::ProfileCategory::AzCore, "Find to add");
+                AZ_PROFILE_SCOPE(AzCore, "Find to add");
                 for (auto c : componentsToAdd) { 
                     AZ_Assert(c, "Entity::Modify - components to add must not be null");
                     if (!c) continue;
@@ -360,7 +360,7 @@ namespace AZ
             //check the dependencies.
             DependencySortResult depSortResult;
             {
-                AZ_PROFILE_SCOPE(AZ::Debug::ProfileCategory::AzCore, "EvaluateDependencies");
+                AZ_PROFILE_SCOPE(AzCore, "EvaluateDependencies");
                 depSortResult = EvaluateDependencies();
             }
 
@@ -370,7 +370,7 @@ namespace AZ
                 for (auto it = toDeactivate.rbegin(); it != toDeactivate.rend(); ++it) { 
                     Component* c = *it;
                     {
-                        AZ_PROFILE_SCOPE_DYNAMIC(AZ::Debug::ProfileCategory::AzCore, "%s::Deactivate", c->RTTI_GetTypeName());
+                        //AZ_PROFILE_SCOPE_DYNAMIC(AZ::Debug::ProfileCategory::AzCore, "%s::Deactivate", c->RTTI_GetTypeName());
                         c->Deactivate();
                     }
                     c->SetEntity(nullptr);
@@ -383,11 +383,11 @@ namespace AZ
                         c->m_id = InvalidComponentId;
                         c->SetEntity(this);
                         {
-                            AZ_PROFILE_SCOPE_DYNAMIC(AZ::Debug::ProfileCategory::AzCore, "%s::Init", c->RTTI_GetTypeName());
+                            //AZ_PROFILE_SCOPE_DYNAMIC(AZ::Debug::ProfileCategory::AzCore, "%s::Init", c->RTTI_GetTypeName());
                             c->Init();
                         }
                         {
-                            AZ_PROFILE_SCOPE_DYNAMIC(AZ::Debug::ProfileCategory::AzCore, "%s::Activate", c->RTTI_GetTypeName());
+                            //AZ_PROFILE_SCOPE_DYNAMIC(AZ::Debug::ProfileCategory::AzCore, "%s::Activate", c->RTTI_GetTypeName());
                             c->Activate();
                         }
                     }

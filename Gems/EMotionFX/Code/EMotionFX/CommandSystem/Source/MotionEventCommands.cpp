@@ -615,7 +615,7 @@ namespace CommandSystem
         }
 
         // add the motion event and check if everything worked fine
-        m_motionEventNr = eventTrack->AddEvent(m_startTime, m_endTime, m_eventDatas.value_or(EMotionFX::EventDataSet()));
+        m_motionEventNr = eventTrack->AddEvent(m_startTime, m_endTime, decltype(m_eventDatas)(m_eventDatas));
 
         if (m_motionEventNr == InvalidIndex)
         {

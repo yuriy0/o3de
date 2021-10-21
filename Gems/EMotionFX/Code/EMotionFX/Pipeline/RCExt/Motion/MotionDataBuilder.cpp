@@ -15,12 +15,14 @@
 #include <SceneAPI/SceneCore/DataTypes/GraphData/IAnimationData.h>
 #include <SceneAPI/SceneData/Rules/CoordinateSystemRule.h>
 
+#include <SceneAPIExt/Groups/IActorGroup.h>
 #include <SceneAPIExt/Groups/IMotionGroup.h>
 #include <SceneAPIExt/Rules/IMotionScaleRule.h>
 #include <SceneAPIExt/Rules/MotionRangeRule.h>
 #include <SceneAPIExt/Rules/MotionAdditiveRule.h>
 #include <SceneAPIExt/Rules/MotionSamplingRule.h>
 #include <SceneAPIExt/Rules/IMotionZeroRule.h>
+#include <SceneAPIExt/Rules/BoneRenamingRule.h>
 #include <RCExt/Motion/MotionDataBuilder.h>
 #include <RCExt/ExportContexts.h>
 
@@ -233,6 +235,76 @@ namespace EMotionFX
             AZStd::shared_ptr<const Rule::MotionAdditiveRule> additiveRule = motionGroup.GetRuleContainerConst().FindFirstByType<Rule::MotionAdditiveRule>();
             motionData->SetAdditive(additiveRule ? true : false);
 
+            // Get the Actors bone renaming rule
+            Rule::BoneRenamingRule::BoneRenamer boneRenamer;
+            {
+                const SceneContainers::SceneManifest& manifest = context.m_scene.GetManifest();
+                auto valueStorage = manifest.GetValueStorage();
+                auto view = SceneContainers::MakeDerivedFilterView<Group::IActorGroup>(valueStorage);
+                for (const Group::IActorGroup& actorGroup : view)
+                {
+                    if (AZStd::shared_ptr<Rule::BoneRenamingRule> boneRenamingRule = actorGroup.GetRuleContainerConst().FindFirstByType<Rule::BoneRenamingRule>())
+                    {
+                        boneRenamer = boneRenamingRule->GetBoneRenamer();
+                    }
+                }
+            }
+
+            // Get the motion range rules. This is a function which takes a total frame count for a particular keyframe animation,
+            // and returns the clamped frame count based on the motion range rule. If it returns `nullopt', there is an unrecoverable error
+            const auto GetFrameRange =
+            [
+                frameRangeRule = [&]() -> AZStd::optional<AZStd::tuple<size_t, size_t>>
+                {
+                     if (motionGroup.GetRuleContainerConst().ContainsRuleOfType<const Rule::MotionRangeRule>())
+                     {
+                         AZStd::shared_ptr<const Rule::MotionRangeRule> motionRangeRule =
+                             motionGroup.GetRuleContainerConst().FindFirstByType<const Rule::MotionRangeRule>();
+                         return { { aznumeric_caster(motionRangeRule->GetStartFrame()),
+                                    aznumeric_caster(motionRangeRule->GetEndFrame())
+                                  } };
+                     }
+                     else
+                     {
+                         return {};
+                     }
+                }()
+            ](size_t totalFrameCount) -> AZStd::optional<AZStd::tuple<size_t, size_t, size_t>>
+            {
+                size_t startFrame, endFrame;
+
+                if (frameRangeRule)
+                {
+                    AZStd::tie(startFrame, endFrame) = *frameRangeRule;
+
+                    // Sanity check
+                    if (startFrame >= totalFrameCount)
+                    {
+                        AZ_TracePrintf(
+                            SceneUtil::ErrorWindow,
+                            "Start frame %d is greater or equal than the actual number of frames %d in animation.\n", startFrame,
+                            totalFrameCount);
+                        return {}; // SceneEvents::ProcessingResult::Failure;
+                    }
+                    if (endFrame >= totalFrameCount)
+                    {
+                        AZ_TracePrintf(
+                            SceneUtil::WarningWindow,
+                            "End frame %d is greater or equal than the actual number of frames %d in animation. Clamping the end frame "
+                            "to %d\n",
+                            endFrame, totalFrameCount, totalFrameCount - 1);
+                        endFrame = totalFrameCount - 1;
+                    }
+                }
+                else
+                {
+                    startFrame = 0;
+                    endFrame = totalFrameCount - 1;
+                }
+
+                return { { startFrame, endFrame, (endFrame - startFrame) + 1 } };
+            };
+
             AZStd::vector<size_t> rootJoints; // The list of root nodes.
 
             size_t maxNumFrames = 0;
@@ -271,7 +343,9 @@ namespace EMotionFX
                 const SceneDataTypes::IAnimationData* animation = azrtti_cast<const SceneDataTypes::IAnimationData*>(result->get());
 
                 const char* nodeName = it->first.GetName();
-                const size_t jointDataIndex = motionData->AddJoint(nodeName, Transform::CreateIdentity(), Transform::CreateIdentity());
+                const size_t jointDataIndex = motionData->AddJoint(
+                    boneRenamer ? boneRenamer(nodeName).c_str() : nodeName,
+                    Transform::CreateIdentity(), Transform::CreateIdentity());
 
                 // If we deal with a root bone or one of its child nodes, disable the keytrack optimization.
                 // This prevents sliding feet etc. A better solution is probably to increase compression rates based on the "distance" from the root node, hierarchy wise.
@@ -281,37 +355,17 @@ namespace EMotionFX
                     rootJoints.emplace_back(jointDataIndex);
                 }
 
+                // Compute frame range to export based on rules
                 const size_t sceneFrameCount = aznumeric_caster(animation->GetKeyFrameCount());
-                size_t startFrame = 0;
-                size_t endFrame = 0;
-                if (motionGroup.GetRuleContainerConst().ContainsRuleOfType<const Rule::MotionRangeRule>())
+                const auto& mbFrameRange = GetFrameRange(sceneFrameCount);
+                if (!mbFrameRange)
                 {
-                    AZStd::shared_ptr<const Rule::MotionRangeRule> motionRangeRule = motionGroup.GetRuleContainerConst().FindFirstByType<const Rule::MotionRangeRule>();
-                    startFrame = aznumeric_caster(motionRangeRule->GetStartFrame());
-                    endFrame = aznumeric_caster(motionRangeRule->GetEndFrame());
-
-                    // Sanity check
-                    if (startFrame >= sceneFrameCount)
-                    {
-                        AZ_TracePrintf(SceneUtil::ErrorWindow, "Start frame %d is greater or equal than the actual number of frames %d in animation.\n", startFrame, sceneFrameCount);
-                        return SceneEvents::ProcessingResult::Failure;
-                    }
-                    if (endFrame >= sceneFrameCount)
-                    {
-                        AZ_TracePrintf(SceneUtil::WarningWindow, "End frame %d is greater or equal than the actual number of frames %d in animation. Clamping the end frame to %d\n", endFrame, sceneFrameCount, sceneFrameCount - 1);
-                        endFrame = sceneFrameCount - 1;
-                    }
+                    return SceneEvents::ProcessingResult::Failure;
                 }
-                else
-                {
-                    startFrame = 0;
-                    endFrame = sceneFrameCount - 1;
-                }
-
-                const size_t numFrames = (endFrame - startFrame) + 1;
-
+                const auto [startFrame, endFrame, numFrames] = *mbFrameRange;
                 maxNumFrames = AZ::GetMax(numFrames, maxNumFrames);
 
+                // Allocate joint data
                 motionData->AllocateJointPositionSamples(jointDataIndex, numFrames);
                 motionData->AllocateJointRotationSamples(jointDataIndex, numFrames);
                 EMFX_SCALECODE
@@ -433,15 +487,26 @@ namespace EMotionFX
                     {
                         const SceneDataTypes::IBlendShapeAnimationData* blendShapeAnimationData = static_cast<const SceneDataTypes::IBlendShapeAnimationData*>(currentItem.get());
 
+                        // Get desired frame range from rule
+                        const size_t sceneFrameCount = blendShapeAnimationData->GetKeyFrameCount();
+                        const auto& mbFrameRange = GetFrameRange(sceneFrameCount);
+                        if (!mbFrameRange)
+                        {
+                            return SceneEvents::ProcessingResult::Failure;
+                        }
+                        const auto [startFrame, endFrame, keyFrameCount] = *mbFrameRange;
+
+                        // Add morph target for this blend shape
                         const size_t morphDataIndex = motionData->AddMorph(blendShapeAnimationData->GetBlendShapeName(), 0.0f);
-                        const size_t keyFrameCount = blendShapeAnimationData->GetKeyFrameCount();
+
+                        // Export data
                         motionData->AllocateMorphSamples(morphDataIndex, keyFrameCount);
                         const double keyFrameStep = blendShapeAnimationData->GetTimeStepBetweenFrames();
-                        for (int keyFrameIndex = 0; keyFrameIndex < keyFrameCount; keyFrameIndex++)
+                        for (size_t keyFrameIndex = 0; keyFrameIndex < keyFrameCount; keyFrameIndex++)
                         {
-                            const float keyFrameValue = static_cast<float>(blendShapeAnimationData->GetKeyFrame(keyFrameIndex));
+                            const float keyFrameValue = static_cast<float>(blendShapeAnimationData->GetKeyFrame(keyFrameIndex + startFrame));
                             const float keyframeTime = static_cast<float>(keyFrameIndex * keyFrameStep);
-                            motionData->SetMorphSample(morphDataIndex, keyFrameIndex, {keyframeTime, keyFrameValue});
+                            motionData->SetMorphSample(morphDataIndex, keyFrameIndex, { keyframeTime, keyFrameValue });
                         }
                     }
                 }

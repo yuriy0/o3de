@@ -2,6 +2,7 @@
 #include <AzCore/Module/Module.h>
 
 #include "ApcAtomExtSystemComponent.h"
+#include "Components/MaterialPropertyRandomizerComponent.h"
 
 namespace ApcAtomExt
 {
@@ -17,6 +18,7 @@ namespace ApcAtomExt
         {
             m_descriptors.insert(m_descriptors.end(), {
                 ApcAtomExtSystemComponent::CreateDescriptor(),
+                MaterialPropertyRandomizerComponent::CreateDescriptor(),
             });
         }
 
@@ -32,4 +34,4 @@ namespace ApcAtomExt
     };
 }
 
-AZ_DECLARE_MODULE_CLASS(ApcAtomExtModule_b199505e84a344c389606b66bab8226b, ApcAtomExt::ApcAtomExtModule)
+AZ_DECLARE_MODULE_CLASS(Gem_ApcAtomExt, ApcAtomExt::ApcAtomExtModule)

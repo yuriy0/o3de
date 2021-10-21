@@ -3,8 +3,6 @@
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzCore/Serialization/EditContext.h>
 
-#include <Atom/RPI.Public/Pass/PassSystemInterface.h>
-
 // extensions functionality
 #include <Passes/GenericCopyFrameBufferPass.h>
 #include <Passes/GenericScreenSpaceBlurChildPass.h>
@@ -69,6 +67,12 @@ namespace ApcAtomExt
             passSystem->AddPassCreator(AZ::Name("GenericCopyFrameBufferPass"), &GenericCopyFrameBufferPass::Create);
             passSystem->AddPassCreator(AZ::Name("GenericScreenSpaceBlurPass"), &GenericScreenSpaceBlurPass::Create);
             passSystem->AddPassCreator(AZ::Name("GenericScreenSpaceBlurChildPass"), &GenericScreenSpaceBlurChildPass::Create);
+
+            m_loadTemplatesHandler = AZ::RPI::PassSystemInterface::OnReadyLoadTemplatesEvent::Handler(
+            [this, passSystem]() {
+                passSystem->LoadPassTemplateMappings("Passes/ApcAtomExt_PassTemplates.azasset");
+            });
+            passSystem->ConnectEvent(m_loadTemplatesHandler);
         }
     }
 

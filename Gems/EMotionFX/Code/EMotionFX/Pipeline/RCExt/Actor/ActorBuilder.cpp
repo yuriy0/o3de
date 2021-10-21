@@ -22,6 +22,7 @@
 #include <SceneAPIExt/Rules/LodRule.h>
 #include <SceneAPIExt/Rules/IActorScaleRule.h>
 #include <SceneAPIExt/Rules/SkeletonOptimizationRule.h>
+#include <SceneAPIExt/Rules/BoneRenamingRule.h>
 #include <SceneAPIExt/Groups/ActorGroup.h>
 #include <RCExt/Actor/ActorBuilder.h>
 #include <RCExt/ExportContexts.h>
@@ -253,6 +254,22 @@ namespace EMotionFX
                 }
 
                 actor->SetOptimizeSkeleton(skeletonOptimizationRule->GetServerSkeletonOptimization());
+            }
+
+            // Bone rename rule
+            if (AZStd::shared_ptr<Rule::BoneRenamingRule> boneRenamingRule = actorGroup.GetRuleContainerConst().FindFirstByType<Rule::BoneRenamingRule>())
+            {
+                Rule::BoneRenamingRule::BoneRenamer boneRenamer = boneRenamingRule->GetBoneRenamer();
+
+                for (auto nodeIndex = 0; nodeIndex < actorSkeleton->GetNumNodes(); ++nodeIndex)
+                {
+                    EMotionFX::Node* emfxNode = actorSkeleton->GetNode(nodeIndex);
+                    const AZStd::string& emfxNodeName = emfxNode->GetNameString();
+                    if (boneNameEmfxIndexMap.find(emfxNodeName) != boneNameEmfxIndexMap.end())
+                    {
+                        emfxNode->SetName(boneRenamer(emfxNodeName).c_str());
+                    }
+                }
             }
 
             SceneEvents::ProcessingResultCombiner result;

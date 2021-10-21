@@ -15,6 +15,7 @@
 #include <QGridLayout>
 #include <QLabel>
 #include <AzQtComponents/Components/Widgets/SpinBox.h>
+#include <AzQtComponents/Components/Widgets/SliderCombo.h>
 #include <AzCore/std/utils.h>
 #include <AzCore/std/smart_ptr/unique_ptr.h>
 #include <AzCore/std/containers/list.h>
@@ -53,16 +54,13 @@ namespace EMotionFX
 
         QLabel*                         m_labelMotion;
         AzQtComponents::DoubleSpinBox*  m_randomWeightSpinbox;
-        QLineEdit*                      m_normalizedProbabilityText;
+        AzQtComponents::SliderDoubleCombo* m_normalizedProbabilitySliderCombo;
         QPushButton*                    m_removeButton;
-        
-        static void ResetDisplayedRoundingError();
 
     private:
         size_t                                              m_id = std::numeric_limits<size_t>::max();
         bool                                                m_displayMotionSelectionWeight = false;
         const IRandomMotionSelectionDataContainer*          m_dataContainer = nullptr;
-        static float                                        s_displayedRoundingError;
     };
 
     class MotionSetMotionIdPicker

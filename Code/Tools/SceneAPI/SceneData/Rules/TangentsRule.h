@@ -52,7 +52,7 @@ namespace AZ
                 SCENE_DATA_API TangentsRule();
                 SCENE_DATA_API ~TangentsRule() override = default;
 
-                SCENE_DATA_API AZ::SceneAPI::DataTypes::TangentSpace GetTangentSpace() const;
+                SCENE_DATA_API AZ::SceneAPI::DataTypes::TangentGenerationMethod GetGenerationMethod() const;
                 SCENE_DATA_API NormalsSource GetNormalsSource() const;
                 SCENE_DATA_API bool GetShouldRenormalizeNormals() const;
                 SCENE_DATA_API AZ::SceneAPI::DataTypes::MikkTSpaceMethod GetMikkTSpaceMethod() const;
@@ -64,9 +64,8 @@ namespace AZ
             protected:
                 AZ::SceneAPI::DataTypes::TangentGenerationMethod m_generationMethod = AZ::SceneAPI::DataTypes::TangentGenerationMethod::MikkT; /**< Specifies how to handle tangents. Either generate them, or import them. */
 
-                AZ::SceneAPI::DataTypes::TangentSpace m_tangentSpace;     /**< Specifies how to handle tangents. Either generate them, or import them. */
-                NormalsSource m_normalsSource;
-                bool m_shouldRenormalizeNormals;
+                NormalsSource m_normalsSource = NormalsSource::FromSourceScene;
+                bool m_shouldRenormalizeNormals = false;
                 
                 // MikkT specific settings
                 AZ::Crc32 GetSpaceMethodVisibility() const;

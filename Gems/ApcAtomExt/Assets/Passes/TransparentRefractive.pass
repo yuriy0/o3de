@@ -1,0 +1,293 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "TransparentRefractivePassTemplate", 
+            "PassClass": "RasterPass",
+            "Slots": [
+                {
+                    "Name": "InputReference",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "WeightDistributionMoments",
+                    "ShaderInputName": "m_oitMoments",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "WeightDistributionTotalOpticalDepth",
+                    "ShaderInputName": "m_oitOpticalDepth",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "BRDFTextureInput",
+                    "ShaderInputName": "m_brdfMap",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "Alpha",
+                    "SlotType": "Output",
+                    "ScopeAttachmentUsage": "RenderTarget",
+                    "LoadStoreAction": {
+                        "ClearValue": {
+                            "Value": [
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0
+                            ]
+                        },
+                        "LoadAction": "Clear"
+                    }
+                },
+                {
+                    "Name": "BetaAndDiffusion",
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "RenderTarget",
+                    "LoadStoreAction": {
+                        "ClearValue": {
+                            "Value": [
+                                1.0,
+                                1.0,
+                                1.0,
+                                0.0
+                            ]
+                        },
+                        "LoadAction": "Clear"
+                    }
+                },
+                {
+                    "Name": "TransparentDepthOut",
+                    "ShaderInputName": "m_transparentDepth",
+                    "SlotType": "Output",
+                    "ScopeAttachmentUsage": "Shader",
+                    "LoadStoreAction": {
+                        "ClearValue": {
+                            "Value": [
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0
+                            ]
+                        },
+                        "LoadAction": "Clear"
+                    }
+                },
+                /*
+                {
+                    "Name": "RTForTesting",
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "RenderTarget"
+                },*/
+                {
+                    "Name": "OpaqueCopy",
+                    "ShaderInputName": "m_opaqueOutput",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "DepthStencilResolved",
+                    "ShaderInputName": "m_depth",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "AspectFlags": [
+                            "Depth"
+                        ]
+                    }
+                },
+                {
+                    "Name": "DepthTransparentMin",
+                    "ShaderInputName": "m_depthMin",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "AspectFlags": [
+                            "Depth"
+                        ]
+                    }
+                },
+                {
+                    "Name": "DirectionalLightShadowmap",
+                    "ShaderInputName": "m_directionalLightShadowmap",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "IsArray": 1
+                    }
+                },
+                {
+                    "Name": "ExponentialShadowmapDirectional",
+                    "ShaderInputName": "m_directionalLightExponentialShadowmap",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "IsArray": 1
+                    }
+                },                
+                {
+                    "Name": "SpotLightShadowmap",
+                    "ShaderInputName": "m_projectedShadowmaps",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "IsArray": 1
+                    }
+                },       
+                {
+                    "Name": "ExponentialShadowmapSpot",
+                    "ShaderInputName": "m_projectedExponentialShadowmap",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "IsArray": 1
+                    }
+                },
+                {
+                    "Name": "DepthStencilMS",
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "DepthStencil"
+                },
+                {
+                    "Name": "TileLightData",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_tileLightData",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "LightListRemapped",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_lightListRemapped",
+                    "ScopeAttachmentUsage": "Shader"
+                }
+            ],
+            "ImageAttachments": [
+                {
+                    "Name": "BRDFTexture",
+                    "Lifetime": "Imported",
+                    "AssetRef": {
+                        "FilePath": "Textures/BRDFTexture.attimage"
+                    }
+                },
+                {
+                    "Name": "AlphaRTImage",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "InputReference"
+                        }
+                    },
+                    "FormatSource": {
+                        "Pass": "This",
+                        "Attachment": "InputReference"
+                    },
+                    "MultisampleSource": {
+                        "Pass": "This",
+                        "Attachment": "DepthStencilMS"
+                    }
+                },
+                {
+                    "Name": "BetaAndDiffusionRTImage",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "InputReference"
+                        }
+                    },
+                    "FormatSource": {
+                        "Pass": "This",
+                        "Attachment": "InputReference"
+                    },
+                    "MultisampleSource": {
+                        "Pass": "This",
+                        "Attachment": "DepthStencilMS"
+                    }
+                },
+                {
+                    "Name": "TransparentDepthOutImage",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "InputReference"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R32_UINT",
+                        "SharedQueueMask": "Graphics"
+                    }
+                }/*,
+                {
+                    "Name": "RTForTestingImage",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "InputReference"
+                        }
+                    },
+                    "FormatSource": {
+                        "Pass": "This",
+                        "Attachment": "InputReference"
+                    },
+                    "MultisampleSource": {
+                        "Pass": "This",
+                        "Attachment": "DepthStencilMS"
+                    }
+                } */
+            ],
+            "Connections": [
+                {
+                    "LocalSlot": "BRDFTextureInput",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "BRDFTexture"
+                    }
+                },
+                {
+                    "LocalSlot": "Alpha",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "AlphaRTImage"
+                    }
+                },
+                {
+                    "LocalSlot": "BetaAndDiffusion",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "BetaAndDiffusionRTImage"
+                    }
+                },
+                {
+                    "LocalSlot": "TransparentDepthOut",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "TransparentDepthOutImage"
+                    }
+                }/*,
+                {
+                    "LocalSlot": "RTForTesting",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "RTForTestingImage"
+                    }
+                }*/
+            ],
+            "PassData": {
+                "$type": "RasterPassData",
+                "ShaderDataMappings": {
+                    "FloatMappings": [
+                        {
+                            "Name": "m_transparentDepthWriteAlphaThreshold",
+                            "Value": 0.95
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,49 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "AssetAliasesSourceData",
+    "ClassData": {
+        "AssetPaths": [
+            {
+                "Name": "TransparentRefractivePassTemplate",
+                "Path": "Passes/TransparentRefractive.pass"
+            },
+            {
+                "Name": "GenericCopyImagePassTemplate",
+                "Path": "Passes/GenericCopyImage.pass"
+            },
+            {
+                "Name": "GenericScreenSpaceBlurPassTemplate",
+                "Path": "Passes/GenericScreenSpaceBlur.pass"
+            },
+            {
+                "Name": "GenericScreenSpaceBlurVerticalPassTemplate",
+                "Path": "Passes/GenericScreenSpaceBlurVertical.pass"
+            },
+            {
+                "Name": "GenericScreenSpaceBlurHorizontalPassTemplate",
+                "Path": "Passes/GenericScreenSpaceBlurHorizontal.pass"
+            },
+            {
+                "Name": "TransparentRefractiveMergeOutputPassTemplate",
+                "Path": "Passes/TransparentRefractiveMergeOutput.pass"
+            },
+            {
+                "Name": "TransparentRefractiveDepthWritePassTemplate",
+                "Path": "Passes/TransparentRefractiveDepthWrite.pass"
+            },
+            {
+                "Name": "SampleBlurredForTransparentRefractivePassTemplate",
+                "Path": "Passes/SampleBlurredForTransparentRefractive.pass"
+            },
+            {
+                "Name": "TransparentRefractiveParentPassTemplate",
+                "Path": "Passes/TransparentRefractiveParent.pass"
+            },
+            {
+                "Name": "OITMomentGenerationPassTemplate",
+                "Path": "Passes/OITMomentGeneration.pass"
+            }
+        ]
+    }
+}

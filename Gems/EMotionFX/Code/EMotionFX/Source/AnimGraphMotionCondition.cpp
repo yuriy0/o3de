@@ -17,6 +17,7 @@
 #include <EMotionFX/Source/AnimGraphNode.h>
 #include <EMotionFX/Source/AnimGraphMotionNode.h>
 #include <EMotionFX/Source/AnimGraphInstance.h>
+#include <EMotionFX/Source/AnimGraphStateMachine.h>
 #include <EMotionFX/Source/AnimGraphMotionCondition.h>
 #include <EMotionFX/Source/EMotionFXManager.h>
 #include <EMotionFX/Source/MotionSet.h>
@@ -109,32 +110,19 @@ namespace EMotionFX
                 return false;
             }
 
-            // Iterate over motion entries from the motion node and check if there are motions assigned to them.
-            const size_t numMotions = m_motionNode->GetNumMotions();
-            for (size_t i = 0; i < numMotions; ++i)
+            // Check if ALL motion entries which can be found in the motion node are assigned
+            AZStd::vector<size_t> indices(m_motionNode->GetNumMotions());
+            std::iota(indices.begin(), indices.end(), 0);
+
+            const bool allMotionEntriesAssigned = AZStd::all_of(indices.begin(), indices.end(), [&](size_t motionIndex)
             {
-                const char* motionId = m_motionNode->GetMotionId(i);
-                const EMotionFX::MotionSet::MotionEntry* motionEntry = motionSet->FindMotionEntryById(motionId);
+                const char* motionId = m_motionNode->GetMotionId(motionIndex);
+                const EMotionFX::MotionSet::MotionEntry* motionEntry = motionSet->RecursiveFindMotionEntryById(motionId);
+                return motionEntry ? !motionEntry->GetFilenameString().empty() : false;
+            });
 
-                if (m_testFunction == FUNCTION_ISMOTIONASSIGNED)
-                {
-                    // Any unassigned motion entry will make the condition to fail.
-                    if (!motionEntry || (motionEntry && motionEntry->GetFilenameString().empty()))
-                    {
-                        return false;
-                    }
-                }
-                else
-                {
-                    if (motionEntry && !motionEntry->GetFilenameString().empty())
-                    {
-                        // Any assigned motion entry will make the condition to fail.
-                        return false;
-                    }
-                }
-            }
-
-            return true;
+            const bool isInvertedCondition = m_testFunction == FUNCTION_ISMOTIONNOTASSIGNED;
+            return allMotionEntriesAssigned ^ isInvertedCondition;
         }
 
         UniqueData* uniqueData = static_cast<UniqueData*>(animGraphInstance->FindOrCreateUniqueObjectData(this));
@@ -155,7 +143,26 @@ namespace EMotionFX
         {
         case FUNCTION_EVENT:
         {
-            const EMotionFX::AnimGraphEventBuffer& eventBuffer = animGraphInstance->GetEventBuffer();
+            const auto& eventBuffer = [&]() -> const EMotionFX::AnimGraphEventBuffer&
+            {
+                if (animGraphInstance->GetEventBuffer().GetNumEvents() > 0)
+                {
+                    return animGraphInstance->GetEventBuffer();
+                }
+                else
+                {
+                    AnimGraphStateMachine* rootStateMachine = animGraphInstance->GetAnimGraph()->GetRootStateMachine();
+                    AnimGraphStateMachine::UniqueData* rootStateMachineUniqueData = static_cast<AnimGraphStateMachine::UniqueData*>(rootStateMachine->FindOrCreateUniqueNodeData(animGraphInstance));
+                    if (AnimGraphRefCountedData* rootStateMachineData = rootStateMachineUniqueData->GetRefCountedData())
+                    {
+                        return rootStateMachineData->GetEventBuffer();
+                    }
+                }
+
+                // Doesn't really matter; the set of events is empty anyways
+                static const EMotionFX::AnimGraphEventBuffer dummy;
+                return dummy;
+            }();
             const size_t numEvents = eventBuffer.GetNumEvents();
 
             // Check if the triggered motion event is of the given type and parameter from the motion condition.

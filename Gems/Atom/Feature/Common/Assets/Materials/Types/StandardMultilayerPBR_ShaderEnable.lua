@@ -8,14 +8,40 @@
 --
 --
 ----------------------------------------------------------------------------------------------------
+-- TODO: get require working
+-- local DisintegrateLib = require './DisintegrateEffectLib'
+
+local DisintegrateLib = {}
+
+DisintegrateLib.GetMaterialPropertyDependencies_DisintegrateEffectIsEnabled = function()
+    return {
+        "disintegrate.mask", "disintegrate.percentage"
+    }
+end
+
+DisintegrateLib.IsDisintegrateEffectEnabled = function(context)
+   local mask = context:GetMaterialPropertyValue_Image("disintegrate.mask")
+   local percentage = context:GetMaterialPropertyValue_float("disintegrate.percentage")
+   return mask ~= nil and percentage > 0
+end
+
+-- END TODO
+
 
 function GetMaterialPropertyDependencies()
-    return {"parallax.enable", "parallax.pdo"}
+   local deps = {"parallax.enable", "parallax.pdo"}
+
+   for _, prop in ipairs(DisintegrateLib.GetMaterialPropertyDependencies_DisintegrateEffectIsEnabled()) do
+      table.insert(deps, prop)
+   end
+
+   return deps
 end
 
 function Process(context)
     local parallaxEnabled = context:GetMaterialPropertyValue_bool("parallax.enable")
     local parallaxPdoEnabled = context:GetMaterialPropertyValue_bool("parallax.pdo")
+    local isDisintegrateEffect = DisintegrateLib.IsDisintegrateEffectEnabled(context)
     
     local depthPass = context:GetShaderByTag("DepthPass")
     local shadowMap = context:GetShaderByTag("Shadowmap")
@@ -24,7 +50,7 @@ function Process(context)
     local shadowMapWithPS = context:GetShaderByTag("Shadowmap_WithPS")
     local forwardPass = context:GetShaderByTag("ForwardPass")
     
-    local shadingAffectsDepth = parallaxEnabled and parallaxPdoEnabled;
+    local shadingAffectsDepth = (parallaxEnabled and parallaxPdoEnabled) or isDisintegrateEffect;
     
     depthPass:SetEnabled(not shadingAffectsDepth)
     shadowMap:SetEnabled(not shadingAffectsDepth)

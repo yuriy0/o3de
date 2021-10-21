@@ -72,6 +72,9 @@ namespace EMotionFX
 
         static void Reflect(AZ::ReflectContext* context);
 
+    protected:
+        virtual float DoSmoothing(float sourceValue, float destValue, float lerpStrength, UniqueData* uniqueData);
+
     private:
         void Update(AnimGraphInstance* animGraphInstance, float timePassedInSeconds) override;
         AZ::Crc32 GetStartValueVisibility() const;

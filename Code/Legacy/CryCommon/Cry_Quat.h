@@ -1058,3 +1058,312 @@ ILINE void operator %= (Quat_tpl<F1>& q, const Quat_tpl<F2>& tp)
     }
     q = Quat_tpl<F1>(q.w + p.w, q.v + p.v);
 }
+
+
+
+
+
+
+
+
+
+
+
+//----------------------------------------------------------------------
+// Quaternion with translation vector
+//----------------------------------------------------------------------
+template <typename F>
+struct QuatT_tpl
+{
+    Quat_tpl<F> q; //this is the quaternion
+    Vec3_tpl<F> t; //this is the translation vector and a scalar (for uniform scaling?)
+
+    ILINE QuatT_tpl() {}
+
+    //initialize with zeros
+    ILINE QuatT_tpl(type_zero)
+    {
+        q.w = 0, q.v.x = 0, q.v.y = 0, q.v.z = 0, t.x = 0, t.y = 0, t.z = 0;
+    }
+    ILINE QuatT_tpl(type_identity)
+    {
+        q.w = 1, q.v.x = 0, q.v.y = 0, q.v.z = 0, t.x = 0, t.y = 0, t.z = 0;
+    }
+
+    ILINE QuatT_tpl(const Vec3_tpl<F>& _t, const Quat_tpl<F>& _q) { q = _q; t = _t; }
+
+    //CONSTRUCTOR: implement the copy/casting/assignment constructor:
+    template <typename F1>
+    ILINE QuatT_tpl(const QuatT_tpl<F1>& qt)
+        : q(qt.q)
+        , t(qt.t) {}
+
+    ////convert unit DualQuat back to QuatT
+    //ILINE QuatT_tpl(const DualQuat_tpl<F>& qd)
+    //{
+    //    //copy quaternion part
+    //    q = qd.nq;
+    //    //convert translation vector:
+    //    t = (qd.nq.w * qd.dq.v - qd.dq.w * qd.nq.v + qd.nq.v % qd.dq.v) * 2; //perfect for HLSL
+    //}
+
+    //explicit ILINE QuatT_tpl(const QuatTS_tpl<F>& qts)
+    //    : q(qts.q)
+    //    , t(qts.t) {}
+
+    explicit ILINE QuatT_tpl(const Matrix34_tpl<F>& m)
+    {
+        q = Quat_tpl<F>(Matrix33(m));
+        t = m.GetTranslation();
+    }
+
+    ILINE QuatT_tpl(const Quat_tpl<F>& quat, const Vec3_tpl<F>& trans)
+    {
+        q = quat;
+        t = trans;
+    }
+
+    ILINE void SetIdentity()
+    {
+        q.w = 1;
+        q.v.x = 0;
+        q.v.y = 0;
+        q.v.z = 0;
+        t.x = 0;
+        t.y = 0;
+        t.z = 0;
+    }
+
+    ILINE bool IsIdentity() const
+    {
+        return (q.IsIdentity() && t.IsZero());
+    }
+
+    /*!
+    * Convert three Euler angle to mat33 (rotation order:XYZ)
+    * The Euler angles are assumed to be in radians.
+    * The translation-vector is set to zero by default.
+    *
+    *  Example 1:
+    *       QuatT qp;
+    *       qp.SetRotationXYZ( Ang3(0.5f,0.2f,0.9f), translation );
+    *
+    *  Example 2:
+    *       QuatT qp=QuatT::CreateRotationXYZ( Ang3(0.5f,0.2f,0.9f), translation );
+    */
+    ILINE void SetRotationXYZ(const Ang3_tpl<F>& rad, const Vec3_tpl<F>& trans = Vec3(ZERO))
+    {
+        assert(rad.IsValid());
+        assert(trans.IsValid());
+        q.SetRotationXYZ(rad);
+        t = trans;
+    }
+    ILINE static QuatT_tpl<F> CreateRotationXYZ(const Ang3_tpl<F>& rad, const Vec3_tpl<F>& trans = Vec3(ZERO))
+    {
+        assert(rad.IsValid());
+        assert(trans.IsValid());
+        QuatT_tpl<F> qp;
+        qp.SetRotationXYZ(rad, trans);
+        return qp;
+    }
+
+
+
+    ILINE void SetRotationAA(F cosha, F sinha, const Vec3_tpl<F> axis, const Vec3_tpl<F>& trans = Vec3(ZERO))
+    {
+        q.SetRotationAA(cosha, sinha, axis);
+        t = trans;
+    }
+    ILINE static QuatT_tpl<F> CreateRotationAA(F cosha, F sinha, const Vec3_tpl<F> axis, const Vec3_tpl<F>& trans = Vec3(ZERO))
+    {
+        QuatT_tpl<F> qt;
+        qt.SetRotationAA(cosha, sinha, axis, trans);
+        return qt;
+    }
+
+
+    ILINE void Invert()
+    { // in-place transposition
+        assert(q.IsValid());
+        t = -t * q;
+        q = !q;
+    }
+    ILINE QuatT_tpl<F> GetInverted() const
+    {
+        assert(q.IsValid());
+        QuatT_tpl<F> qpos;
+        qpos.q = !q;
+        qpos.t = -t * q;
+        return qpos;
+    }
+
+    ILINE void SetTranslation(const Vec3_tpl<F>& trans) { t = trans; }
+
+    ILINE Vec3_tpl<F> GetColumn0() const { return q.GetColumn0(); }
+    ILINE Vec3_tpl<F> GetColumn1() const { return q.GetColumn1(); }
+    ILINE Vec3_tpl<F> GetColumn2() const { return q.GetColumn2(); }
+    ILINE Vec3_tpl<F> GetColumn3() const { return t; }
+    ILINE Vec3_tpl<F> GetRow0() const { return q.GetRow0(); }
+    ILINE Vec3_tpl<F> GetRow1() const { return q.GetRow1(); }
+    ILINE Vec3_tpl<F> GetRow2() const { return q.GetRow2(); }
+
+    ILINE static bool IsEquivalent(const QuatT_tpl<F>& qt1, const QuatT_tpl<F>& qt2, F qe = RAD_EPSILON, F ve = VEC_EPSILON)
+    {
+        real rad = acos(min(1.0f, fabs_tpl(qt1.q | qt2.q)));
+        bool qdif = rad <= qe;
+        bool vdif = fabs_tpl(qt1.t.x - qt2.t.x) <= ve && fabs_tpl(qt1.t.y - qt2.t.y) <= ve && fabs_tpl(qt1.t.z - qt2.t.z) <= ve;
+        return (qdif && vdif);
+    }
+
+    ILINE bool IsValid() const
+    {
+        if (!t.IsValid())
+        {
+            return false;
+        }
+        if (!q.IsValid())
+        {
+            return false;
+        }
+        return true;
+    }
+
+    /*!
+    * linear-interpolation between quaternions (lerp)
+    *
+    * Example:
+    *  CQuaternion result,p,q;
+    *  result=qlerp( p, q, 0.5f );
+    */
+    ILINE void SetNLerp(const QuatT_tpl<F>& p, const QuatT_tpl<F>& tq, F ti)
+    {
+        assert(p.q.IsValid());
+        assert(tq.q.IsValid());
+        Quat_tpl<F> d = tq.q;
+        if ((p.q | d) < 0)
+        {
+            d = -d;
+        }
+        Vec3_tpl<F> vDiff = d.v - p.q.v;
+        q.v = p.q.v + (vDiff * ti);
+        q.w = p.q.w + ((d.w - p.q.w) * ti);
+        q.Normalize();
+        vDiff = tq.t - p.t;
+        t = p.t + (vDiff * ti);
+    }
+    ILINE static QuatT_tpl<F> CreateNLerp(const QuatT_tpl<F>& p, const QuatT_tpl<F>& q, F t)
+    {
+        QuatT_tpl<F> d;
+        d.SetNLerp(p, q, t);
+        return d;
+    }
+
+    //NOTE: all vectors are stored in columns
+    ILINE void SetFromVectors(const Vec3& vx, const Vec3& vy, const Vec3& vz, const Vec3& pos)
+    {
+        Matrix34 m34;
+        m34.m00 = vx.x;
+        m34.m01 = vy.x;
+        m34.m02 = vz.x;
+        m34.m03 = pos.x;
+        m34.m10 = vx.y;
+        m34.m11 = vy.y;
+        m34.m12 = vz.y;
+        m34.m13 = pos.y;
+        m34.m20 = vx.z;
+        m34.m21 = vy.z;
+        m34.m22 = vz.z;
+        m34.m23 = pos.z;
+        *this = QuatT_tpl<F>(m34);
+    }
+    ILINE static QuatT_tpl<F> CreateFromVectors(const Vec3_tpl<F>& vx, const Vec3_tpl<F>& vy, const Vec3_tpl<F>& vz, const Vec3_tpl<F>& pos)
+    {
+        QuatT_tpl<F> qt;
+        qt.SetFromVectors(vx, vy, vz, pos);
+        return qt;
+    }
+
+    QuatT_tpl<F> GetScaled(F scale)
+    {
+        return QuatT_tpl<F>(t * scale, q.GetScaled(scale));
+    }
+
+    //AUTO_STRUCT_INFO
+};
+
+typedef QuatT_tpl<f32>  QuatT; //always 32 bit
+typedef QuatT_tpl<f64>  QuatTd;//always 64 bit
+typedef QuatT_tpl<real> QuatTr;//variable float precision. depending on the target system it can be between 32, 64 or bit
+
+
+
+/*!
+*
+*  Implements the multiplication operator: QuatT=Quatpos*Quat
+*
+*  AxB = operation B followed by operation A.
+*  A multiplication takes 16 muls and 12 adds (=28 float operations).
+*
+*  Example:
+*   Quat    quat        =   Quat::CreateRotationX(1.94192f);;
+*   QuatT quatpos   =   QuatT::CreateRotationZ(3.14192f,Vec3(11,22,33));
+*     QuatT qp          =   quatpos*quat;
+*/
+template<class F1, class F2>
+ILINE QuatT_tpl<F1> operator * (const QuatT_tpl<F1>& p, const Quat_tpl<F2>& q)
+{
+    assert(p.IsValid());
+    assert(q.IsValid());
+    return QuatT_tpl<F1>(p.q * q, p.t);
+}
+
+/*!
+*  Implements the multiplication operator: QuatT=QuatposA*QuatposB
+*
+*  AxB = operation B followed by operation A.
+*  A multiplication takes 31 muls and 30 adds  (=61 float operations).
+*
+*  Example:
+*   QuatT quatposA  =   QuatT::CreateRotationX(1.94192f,Vec3(77,55,44));
+*   QuatT quatposB  =   QuatT::CreateRotationZ(3.14192f,Vec3(11,22,33));
+*     QuatT qp              =   quatposA*quatposB;
+*/
+template<class F1, class F2>
+ILINE QuatT_tpl<F1> operator * (const QuatT_tpl<F1>& q, const QuatT_tpl<F2>& p)
+{
+    assert(q.IsValid());
+    assert(p.IsValid());
+    return QuatT_tpl<F1>(q.q * p.q, q.q * p.t + q.t);
+}
+
+
+
+/*!
+* post-multiply of a QuatT and a Vec3 (3D rotations with quaternions)
+*
+* Example:
+*  Quat q(1,0,0,0);
+*  Vec3 v(33,44,55);
+*    Vec3 result = q*v;
+*/
+template<class F, class F2>
+Vec3_tpl<F> operator * (const QuatT_tpl<F>& q, const Vec3_tpl<F2>& v)
+{
+    assert(v.IsValid());
+    assert(q.IsValid());
+    //muls=15 / adds=15+3
+    Vec3_tpl<F> out, r2;
+    r2.x = (q.q.v.y * v.z - q.q.v.z * v.y) + q.q.w * v.x;
+    r2.y = (q.q.v.z * v.x - q.q.v.x * v.z) + q.q.w * v.y;
+    r2.z = (q.q.v.x * v.y - q.q.v.y * v.x) + q.q.w * v.z;
+    out.x = (r2.z * q.q.v.y - r2.y * q.q.v.z);
+    out.x += out.x + v.x + q.t.x;
+    out.y = (r2.x * q.q.v.z - r2.z * q.q.v.x);
+    out.y += out.y + v.y + q.t.y;
+    out.z = (r2.y * q.q.v.x - r2.x * q.q.v.y);
+    out.z += out.z + v.z + q.t.z;
+    return out;
+}
+
+
+

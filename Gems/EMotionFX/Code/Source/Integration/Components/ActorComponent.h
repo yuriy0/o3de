@@ -122,6 +122,8 @@ namespace EMotionFX
             bool GetRenderActorVisible() const override;
             SkinningMethod GetSkinningMethod() const override;
             void SetActorAsset(AZ::Data::Asset<ActorAsset> actorAsset) override;
+            AZ::Outcome<size_t, AZStd::string> GetMorphTargetIndex(const char* morphTarget) override;
+            void SetMorphTargetWeight(size_t morphTargetIndex, float weight) override;
 
             //////////////////////////////////////////////////////////////////////////
             // ActorComponentNotificationBus::Handler

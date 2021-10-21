@@ -60,7 +60,7 @@ namespace MCore
 
         AttributeFloat()
             : Base(TYPE_ID)
-            , mValue(0.0f)  {}
+            , m_value(0.0f)  {}
         AttributeFloat(float value)
             : Base(TYPE_ID)
             , m_value(value) {}

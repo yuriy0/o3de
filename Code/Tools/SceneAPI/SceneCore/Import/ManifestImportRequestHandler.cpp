@@ -107,6 +107,11 @@ namespace AZ
 
                 return scene.GetManifest().LoadFromFile(manifestPath) ? Events::LoadingResult::ManifestLoaded : Events::LoadingResult::ManifestFailure;
             }
+
+            int ManifestImportRequestHandler::GetAssetImportRequestPriority() const
+            {
+                return -1000; // Run early in order to make the manifest available to all other processors
+            }
         } // namespace Import
     } // namespace SceneAPI
 } // namespace AZ

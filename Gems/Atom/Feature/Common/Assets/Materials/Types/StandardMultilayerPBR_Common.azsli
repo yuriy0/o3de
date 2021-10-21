@@ -23,6 +23,7 @@
 #include "MaterialInputs/EmissiveInput.azsli"
 #include "MaterialInputs/ParallaxInput.azsli"
 #include "MaterialInputs/UvSetCount.azsli"
+#include "MaterialInputs/DisintegrateEffectInput.azsli"
 
 // ------ ShaderResourceGroup ----------------------------------------
 
@@ -51,11 +52,18 @@ ShaderResourceGroup MaterialSrg : SRG_PerMaterial
     // We use an absolute value rather than a relative factor because disconnecting this property from the influence of other properties makes per-layer 
     // displacement adjustments feel more natural if they don't impact the blend distance.
     float m_displacementBlendDistance;
+    
+    // Adjust the blend bask values (see AdjustBlendMaskValues)
+    float m_blendMaskAdjustCentre;
+    float m_blendMaskAdjustWidth;
 
     // Auto-generate material SRG fields for common inputs for each layer
     DEFINE_LAYER_SRG_INPUTS(m_layer1_)
     DEFINE_LAYER_SRG_INPUTS(m_layer2_)
     DEFINE_LAYER_SRG_INPUTS(m_layer3_)
+    
+    // disintegrate effect
+    COMMON_SRG_INPUTS_DISINTEGRATE_EFFECT()
     
     float3x3 m_layer1_m_uvMatrix;
     float4 m_pad1; // [GFX TODO][ATOM-14595] This is a workaround for a data stomping bug. Remove once it's fixed.
@@ -164,6 +172,24 @@ LayerBlendSource GetFinalLayerBlendSource()
     }
 }
 
+float3 AdjustBlendMaskValues(float3 blendMaskIn)
+{
+    const float3 c = MaterialSrg::m_blendMaskAdjustCentre;
+    const float3 w = MaterialSrg::m_blendMaskAdjustWidth;
+    
+    if (MaterialSrg::m_blendMaskAdjustCentre < -1000.0)
+    {
+        return float3(0,1,0);
+    }
+    
+    // [c-w/2, c+w/2] -> [0,1]
+    // f(c-w/2) = 0
+    // f(c)     = 0.5
+    // f(c+w/2) = 1
+    // f(x) = (x - c) / w + 0.5
+    return saturate(0.5 + (blendMaskIn - c) / w);
+}
+
 //! Return the applicable blend mask values from the blend mask texture or vertex colors, and filters out any that don't apply.
 //!     layer1 is an implicit base layer
 //!     layer2 mask is in the r channel
@@ -187,7 +213,7 @@ float3 GetApplicableBlendMaskValues(LayerBlendSource blendSource, float2 blendMa
                 break;
             case LayerBlendSource::BlendMaskTexture:
             case LayerBlendSource::Displacement_With_BlendMaskTexture:
-                blendSourceValues = MaterialSrg::m_blendMaskTexture.Sample(MaterialSrg::m_sampler, blendMaskUv).rgb;
+                blendSourceValues = AdjustBlendMaskValues(MaterialSrg::m_blendMaskTexture.Sample(MaterialSrg::m_sampler, blendMaskUv).rgb);
                 break;
             case LayerBlendSource::BlendMaskVertexColors:
             case LayerBlendSource::Displacement_With_BlendMaskVertexColors:
@@ -493,3 +519,9 @@ DepthResult GetDepth(float2 uv, float2 uv_ddx, float2 uv_ddy)
 
     return DepthResultAbsolute(depth);
 }
+
+
+COMMON_OPTIONS_DISINTEGRATE_EFFECT()
+
+
+#include <Atom/Features/Effects/DisintegrateCommon.azsli>

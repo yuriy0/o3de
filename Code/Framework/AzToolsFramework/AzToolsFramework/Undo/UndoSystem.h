@@ -14,6 +14,7 @@
 #include <AzCore/EBus/EBus.h>
 #include <AzCore/std/containers/vector.h>
 #include <AzCore/std/string/string.h>
+#include <AzCore/std/containers/unordered_set.h>
 
 #pragma once
 

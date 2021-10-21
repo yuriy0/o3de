@@ -57,7 +57,7 @@ void MainCS(
     float maxLum = max(max(lumA, lumB), max(lumC, max(lumD, lumE)));
 
     float dMinLum = minLum; // Distance from 0 to minimum
-    float dMaxLum = 1.0 - maxLum; // Distance from 1 to the maximum
+    float dMaxLum = max(1.0 - maxLum, 0.0); // Distance from 1 to the maximum
 
     // baseSharpening is higher when local contrast is lower to avoid over-sharpening.
     float baseSharpening = min(dMinLum, dMaxLum) / max(maxLum, 0.0001);

@@ -37,7 +37,9 @@
                 "launch_ap_timeout": 15,
                 "wait_ap_ready_timeout": 1200,
                 "project_path": "Deadhaus_Sonata",
-                "UseAssimp": true
+                "UseAssimp": true,
+                "ForceDisableRTX": true,
+                "PakPriority": 0
             }
         }
     }

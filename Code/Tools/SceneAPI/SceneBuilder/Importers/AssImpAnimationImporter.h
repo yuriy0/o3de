@@ -9,7 +9,6 @@
 #pragma once
 
 #include <SceneAPI/SceneBuilder/ImportContexts/FbxImportContexts.h>
-#include <SceneAPI/FbxSDKWrapper/FbxTimeWrapper.h>
 #include <SceneAPI/SceneCore/Components/LoadingComponent.h>
 #include <SceneAPI/SceneBuilder/ImportContexts/AssImpImportContexts.h>
 

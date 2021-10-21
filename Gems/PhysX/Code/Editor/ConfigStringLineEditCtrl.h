@@ -79,7 +79,7 @@ namespace PhysX
         void SetUniqueGroup(AZ::Crc32 uniqueGroup);
         AZStd::string Value() const;
 
-        void setValue(AZStd::string& val) override;
+        void setValue(const AZStd::string& val) override;
 
     protected slots:
         void OnEditStart(bool removeEditedString = true);

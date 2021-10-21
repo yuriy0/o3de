@@ -12,10 +12,6 @@
                         "NewAlias": "@products@"
                     },
                     {
-                        "OldAlias": "@devassets@",
-                        "NewAlias": "@projectroot@"
-                    },
-                    {
                         "OldAlias": "@devroot@",
                         "NewAlias": "@engroot@"
                     }

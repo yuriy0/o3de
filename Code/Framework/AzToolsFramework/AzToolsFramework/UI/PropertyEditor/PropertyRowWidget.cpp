@@ -279,7 +279,7 @@ namespace AzToolsFramework
                     const auto& element = *editElement->m_elements.begin();
                     for (const auto& attrPair : element.m_attributes)
                     {
-                        if (attrPair.first == AZ::Edit::Attributes::Visibility)
+                        if (attrPair.first == attr)
                         {
                             for (size_t instIndex = 0; instIndex < node.GetNumInstances(); ++instIndex)
                             {
@@ -510,9 +510,49 @@ namespace AzToolsFramework
         return m_nameLabel->text();
     }
 
+    namespace
+    {
+        bool IsDefaultContainerLabel(AZStd::string_view name)
+        {
+            // Check for strings of the form `[N]' where `N' is a number
+            if (name.size() > 2 && name[0] == '[' && name[name.size() - 1] == ']')
+            {
+                AZStd::string_view nameInnerPart = AZStd::string_view(&name[1], &name[name.size() - 2]);
+
+                char* out;
+                size_t val = std::strtol(nameInnerPart.data(), &out, 10);
+                if (out != nameInnerPart.data())
+                {
+                    // we don't really care about the value parsed, just as long as its a number
+                    (void)val;
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
     void PropertyRowWidget::SetNameLabel(const char* text)
     {
         QString label{ text };
+
+        // Special handling for containers with a capacity of one; don't show the default label
+        if (IsDefaultContainerLabel(text) &&
+            m_sourceNode &&
+            m_sourceNode->GetParent() &&
+            m_sourceNode->GetParent()->GetInstance(0) &&
+            m_sourceNode->GetParent()->GetClassMetadata() &&
+            m_sourceNode->GetParent()->GetClassMetadata()->m_container)
+        {
+            auto parentInstance = m_sourceNode->GetParent()->GetInstance(0);
+            auto container = m_sourceNode->GetParent()->GetClassMetadata()->m_container;
+
+            if (container->Capacity(parentInstance) == 1 && container->Size(parentInstance) == 1)
+            {
+                label = QString();
+            }
+        }
+
         m_nameLabel->setText(label);
         m_nameLabel->setVisible(!label.isEmpty());
         // setting the stretches to 0 in case of an empty label really hides the label (i.e. even the reserved space)

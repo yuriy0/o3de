@@ -1,0 +1,275 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "TransparentRefractiveParentPassTemplate", 
+            "PassClass": "ParentPass",
+            "Slots": [
+                {
+                    "Name": "InputOutput",
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "RenderTarget"
+                },
+                {
+                    "Name": "DepthTransparentMin",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+				{
+					"Name": "DirectionalLightShadowmap",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+				},
+				{
+					"Name": "ExponentialShadowmapDirectional",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+				},
+				{
+					"Name": "SpotLightShadowmap",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+				},
+				{
+					"Name": "ExponentialShadowmapSpot",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+				},
+				{
+					"Name": "DepthStencilResolved",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+				},
+				{
+					"Name": "DepthStencilMS",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+				},
+				{
+					"Name": "TileLightData",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+				},
+				{
+					"Name": "LightListRemapped",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+				}
+			],
+            "ImageAttachments": [
+			],
+            "Connections": [
+			],
+            "PassRequests": [
+                { 
+                    "Name": "CopyOpaqueForTransparentPass", 
+                    "TemplateName": "GenericCopyImagePassTemplate",
+                    "Connections": [
+                        {
+                            "LocalSlot": "Input",
+                            "AttachmentRef": { 
+                                "Pass": "Parent", 
+                                "Attachment": "InputOutput"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "Name": "OITMomentGenerationPass",
+                    "TemplateName": "OITMomentGenerationPassTemplate",
+                    "Connections": [
+                        {
+                            "LocalSlot": "InputReference",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "InputOutput"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DepthStencil",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DepthStencilResolved"
+                            }
+                        }
+                    ],
+                    "PassData": {
+                        "$type": "RasterPassData",
+                        "DrawListTag": "momentOitGeneration",
+                        "PipelineViewTag": "MainCamera"
+                    }
+                },
+                {
+                    "Name": "TransparentRefractivePass",
+                    "TemplateName": "TransparentRefractivePassTemplate",
+                    "Enabled": true,
+                    "Connections": [
+                        {
+                            "LocalSlot": "InputReference",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "InputOutput"
+                            }
+                        },
+                        {
+                            "LocalSlot": "OpaqueCopy",
+                            "AttachmentRef": {
+                                "Pass": "CopyOpaqueForTransparentPass",
+                                "Attachment": "Output"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DepthTransparentMin",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DepthTransparentMin"
+                            }
+                        },
+                        {
+                            "LocalSlot": "WeightDistributionMoments",
+                            "AttachmentRef": {
+                                "Pass": "OITMomentGenerationPass",
+                                "Attachment": "Moments"
+                            }
+                        },
+                        {
+                            "LocalSlot": "WeightDistributionTotalOpticalDepth",
+                            "AttachmentRef": {
+                                "Pass": "OITMomentGenerationPass",
+                                "Attachment": "TotalOpticalDepth"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DirectionalLightShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DirectionalLightShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ExponentialShadowmapDirectional",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "ExponentialShadowmapDirectional"
+                            }
+                        },
+                        {
+                            "LocalSlot": "SpotLightShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "SpotLightShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ExponentialShadowmapSpot",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "ExponentialShadowmapSpot"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DepthStencilResolved",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DepthStencilResolved"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DepthStencilMS",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DepthStencilMS"
+                            }
+                        },
+                        {
+                            "LocalSlot": "TileLightData",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "TileLightData"
+                            }
+                        },
+                        {
+                            "LocalSlot": "LightListRemapped",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "LightListRemapped"
+                            }
+                        }
+                    ],
+                    "PassData": {
+                        "$type": "RasterPassData",
+                        "DrawListTag": "transparentrefractive",
+                        "DrawListSortType": "KeyThenReverseDepth",
+                        "PipelineViewTag": "MainCamera",
+                        "PassSrgShaderAsset": {
+                            "FilePath": "Shaders/SRG/TransparentRefractivePassSRG.shader"
+                        }
+                    }
+                },
+                {
+                    "Name": "TransparentRefractiveMergeOutputPass",
+                    "TemplateName": "TransparentRefractiveMergeOutputPassTemplate",
+                    "ExecuteAfter": [
+                        "TransparentRefractivePass"
+                    ],
+                    "Enabled": true,
+                    "Connections": [
+                        {
+                            "LocalSlot": "Background",
+                            "AttachmentRef": {
+                                "Pass": "CopyOpaqueForTransparentPass",
+                                "Attachment": "Output"
+                            }
+                        },
+                        {
+                            "LocalSlot": "Alpha",
+                            "AttachmentRef": {
+                                "Pass": "TransparentRefractivePass",
+                                "Attachment": "Alpha"
+                            }
+                        },
+                        {
+                            "LocalSlot": "BetaAndDiffusion",
+                            "AttachmentRef": {
+                                "Pass": "TransparentRefractivePass",
+                                "Attachment": "BetaAndDiffusion"
+                            }
+                        },
+                        {
+                            "LocalSlot": "Output",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "InputOutput"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "Name": "TransparentRefractiveDepthWritePass",
+                    "TemplateName": "TransparentRefractiveDepthWritePassTemplate",
+                    "ExecuteAfter": [
+                        "TransparentRefractiveMergeOutputPass"
+                    ],
+                    "Connections": [
+                        {
+                            "LocalSlot": "TransparentDepth",
+                            "AttachmentRef": {
+                                "Pass": "TransparentRefractivePass",
+                                "Attachment": "TransparentDepthOut"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DepthStencil",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DepthStencilResolved"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

@@ -14,6 +14,11 @@ DisintegrateLib.IsDisintegrateEffectEnabled = function(context)
    local percentage = context:GetMaterialPropertyValue_float("disintegrate.percentage")
    return mask ~= nil and percentage > 0
 end
+
+DisintegrateLib.IsDisintegrateEffectEnabledForEditor = function(context)
+   local mask = context:GetMaterialPropertyValue_Image("disintegrate.mask")
+   return mask ~= nil
+end
 -- END TODO
 
 
@@ -42,12 +47,13 @@ function Process(context)
 end
 
 function ProcessEditor(context)
-    local isFeatureEnabled = DisintegrateLib.IsDisintegrateEffectEnabled(context)
+    local isFeatureEnabled = DisintegrateLib.IsDisintegrateEffectEnabledForEditor(context)
 
     local properties = {
         "disintegrate.tint",
         "disintegrate.thickness",
-        "disintegrate.percentage"
+        "disintegrate.percentage",
+        "disintegrate.emissivePower"
     };
 
     local mainVisibility = (isFeatureEnabled and MaterialPropertyVisibility_Enabled) or MaterialPropertyVisibility_Disabled

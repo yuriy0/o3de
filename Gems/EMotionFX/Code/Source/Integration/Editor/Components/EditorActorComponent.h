@@ -61,6 +61,15 @@ namespace EMotionFX
             size_t GetNumJoints() const override;
             SkinningMethod GetSkinningMethod() const override;
             void SetActorAsset(AZ::Data::Asset<ActorAsset> actorAsset) override;
+            AZ::Outcome<size_t, AZStd::string> GetMorphTargetIndex(const char*) override
+            {
+                AZ_Error("EMotionFX", false, "GetMorphTargetIndex unsupported on editor component");
+                return AZ::Failure(AZStd::string("GetMorphTargetIndex unsupported on editor component"));
+            }
+            void SetMorphTargetWeight(size_t, float) override
+            {
+                AZ_Error("EMotionFX", false, "SetMorphTargetWeight unsupported on editor component");
+            }
 
             // EditorActorComponentRequestBus overrides ...
             const AZ::Data::AssetId& GetActorAssetId() override;

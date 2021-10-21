@@ -4223,7 +4223,8 @@ LUA_API const Node* lua_getDummyNode()
                     return;
                 }
 
-                AZ_PROFILE_SCOPE_DYNAMIC(AZ::Debug::ProfileCategory::Script, "%s", GetFunctionName(lua, -2).data());
+                // TODO: Support for profiler commands
+                //AZ_PROFILE_SCOPE_DYNAMIC(AZ::Debug::ProfileCategory::Script, "%s", GetFunctionName(lua, -2).data());
 
                 for (int iParam = 0; iParam < numParameters; ++iParam)
                 {

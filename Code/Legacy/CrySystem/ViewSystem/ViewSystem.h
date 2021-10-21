@@ -14,7 +14,6 @@
 #include "View.h"
 #include "IMovieSystem.h"
 #include <ILevelSystem.h>
-#include <AzFramework/Components/CameraBus.h>
 
 namespace LegacyViewSystem
 {
@@ -25,7 +24,6 @@ class CViewSystem
     : public IViewSystem
     , public IMovieUser
     , public ILevelSystemListener
-    , public Camera::CameraSystemRequestBus::Handler
 {
 private:
 
@@ -42,9 +40,6 @@ public:
 
     void SetActiveView(IView* pView) override;
     void SetActiveView(unsigned int viewId) override;
-
-    //CameraSystemRequestBus
-    AZ::EntityId GetActiveCamera() override { return m_activeViewId ? GetActiveView()->GetLinkedId() : AZ::EntityId(); }
 
     //utility functions
     IView* GetView(unsigned int viewId) override;

@@ -260,22 +260,24 @@ namespace EMotionFX
 
         for (const AZStd::string& selectedMotionId : selectedMotionIds)
         {
-            bool alreadyExists = false;
+            // APC BEGIN: allow duplicate motions in blend spaces
+            //bool alreadyExists = false;
 
-            for (const BlendSpaceNode::BlendSpaceMotion& blendSpaceMotion : m_motions)
-            {
-                if (blendSpaceMotion.GetMotionId() == selectedMotionId)
-                {
-                    alreadyExists = true;
-                    break;
-                }
-            }
+            //for (const BlendSpaceNode::BlendSpaceMotion& blendSpaceMotion : m_motions)
+            //{
+            //    if (blendSpaceMotion.GetMotionId() == selectedMotionId)
+            //    {
+            //        alreadyExists = true;
+            //        break;
+            //    }
+            //}
 
-            if (!alreadyExists)
-            {
+            //if (!alreadyExists)
+            //{
                 BlendSpaceNode::BlendSpaceMotion newMotion(selectedMotionId);
                 m_motions.emplace_back(BlendSpaceNode::BlendSpaceMotion(selectedMotionId));
-            }
+            //}
+            // APC END
         }
 
         m_blendSpaceNode->SetMotions(m_motions);

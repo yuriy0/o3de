@@ -116,7 +116,7 @@ void ApplyIBL(Surface surface, inout LightingData lightingData)
                 iblSpecular = iblSpecular * (1.0 - clearCoatResponse) * (1.0 - clearCoatResponse) + clearCoatIblSpecular;
             }
 
-            lightingData.specularLighting += (iblSpecular * iblExposureFactor);
+            lightingData.specularLighting += (iblSpecular * iblExposureFactor); // * lightingData.specularOcclusion);
         }
     }
 }

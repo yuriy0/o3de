@@ -55,11 +55,11 @@ namespace EMotionFX
             /// Updates a anim graph property given a value whose dynamic type matches the property type
             /// \param parameterIndex - index of parameter to set
             /// \param value - value to set
-            virtual void SetParameter(AZ::u32 parameterIndex, AZStd::any value) = 0;
+            virtual void SetParameter(size_t parameterIndex, AZStd::any value) = 0;
 
             /// Retrieves a anim graph property as a dynamic value
             /// \param parameterIndex - index of parameter to set
-            virtual AZStd::any GetParameter(AZ::u32 parameterIndex) = 0;
+            virtual AZStd::any GetParameter(size_t parameterIndex) = 0;
 
             /// Updates a anim graph property given a value whose dynamic type matches the property type
             /// \param parameterName - name of parameter to set
@@ -218,6 +218,12 @@ namespace EMotionFX
 
             /// Set the current active motion set to the given child
             virtual void SetMotionSet(const AZStd::string& motionSetName) = 0;
+
+            /// Get the current active motion
+            virtual AZStd::string GetMotionSet() = 0;
+
+            virtual AZ::u64 PushMotionSet(const AZStd::string& motionSetName) = 0;
+            virtual void PopMotionSet(AZ::u64) = 0;
         };
 
         using AnimGraphComponentRequestBus = AZ::EBus<AnimGraphComponentRequests>;
@@ -251,6 +257,9 @@ namespace EMotionFX
 
 			/// Rewind the anim graph node
 			virtual void Rewind(const char* nodeName) = 0;
+
+            /// The active nodes in the AnimGraph
+            virtual AZStd::vector<AZStd::string_view> GetActiveNodes(const AZ::TypeId& nodeType = AZ::TypeId::CreateNull()) = 0;
 		};
 
 		using AnimGraphNodeRequestBus = AZ::EBus<AnimGraphNodeRequests>;
@@ -301,7 +310,7 @@ namespace EMotionFX
             /// \param parameterIndex - index of changed parameter
             /// \param beforeValue - value before the change
             /// \param afterValue - value after the change
-            virtual void OnAnimGraphParameterChanged(EMotionFX::AnimGraphInstance* /*animGraphInstance*/, [[maybe_unused]] AZ::u32 parameterIndex, [[maybe_unused]] AZStd::any beforeValue, [[maybe_unused]] AZStd::any afterValue) {};
+            virtual void OnAnimGraphParameterChanged(EMotionFX::AnimGraphInstance* /*animGraphInstance*/, [[maybe_unused]] size_t parameterIndex, [[maybe_unused]] AZStd::any beforeValue, [[maybe_unused]] AZStd::any afterValue) {};
 
             /// Notifies listeners when a float parameter changes
             /// \param animGraphInstance - pointer to anim graph instance

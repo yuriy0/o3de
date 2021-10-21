@@ -31,14 +31,33 @@ namespace ScriptCanvas
     {
         int CloneSourceObject(lua_State* lua)
         {
-            AZ_Assert(lua_islightuserdata(lua, -1), "Error in compiled lua file, 1st argument to CloneSourceFunction is not userdata (CloneSource), but a :%s", lua_typename(lua, -1));
+            AZ_Assert(lua_islightuserdata(lua, -1), "Error in compiled lua file, 1st argument to CloneSourceFunction is not userdata (CloneSource), but a \"%s\"", lua_typename(lua, lua_type(lua, -1)));
             const CloneSource* cloneSource = reinterpret_cast<const CloneSource*>(lua_touserdata(lua, -1));
             AZ_Assert(cloneSource, "Failed to read CloneSource");
+            if (!cloneSource)
+            {
+                lua_pushnil(lua);
+                return 1;
+            }
+
             CloneSource::Result result = cloneSource->Clone();
             AZ_Assert(result.object, "CloneSource::Clone failed to create an object.");
             AZ_Assert(!result.typeId.IsNull(), "CloneSource::Clone failed to return the type of the object.");
+            if (!result.object || result.typeId.IsNull())
+            {
+                lua_pushnil(lua);
+                return 1;
+            }
+
             AZ::Internal::LuaClassToStack(lua, result.object, result.typeId, AZ::ObjectToLua::ByReference, AZ::AcquisitionOnPush::ScriptAcquire);
-            AZ_Assert(AZ::Internal::LuaAnyClassFromStack(lua, -1, nullptr) != nullptr,
+            const bool didPush = AZ::Internal::LuaAnyClassFromStack(lua, -1, nullptr) != nullptr;
+            if (!didPush)
+            {
+                lua_pushnil(lua);
+                return 1;
+            }
+
+            AZ_Assert(didPush,
                 "CloneSourceObject failed to push the cloned object to the lua stack");
 
             return 1;

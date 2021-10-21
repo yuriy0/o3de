@@ -1,0 +1,38 @@
+#pragma once
+
+#include <viewsrg.srgi>
+
+float max3 (float3 c)
+{
+	return max(max(c.r, c.g), c.b);
+}
+
+float min3 (float3 c)
+{
+	return min(min(c.r, c.g), c.b);
+}
+
+float pow3 (float x)
+{
+	return x*x*x;
+}
+
+float LinerizeDepth(float z)
+{
+	return abs(((ViewSrg::GetFarZTimesNearZ()) / (ViewSrg::GetFarZMinusNearZ() * z - ViewSrg::GetFarZ())));
+}
+
+float2 f2_unit (float x)
+{
+	return float2(x,x);
+}
+
+float3 f3_unit (float x)
+{
+	return float3(x,x,x);
+}
+
+float4 f4_unit (float x)
+{
+	return float4(x,x,x,x);
+}

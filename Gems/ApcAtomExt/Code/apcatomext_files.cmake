@@ -18,4 +18,6 @@ set(FILES
 	Source/Passes/GenericScreenSpaceBlurPass.cpp
 	Source/Passes/GenericScreenSpaceBlurChildPass.h
 	Source/Passes/GenericScreenSpaceBlurChildPass.cpp
+	Source/Components/MaterialPropertyRandomizerComponent.h
+	Source/Components/MaterialPropertyRandomizerComponent.cpp
 )

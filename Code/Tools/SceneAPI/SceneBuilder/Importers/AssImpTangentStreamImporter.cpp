@@ -91,6 +91,7 @@ namespace AZ
 
                 tangentStream->SetGenerationMethod(AZ::SceneAPI::DataTypes::TangentGenerationMethod::FromSourceScene);
                 tangentStream->ReserveContainerSpace(vertexCount);
+                for (int sdkMeshIndex = 0; sdkMeshIndex < currentNode->mNumMeshes; ++sdkMeshIndex)
                 for (unsigned int sdkMeshIndex = 0; sdkMeshIndex < currentNode->mNumMeshes; ++sdkMeshIndex)
                 {
                     const aiMesh* mesh = scene->mMeshes[currentNode->mMeshes[sdkMeshIndex]];

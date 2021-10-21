@@ -41,11 +41,15 @@ namespace AZ
             virtual void SetEnabled(bool value) final;
             virtual bool IsEnabled() const final;
 
+            bool IsAutomaticallyAddingMissingShaderVariants() const override final;
+            void SetAutomaticallyAddingMissingShaderVariants(bool value) override final;
+
             virtual const ShaderVariantMetrics& GetMetrics() const final;
 
             void RequestShaderVariant(const ShaderAsset* shader, const ShaderVariantId& shaderVariantId, const ShaderVariantSearchResult& result) final;
 
             bool m_isEnabled = false;
+            bool m_isAddingMissingShaderVariants = false;
 
             //! Lock for m_metrics
             AZStd::mutex m_metricsMutex;

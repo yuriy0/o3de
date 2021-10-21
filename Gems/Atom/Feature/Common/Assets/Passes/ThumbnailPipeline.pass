@@ -275,41 +275,6 @@
                     ]
                 },
                 {
-                    "Name": "DeferredFogPass",
-                    "TemplateName": "DeferredFogPassTemplate",
-                    "Enabled": false,
-                    "Connections": [
-                        {
-                            "LocalSlot": "InputLinearDepth",
-                            "AttachmentRef": {
-                                "Pass": "DepthPrePass",
-                                "Attachment": "DepthLinear"
-                            }
-                        },
-                        {
-                            "LocalSlot": "InputDepthStencil",
-                            "AttachmentRef": {
-                                "Pass": "DepthPrePass",
-                                "Attachment": "Depth"
-                            }
-                        },
-                        {
-                            "LocalSlot": "RenderTargetInputOutput",
-                            "AttachmentRef": {
-                                "Pass": "TransparentPass",
-                                "Attachment": "InputOutput"
-                            }
-                        }
-                    ],
-                    "PassData": {
-                        "$type": "FullscreenTrianglePassData",
-                        "ShaderAsset": {
-                            "FilePath": "Shaders/ScreenSpace/DeferredFog.shader"
-                        },
-                        "PipelineViewTag": "MainCamera"
-                    }
-                },
-                {
                     "Name": "ReflectionCopyFrameBufferPass",
                     "TemplateName": "ReflectionCopyFrameBufferPassTemplate",
                     "Enabled": false,
@@ -317,8 +282,8 @@
                         {
                             "LocalSlot": "Input",
                             "AttachmentRef": {
-                                "Pass": "DeferredFogPass",
-                                "Attachment": "RenderTargetInputOutput"
+                                "Pass": "TransparentPass",
+                                "Attachment": "InputOutput"
                             }
                         }
                     ]
@@ -330,8 +295,8 @@
                         {
                             "LocalSlot": "LightingInput",
                             "AttachmentRef": {
-                                "Pass": "DeferredFogPass",
-                                "Attachment": "RenderTargetInputOutput"
+                                "Pass": "TransparentPass",
+                                "Attachment": "InputOutput"
                             }
                         },
                         {

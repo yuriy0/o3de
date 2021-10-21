@@ -24,7 +24,7 @@ namespace AZ {
         static int* Init(lua_State* lua, int stackIndex);
 
     public:
-        AZ_RTTI(ScriptValueRef, "{97525E4B-9801-40A6-B3D5-FC39163CFF5C}");
+        AZ_TYPE_INFO(ScriptValueRef, "{97525E4B-9801-40A6-B3D5-FC39163CFF5C}");
         AZ_CLASS_ALLOCATOR(ScriptValueRef, AZ::SystemAllocator, 0);
 
         ScriptValueRef(lua_State* lua, int stackIndex = -1);

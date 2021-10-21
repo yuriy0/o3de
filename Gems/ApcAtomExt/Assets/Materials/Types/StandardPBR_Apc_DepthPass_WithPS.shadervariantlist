@@ -1,0 +1,4 @@
+{
+    "Shader": "StandardPBR_Apc_DepthPass_WithPS.shader",
+    "Variants": []
+}

@@ -17,8 +17,9 @@
 #include <AzFramework/Input/Mappings/InputMappingAnd.h>
 #include <AzFramework/Input/Mappings/InputMappingOr.h>
 
-#include <AzCore/Console/IConsole.h>
 #include <AzCore/Interface/Interface.h>
+
+#include <AzCore/Debug/StackTracer.h>
 
 #include <Atom/Feature/ImGui/SystemBus.h>
 #include <ImGuiContextScope.h>
@@ -74,7 +75,7 @@ namespace AZ
                    [[maybe_unused]]const char* function,
                    [[maybe_unused]]int32_t line)
             {
-                AddDebugLog(message, GetColorForLogLevel(logLevel));
+                AddLogMessage(message, logLevel);
             }
         )
         , m_inputContext(DebugConsoleInputContext, {nullptr, InputChannelEventListener::GetPriorityFirst(), true, true})
@@ -133,6 +134,21 @@ namespace AZ
         auto atomViewportRequests = AZ::Interface<AZ::RPI::ViewportContextRequestsInterface>::Get();
         const AZ::Name contextName = atomViewportRequests->GetDefaultViewportContextName();
         AZ::RPI::ViewportContextNotificationBus::Handler::BusConnect(contextName);
+
+        // Connect to trace driller events
+        AZ::Debug::TraceMessageDrillerBus::Handler::BusConnect();
+
+        // Connect to IConsole command not found events
+        m_commandNotFoundHandler = decltype(m_commandNotFoundHandler)([this](AZStd::string_view command, const ConsoleCommandContainer&, ConsoleInvokedFrom)
+        {
+            AZStd::string s = "Command '";
+            s += command;
+            s += "' not found";
+            AddLogMessage(AZStd::move(s), AZ::LogLevel::Error);
+        });
+        m_commandNotFoundHandler.Connect(AZ::Interface<AZ::IConsole>::Get()->GetDispatchCommandNotFoundEvent());
+
+        //GetDispatchCommandNotFoundEvent()
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -143,6 +159,12 @@ namespace AZ
 
         // Disconnect our custom log handler.
         m_logHandler.Disconnect();
+
+        // Disconnect from trace driller events
+        AZ::Debug::TraceMessageDrillerBus::Handler::BusDisconnect();
+
+        // Disconnect from command not found event
+        m_commandNotFoundHandler.Disconnect();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -172,21 +194,248 @@ namespace AZ
         return false;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    void DebugConsole::AddDebugLog(const AZStd::string& debugLogString, const AZ::Color& color)
+    namespace
     {
-        // Add the debug to our display, removing the oldest entry if we exceed the maximum.
-        m_debugLogEntires.push_back(AZStd::make_pair<AZStd::string, AZ::Color>(debugLogString, color));
+        void AddSourceLocationString(AZStd::string& s, const char* fileName, int line, const char* func)
+        {
+            s += AZStd::string::format("%s(%d): '%s'", fileName, line, func);
+        }
+
+        void AddCallstackString(AZStd::string& s, int suppressCount = 2)
+        {
+            using AZ::Debug::StackFrame;
+            using AZ::Debug::SymbolStorage;
+            using AZ::Debug::StackRecorder;
+
+            StackFrame frames[25];
+
+            // Without StackFrame explicit alignment frames array is aligned to 4 bytes
+            // which causes the stack tracing to fail.
+            //size_t bla = AZStd::alignment_of<StackFrame>::value;
+            //printf("Alignment value %d address 0x%08x : 0x%08x\n",bla,frames);
+            SymbolStorage::StackLine lines[AZ_ARRAY_SIZE(frames)];
+
+            unsigned int numFrames = StackRecorder::Record(frames, AZ_ARRAY_SIZE(frames), suppressCount, nullptr);
+            if (numFrames)
+            {
+                SymbolStorage::DecodeFrames(frames, numFrames, lines);
+                for (unsigned int i = 0; i < numFrames; ++i)
+                {
+                    if (lines[i][0] == 0)
+                    {
+                        continue;
+                    }
+
+                    s += "\t";
+                    s += lines[i];
+                    s += "\n";
+                }
+            }
+        }
+
+        void AddWindowString(AZStd::string& s, const char* window)
+        {
+            s += "(";
+            s += window;
+            s += ") - ";
+        }
+    }
+
+    void DebugConsole::OnPreAssert(const char* fileName, int line, const char* func, const char* message)
+    {
+        MessageWithTracing m;
+        m.callstack = true;
+        m.message = message;
+        m.sourceLocation = { fileName, line, func };
+        m.tracePrefix = "Assertion failed at\n\t";
+        m.level = AZ::LogLevel::Fatal;
+
+        AddLogMessageWithTracing(AZStd::move(m));
+    }
+
+    void DebugConsole::OnException(const char* message)
+    {
+        MessageWithTracing m;
+        m.callstack = false;
+        m.message = message;
+        m.tracePrefix = "FATAL: ";
+        m.level = AZ::LogLevel::Fatal;
+
+        AddLogMessageWithTracing(AZStd::move(m));
+    }
+
+    void DebugConsole::OnPreError(const char* window, const char* fileName, int line, const char* func, const char* message)
+    {
+        MessageWithTracing m;
+        m.callstack = false;
+        m.message = message;
+        m.sourceLocation = { fileName, line, func };
+        m.tracePrefix = "Error at\n\t";
+        m.window = window;
+        m.level = AZ::LogLevel::Error;
+
+        AddLogMessageWithTracing(AZStd::move(m));
+    }
+
+    void DebugConsole::OnPreWarning(const char* window, const char* fileName, int line, const char* func, const char* message)
+    {
+        MessageWithTracing m;
+        m.callstack = false;
+        m.message = message;
+        m.sourceLocation = { fileName, line, func };
+        m.tracePrefix = "Warning at\n\t";
+        m.window = window;
+        m.level = AZ::LogLevel::Warn;
+
+        AddLogMessageWithTracing(AZStd::move(m));
+    }
+
+    void DebugConsole::OnPrintf(const char* window, const char* message)
+    {
+        MessageWithTracing m;
+        m.callstack = false;
+        m.message = message;
+        m.window = window;
+        m.level = AZ::LogLevel::Info;
+
+        AddLogMessageWithTracing(AZStd::move(m));
+    }
+
+    void AZ::DebugConsole::AddLogMessageWithTracing(MessageWithTracing m)
+    {
+        const auto color = GetColorForLogLevel(m.level);
+
+        // Add source location and callstack to detailed trace string
+        const bool detailed = m.sourceLocation || m.callstack;
+        if (detailed)
+        {
+            DebugLogEntry entry;
+            entry.logLevel = AZ::LogLevel::Trace;
+            auto& e = entry.logEntry.emplace<ColoredTextLogEntry>();
+            e.textColor = color;
+            auto& s = e.entryText;
+
+            if (m.sourceLocation)
+            {
+                s += m.tracePrefix;
+                AZStd::apply([&](auto&&... args) { AddSourceLocationString(s, args...); }, *m.sourceLocation);
+                s += "\n";
+            }
+
+            if (m.callstack)
+            {
+                s += "Callstack:\n";
+                AddCallstackString(s, 5);
+            }
+
+            // A prefix which will appear before the actual message log entry
+            s += "Message:";
+            AddLogEntry(AZStd::move(entry));
+
+            // Spacing before the start of the short message
+            AddLogEntry(DebugLogEntry{ TextLogEntry{ "\t" }, {AZ::LogLevel::Trace} });
+
+            // Ensure no line break between the end of the detailed message and the start of the short message
+            AddLogEntry(DebugLogEntry{ SameLineLogEntry{}, { AZ::LogLevel::Trace } });
+        }
+
+        // Add message
+        {
+            DebugLogEntry entry;
+            entry.logLevel = m.level;
+            auto& e = entry.logEntry.emplace<ColoredTextLogEntry>();
+            e.textColor = color;
+            auto& s = e.entryText;
+
+            if (!m.window.empty())
+            {
+                AddWindowString(s, m.window.data());
+            }
+            s += m.message;
+            AddLogEntry(AZStd::move(entry));
+        }
+
+        if (detailed)
+        {
+            AddLogEntry(DebugLogEntry{ SeperatorLogEntry{}, { AZ::LogLevel::Trace } });
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    template<class Str>
+    inline void AZ::DebugConsole::AddLogMessage(Str&& debugLogString, AZ::LogLevel level)
+    {
+        AddLogEntry(DebugLogEntry{
+            ColoredTextLogEntry{
+                AZStd::forward<Str>(debugLogString),
+                GetColorForLogLevel(level)
+            },
+            level
+        });
+    }
+
+    template<class Str>
+    inline void AZ::DebugConsole::AddSystemLogMessage(Str&& debugLogString, const AZ::Color& color)
+    {
+        AddLogEntry(DebugLogEntry{
+            ColoredTextLogEntry{
+                AZStd::forward<Str>(debugLogString),
+                color
+            },
+            {}
+        });
+    }
+
+    void DebugConsole::ClearDebugLog()
+    {
+        m_debugLogEntires.clear();
+    }
+
+    void AZ::DebugConsole::AddLogEntry(DebugLogEntry entry)
+    {
+        m_debugLogEntires.emplace_back(AZStd::move(entry));
+
         if (m_debugLogEntires.size() > m_maxEntriesToDisplay)
         {
             m_debugLogEntires.pop_front();
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    void DebugConsole::ClearDebugLog()
+    void AZ::DebugConsole::TextLogEntry::ImGuiRender() const
     {
-        m_debugLogEntires.clear();
+        ImGui::TextUnformatted(entryText.c_str());
+    }
+
+    void DebugConsole::ColoredTextLogEntry::ImGuiRender() const
+    {
+        const ImVec4 color(textColor.GetR(), textColor.GetG(), textColor.GetB(), textColor.GetA());
+
+        ImGui::PushStyleColor(ImGuiCol_Text, color);
+        ImGui::TextUnformatted(entryText.c_str());
+        ImGui::PopStyleColor();
+    }
+
+    void DebugConsole::SameLineLogEntry::ImGuiRender() const
+    {
+        ImGui::SameLine(0.f, 0.f);
+    }
+
+    void DebugConsole::SeperatorLogEntry::ImGuiRender() const
+    {
+        ImGui::Separator();
+    }
+
+    void DebugConsole::RenderLogEntries()
+    {
+        const auto level = AZ::Interface<AZ::ILogger>::Get()->GetLogLevel();
+
+        for (const auto& entry : m_debugLogEntires)
+        {
+            if (!entry.logLevel || *entry.logLevel >= level)
+            {
+                AZStd::visit([](const auto& e) { e.ImGuiRender(); }, entry.logEntry);
+            }
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -211,16 +460,16 @@ namespace AZ
             {
                 AZStd::string noAutoCompletionResults("No auto completion options: ");
                 noAutoCompletionResults += data->Buf;
-                AddDebugLog(noAutoCompletionResults, AZ::Colors::Gray);
+                AddSystemLogMessage(noAutoCompletionResults, AZ::Colors::Gray);
             }
             else if (matchingCommands.size() > 1)
             {
                 AZStd::string autoCompletionResults("Auto completion options: ");
                 autoCompletionResults += data->Buf;
-                AddDebugLog(autoCompletionResults, AZ::Colors::Green);
+                AddSystemLogMessage(autoCompletionResults, AZ::Colors::Green);
                 for (const AZStd::string& matchingCommand : matchingCommands)
                 {
-                    AddDebugLog(matchingCommand, AZ::Colors::Green);
+                    AddSystemLogMessage(matchingCommand, AZ::Colors::Green);
                 }
             }
         }
@@ -336,17 +585,8 @@ namespace AZ
         const float footerHeightToReserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetStyle().FramePadding.y + ImGui::GetFrameHeightWithSpacing();
         ImGui::BeginChild("DebugLogEntriesScrollBox", ImVec2(0, -footerHeightToReserve), false, ImGuiWindowFlags_HorizontalScrollbar);
         {
-            // Display each debug log entry individually so they can be colored.
-            for (const auto& debugLogEntry : m_debugLogEntires)
-            {
-                const ImVec4 color(debugLogEntry.second.GetR(),
-                                   debugLogEntry.second.GetG(),
-                                   debugLogEntry.second.GetB(),
-                                   debugLogEntry.second.GetA());
-                ImGui::PushStyleColor(ImGuiCol_Text, color);
-                ImGui::TextUnformatted(debugLogEntry.first.c_str());
-                ImGui::PopStyleColor();
-            }
+            // Display each debug log entry
+            RenderLogEntries();
 
             // Scroll to the last debug log entry if needed.
             if (m_forceScroll || (m_autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY()))
@@ -397,6 +637,11 @@ namespace AZ
 
             // Show a checkbox that controls whether to auto scroll when new debug log entires are added.
             ImGui::Checkbox("Auto Scroll New Log Entries", &m_autoScroll);
+
+            if (ImGui::InputInt("Max Log Entries", &m_maxEntriesToDisplay))
+            {
+                m_maxEntriesToDisplay = AZ::GetClamp(m_maxEntriesToDisplay, 1, static_cast<int>(1e6));
+            }
 
             ImGui::EndPopup();
         }

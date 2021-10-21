@@ -681,6 +681,11 @@ namespace AzFramework
             // Set up the default file aliases based on the settings registry
             fileIoBase->SetAlias("@engroot@", GetEngineRoot());
             fileIoBase->SetAlias("@projectroot@", GetEngineRoot());
+
+            // APC BEGIN: Temp deprecated alias
+            fileIoBase->SetAlias("@devassets@", GetEngineRoot());
+            // APC END
+
             fileIoBase->SetAlias("@exefolder@", GetExecutableFolder());
 
             {
@@ -699,6 +704,10 @@ namespace AzFramework
                 if (m_settingsRegistry->Get(pathAliases.Native(), AZ::SettingsRegistryMergeUtils::FilePathKey_ProjectPath))
                 {
                     fileIoBase->SetAlias("@projectroot@", pathAliases.c_str());
+
+                    // APC BEGIN: Temp deprecated alias
+                    fileIoBase->SetAlias("@devassets@", pathAliases.c_str());
+                    // APC END
                 }
             }
 

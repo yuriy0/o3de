@@ -48,7 +48,7 @@ namespace EMotionFX
 
     void AnimGraphMotionEventAction::Reinit()
     {
-        if (!mAnimGraph) return;
+        if (!m_animGraph) return;
 
         // NB: we copy the event data shared ptrs because the serializer looks at m_event
         EventDataSet evData = m_event.GetEventDatas();
@@ -144,18 +144,15 @@ namespace EMotionFX
             return;
         }
 
-        auto rootNodeUniqueData = rootNode->FindOrCreateUniqueNodeData(animGraphInstance);
-        const auto rootNodePlayTime = rootNodeUniqueData->GetCurrentPlayTime();
-
         EventInfo eventInfo(
-            rootNodePlayTime,
+            animGraphInstance->GetGlobalPlaytime(),
             animGraphInstance->GetActorInstance(),
             nullptr,
             const_cast<MotionEvent*>(&m_wrappedEvent),
             EventInfo::EventState::START
         );
         // NB: the emitter pointer MUST be valid (it is accessed without checking for null)
-        eventInfo.mEmitter = rootNode;
+        eventInfo.m_emitter = rootNode;
 
         refCountedData->GetEventBuffer().AddEvent(eventInfo);
     }

@@ -455,7 +455,7 @@ namespace EMotionFX
         // Ending latest active transition.
         if (isLatestTransition)
         {
-            AZ_Assert(transition->GetSourceNode() == nullptr || uniqueData->mCurrentState == transition->GetSourceNode(),
+            AZ_Assert(transition->GetSourceNode() == nullptr || uniqueData->m_currentState == transition->GetSourceNode(),
                 AZ_FUNCTION_SIGNATURE " - internal error, latest transition source node is not the current state");
 
             // Emit end state events and adjust the previous and the active states in case the latest active transition is ending.
@@ -463,13 +463,13 @@ namespace EMotionFX
             uniqueData->m_currentState->OnStateEnd(animGraphInstance, targetState, transition);
             eventManager.OnStateEnd(animGraphInstance, uniqueData->m_currentState);
 
-            uniqueData->mPreviousState = uniqueData->mCurrentState;
-            uniqueData->m_statesLeftThisUpdate.emplace_back(uniqueData->mCurrentState, transition);
+            uniqueData->m_previousState = uniqueData->m_currentState;
+            uniqueData->m_statesLeftThisUpdate.emplace_back(uniqueData->m_currentState, transition);
 
-            uniqueData->IncreasePoseRefCountForNode(uniqueData->mCurrentState, animGraphInstance);
-            uniqueData->IncreaseDataRefCountForNode(uniqueData->mCurrentState, animGraphInstance);
+            uniqueData->IncreasePoseRefCountForNode(uniqueData->m_currentState, animGraphInstance);
+            uniqueData->IncreaseDataRefCountForNode(uniqueData->m_currentState, animGraphInstance);
 
-            uniqueData->mCurrentState = targetState;
+            uniqueData->m_currentState = targetState;
         }
         // Ending any interrupted transition on the transition stack that ended transitioning.
         else
@@ -603,7 +603,7 @@ namespace EMotionFX
         while (GetLatestActiveTransition(uniqueData) && IsLatestActiveTransitionDone(animGraphInstance, uniqueData))
         {
 #ifndef _RELEASE
-            nodesThisFrame.push_back(uniqueData->mCurrentState);
+            nodesThisFrame.push_back(uniqueData->m_currentState);
 #endif // !_RELEASE
 
             // End all transitions on the stack back to front
@@ -664,7 +664,7 @@ namespace EMotionFX
                 const auto preSyncTime = uniqueData->GetPreSyncTime();
                 const auto duration    = uniqueData->GetDuration();
 
-                uniqueData->Init(animGraphInstance, uniqueData->mCurrentState);
+                uniqueData->Init(animGraphInstance, uniqueData->m_currentState);
 
                 uniqueData->SetCurrentPlayTime(currentTime);
                 uniqueData->SetPreSyncTime(preSyncTime);
@@ -787,7 +787,7 @@ namespace EMotionFX
             if (!IsTransitioning(uniqueData))
             {
                 // Single active state, no active transition. The final node in the sequence is the current node
-                sequenceToUpdate.push_back(uniqueData->mCurrentState);
+                sequenceToUpdate.push_back(uniqueData->m_currentState);
             }
             else
             {
@@ -816,6 +816,13 @@ namespace EMotionFX
         {
             data->ZeroTrajectoryDelta();
             data->ClearEventBuffer();
+        }
+
+        // Increment root node playtime
+        if (animGraphInstance->GetRootNode() == this)
+        {
+            uniqueData->SetCurrentPlayTime(uniqueData->GetCurrentPlayTime() + timePassedInSeconds);
+            uniqueData->SetDuration(0.f);
         }
 
         // Clear states which we left on this last update
@@ -1126,14 +1133,14 @@ namespace EMotionFX
             // m_entryState = nullptr;
         }
 
-        if (mEntryState && !mEntryState->GetCanBeEntryNode())
+        if (m_entryState && !m_entryState->GetCanBeEntryNode())
         {
             AZ_Warning("EMotionFX", false, "AnimGraph node '%s' of type %s is marked as the entry state but this node type is not allowed to be an entry state!",
-                mEntryState->GetName(), mEntryState->GetPaletteName() ? mEntryState->GetPaletteName() : "<unknown>"
+                m_entryState->GetName(), m_entryState->GetPaletteName() ? m_entryState->GetPaletteName() : "<unknown>"
             );
         }
 
-        return mEntryState;
+        return m_entryState;
     }
 
     void AnimGraphStateMachine::SetEntryState(AnimGraphNode* entryState)
@@ -1142,14 +1149,14 @@ namespace EMotionFX
 
         if (m_entryState)
         {
-            if (!mEntryState->GetCanBeEntryNode())
+            if (!m_entryState->GetCanBeEntryNode())
             {
                 AZ_Warning("EMotionFX", false, "AnimGraph node '%s' of type %s is marked as the entry state but this node type is not allowed to be an entry state!",
-                    mEntryState->GetName(), mEntryState->GetPaletteName() ? mEntryState->GetPaletteName() : "<unknown>"
+                    m_entryState->GetName(), m_entryState->GetPaletteName() ? m_entryState->GetPaletteName() : "<unknown>"
                 );
             }
 
-            m_entryStateId = mEntryState->GetId();
+            m_entryStateId = m_entryState->GetId();
         }
         else
         {
@@ -1240,10 +1247,10 @@ namespace EMotionFX
     {
         m_activeTransitions.clear();
         m_statesLeftThisUpdate.clear();
-        mCurrentState = nullptr;
-        mPreviousState = nullptr;
-        mReachedExitState = false;
-        mSwitchToEntryState = true;
+        m_currentState = nullptr;
+        m_previousState = nullptr;
+        m_reachedExitState = false;
+        m_switchToEntryState = true;
         m_deferredRewind = false;
     }
 
@@ -1331,7 +1338,7 @@ namespace EMotionFX
         {
             // NB: we send OnStateEnd/Exit events to the current state in AnimGraphStateMachine::OnStateEnd/Exit
             /*
-            if (uniqueData->mCurrentState)
+            if (uniqueData->m_currentState)
             {
                 uniqueData->m_currentState->OnStateExit(animGraphInstance, entryState, nullptr);
                 uniqueData->m_currentState->OnStateEnd(animGraphInstance, entryState, nullptr);

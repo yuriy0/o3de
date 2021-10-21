@@ -1,0 +1,17 @@
+{
+    "Shader": "MeshMotionVector.shader",
+    "Variants": [
+        {
+            "StableId": 1,
+            "Options": {
+                "o_prevPosition_isBound": "true"
+            }
+        },
+        {
+            "StableId": 2,
+            "Options": {
+                "o_prevPosition_isBound": "false"
+            }
+        }
+    ]
+}

@@ -438,17 +438,6 @@ namespace Camera
         m_isActiveView = m_atomCamera == view;
     }
 
-    void CameraComponentController::OnViewportDefaultViewChanged(AZ::RPI::ViewPtr view)
-    {
-        if (m_atomCamera != view)
-        {
-            // Note that when disconnected from this bus, this signals that we are not the active view
-            // There is nothing else to do here: leave our view on the viewport context stack, don't need
-            // to update properties. The viewport context system should handle it all!
-            AZ::RPI::ViewportContextNotificationBus::Handler::BusDisconnect();
-        }
-    }
-
     AZ::RPI::ViewPtr CameraComponentController::GetView() const
     {
         return m_atomCamera;

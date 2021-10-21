@@ -1,0 +1,344 @@
+/*
+* All or portions of this file Copyright (c) Amazon.com, Inc. or its affiliates or
+* its licensors.
+*
+* For complete copyright and license terms please see the LICENSE at the root of this
+* distribution (the "License"). All use of this software is governed by the License,
+* or, if provided, by the license below or the license accompanying this file. Do not
+* remove or modify any license notices. This file is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*
+* ==============================================================================
+*
+* Modifications copyright 2021 Apocalypse Studios Inc., all rights reserved
+*/
+
+#include <viewsrg.srgi>
+#include <Apc/Features/Pbr/TransparentRefractivePassSrg.azsli>
+#include "StandardPBR_Apc_Common.azsli"
+#include <Atom/Features/PBR/DefaultObjectSrg.azsli>
+#include <Atom/Features/ScreenSpace/ScreenSpaceUtil.azsli>
+#include <Apc/Features/Pbr/MathUtil.azsli>
+#include <Apc/Features/OIT/MomentMath.azsli>
+
+struct ForwardPassOutput
+{
+    float4 m_alpha  : SV_Target0;
+    float4 m_beta : SV_Target1;
+    float4 m_test : SV_Target2;
+};
+
+struct ForwardPassOutputWithDepth
+{
+    float4 m_alpha  : SV_Target0;
+    float4 m_beta : SV_Target1;
+    float4 m_test : SV_Target2;
+    float m_depth : SV_Depth;
+};
+
+
+
+#include <Atom/Features/ColorManagement/TransformColor.azsli>
+
+// ---------- Material Parameters ----------
+
+COMMON_OPTIONS_BASE_COLOR()
+COMMON_OPTIONS_ROUGHNESS()
+COMMON_OPTIONS_METALLIC()
+COMMON_OPTIONS_SPECULAR_F0()
+COMMON_OPTIONS_NORMAL()
+COMMON_OPTIONS_CLEAR_COAT()
+COMMON_OPTIONS_OCCLUSION()
+COMMON_OPTIONS_EMISSIVE()
+COMMON_OPTIONS_DETAIL_MAPS()
+
+// Alpha
+#include "MaterialInputs_Apc/AlphaInput.azsli"
+
+// Subsurface
+#include "../../../../Atom/Feature/Common/Assets/Materials/Types/MaterialInputs/SubsurfaceInput.azsli"
+
+// Transmission
+#include "../../../../Atom/Feature/Common/Assets/Materials/Types/MaterialInputs/TransmissionInput.azsli"
+
+struct VSInput
+{
+    // Base fields (required by the template azsli file)...
+    float3 m_position : POSITION;
+    float3 m_normal : NORMAL;
+    float4 m_tangent : TANGENT; 
+    float3 m_bitangent : BITANGENT; 
+ 
+    // Extended fields (only referenced in this azsl file)...
+    float2 m_uv0 : UV0;
+    float2 m_uv1 : UV1;
+};
+
+struct VSOutput
+{
+    // Base fields (required by the template azsli file)...
+    // "centroid" is needed for SV_DepthLessEqual to compile
+    linear centroid float4 m_position : SV_Position;
+    float3 m_normal: NORMAL;
+    float3 m_tangent : TANGENT; 
+    float3 m_bitangent : BITANGENT; 
+    float3 m_worldPosition : UV0;
+    float3 m_shadowCoords[ViewSrg::MaxCascadeCount] : UV6;
+
+    // Extended fields (only referenced in this azsl file)...
+    float2 m_uv[UvSetCount] : UV1; // UV1,UV2 because UvSetCount=2
+    float2 m_detailUv[UvSetCount] : UV3; // UV3,UV4 because UvSetCount=2
+	float3 m_ssUV : UV5;
+};
+
+#include <Atom/Features/PBR/AlphaUtils.azsli>
+#include <Atom/Features/Vertex/VertexHelper.azsli>
+#include "StandardPBR_Apc_LightingModels.azsli"
+
+// Convert from clip space XYW to screen space UV
+float2 GetScreenSpaceUV(float3 clip)
+{
+	float2 uv = (clip.xy / clip.z) * 0.5 + 0.5;
+	uv.y = 1.0 - uv.y;
+	return uv;
+}
+
+VSOutput StandardPbr_ForwardPassVS(VSInput IN)
+{
+    VSOutput OUT;
+ 
+    float3 worldPosition = mul(ObjectSrg::GetWorldMatrix(), float4(IN.m_position, 1.0)).xyz;
+
+    // By design, only UV0 is allowed to apply transforms.
+    OUT.m_uv[0] = mul(MaterialSrg::m_uvMatrix, float3(IN.m_uv0, 1.0)).xy;
+    OUT.m_uv[1] = IN.m_uv1;
+    OUT.m_detailUv[0] = mul(MaterialSrg::m_detailUvMatrix, float3(IN.m_uv0, 1.0)).xy;
+    OUT.m_detailUv[1] = IN.m_uv1;
+
+    // Shadow coords will be calculated in the pixel shader in this case
+    bool skipShadowCoords = ShouldHandleParallax() && o_parallax_enablePixelDepthOffset;
+
+    VertexHelper(IN, OUT, worldPosition, skipShadowCoords);
+    
+	OUT.m_ssUV = OUT.m_position.xyw;
+	
+    return OUT;
+}
+
+#include "StandardPBR_Apc_VS_Common.azsli"
+
+struct IOTBlendInput
+{
+	float4 m_diffuseColor;
+	float4 m_specularColor;
+	float3 m_transmittanceTint;
+	float m_indexOfRefraction;
+	float m_collimationFactor;
+	float3 m_surfaceNormal;
+	float3 m_wsPos;
+	float3 m_ssPos;
+    float m_thicknessToGap;
+    float3 m_worldPosition;
+    float m_depth;
+};
+
+struct IOTBlendOutput
+{
+	float4 m_alpha;
+	float3 m_beta;
+	float m_diffusion;
+	float2 m_pixelOffset;
+    
+	float4 m_test;
+};
+
+// Equation 9
+float2 GetRefractionPixelOffset(float3 surfaceNormal, float3 wsPos, float ior)
+{
+	// TODO
+	return float2(0,0);
+}
+
+uint EncodeDepthAsInteger(float d)
+{
+    // remap [0,1] -> [0, 4294967295]
+    return (uint)(d * 4294967295);
+}
+
+/*
+    Based on "A Phenomenological Scattering Model for Order-Independent Transparency", McGuire & Mara
+    https://research.nvidia.com/publication/phenomenological-scattering-model-order-independent-transparency
+*/
+IOTBlendOutput IOTBlend(IOTBlendInput IN)
+{
+    // Note that the maximum fragment weight occurs precisely for the nearest
+    // (relative to transp min-depth) fragments
+    static const float TransparentFragmentMaxWeight = 30.0;
+
+	IOTBlendOutput OUT;
+	float2 ssUV = GetScreenSpaceUV(IN.m_ssPos);
+	float alpha = IN.m_diffuseColor.a;
+
+    // Special handling when the source alpha is one: treat the surface as opaque
+    bool sourceAlphaIsOne = alpha == 1.0;
+
+    /*
+        View-direction dependant opacity modification based on light rays passing through many very small
+        empty columns surrounded by opaque material, simulating e.g. woven fibres of a cloth.
+    */
+    if (!sourceAlphaIsOne && IN.m_thicknessToGap > 0)
+    {
+        float3 dirToCamera = normalize(ViewSrg::m_worldPosition.xyz - IN.m_worldPosition);
+        float viewToNormalAngle = acos(dot(IN.m_surfaceNormal, dirToCamera));
+        float alphaMod = clamp(
+            1 - (0.01 * IN.m_thicknessToGap * tan(viewToNormalAngle)),
+            0.01, 1.0
+        );
+        
+        // Note that `alphaMod' is the proportion of light which passes through the surface
+        // whereas `alpha' is the proportion of light is obscured by the surface
+        alpha = 1.0 - ((1.0 - alpha) * alphaMod);
+    }
+
+    // Equation 4: `alpha_i * (1 - hat(t_i))' is named net coverage
+    const float netCoverage = sourceAlphaIsOne ? 1.0 : alpha * (1.0 - dot(IN.m_transmittanceTint, f3_unit(1.0/3.0)));
+
+    // Equation 5: distance based weighting factor
+    // Not physical, only requirements are: monotonic and superlinear wrt depth
+    // Note that the term inside the exponent is arbitrarily scaled to avoid precision issues
+    // The alpha term is eventually divided out of the RGB color term, so any fixed multiple
+    // of the weight gives the same analytic result    
+    float weight = 1.0;
+
+    float2 momentDim;
+    PassSrg::m_oitMoments.GetDimensions(momentDim.x, momentDim.y);
+    const int3 coord = int3(int2(momentDim * ssUV), 0);
+
+    {
+        float totalOpticalDepth = PassSrg::m_oitOpticalDepth.Load(coord);
+        clip(totalOpticalDepth - 0.00100050033f); // avoids divide by zero
+
+        float4 moments = PassSrg::m_oitMoments.Load(coord);
+        float depth = 1.0 - IN.m_wsPos.z;
+
+        /* `bias' and `bias_vector' come from Table 1 of "Supplementary Document on
+           Moment-Based Order-Independent Transparency", Munstermann et al.
+           `overestimation' is suggested in the same
+         */
+        const float4 bias_vector = float4(0, 0.375, 0, 0.375);
+        const float bias = 5e-7;
+        const float overestimation = 0.25;
+
+        weight = GetTransmittanceAtDepth_4P(
+            totalOpticalDepth, moments, depth,
+            bias,
+            overestimation,
+            bias_vector
+        );
+    }
+
+    // Equation 4
+	OUT.m_alpha = float4((IN.m_diffuseColor.rgb + IN.m_specularColor.rgb), netCoverage) * weight; 
+        
+    // Equation 2: "Beta", i.e. coverage per colour channel
+    // NOTE: the equation as given is:
+    //   prod{i}(1 - a_i + a_i * t_i)
+    // but the blend op computes
+    //   prod{i}(1 - beta), where beta = a_i * (1 - t_i)
+    // NOTE: the code in the paper scales beta down by 1/3. this clamps beta to 1/3 when transmissionTint = 1 and alpha = 1
+    // but, this seems wrong because getting to low accumulated transmittance (i.e. beta ~ 1) becomes impossible
+    OUT.m_beta = sourceAlphaIsOne ? f3_unit(1.0) : alpha * (f3_unit(1.0) - IN.m_transmittanceTint);
+	
+    if (!sourceAlphaIsOne)
+    {
+        if (IN.m_collimationFactor < 1)
+        {
+            // Equation 7: Diffusion factor
+            static const float surfaceThickness = 0.05;
+            float backgroundZ = LinerizeDepth(PassSrg::m_depth.Sample(PassSrg::LinearSampler, ssUV).x);
+            float fragZ = LinerizeDepth(IN.m_wsPos.z);
+            float deltaZ = abs(fragZ - backgroundZ);
+            float diffusionDistanceFactor = 1.0 - surfaceThickness / (surfaceThickness + deltaZ);
+            OUT.m_diffusion = netCoverage * (1.0 - IN.m_collimationFactor) * diffusionDistanceFactor / abs(fragZ);
+            OUT.m_diffusion *= OUT.m_diffusion;
+        }
+        else
+        {
+            OUT.m_diffusion = 0.0;
+        }
+
+        // Pixel offset is scaled by 1/63 for better precision
+        OUT.m_pixelOffset =
+            GetRefractionPixelOffset(IN.m_surfaceNormal, IN.m_wsPos, IN.m_indexOfRefraction)
+            * netCoverage * (1.0 / 63.0);
+    }
+    else
+    {
+        OUT.m_diffusion = 0.0;
+        OUT.m_pixelOffset = f2_unit(0.0);
+    }
+
+    // Transparent depth write
+    if (netCoverage <= PassSrg::m_transparentDepthWriteAlphaThreshold)
+    {
+        InterlockedMax(PassSrg::m_transparentDepth[coord.xy], EncodeDepthAsInteger(IN.m_depth));
+    }
+
+	return OUT;
+}
+
+IOTBlendInput MakeIOTBlendInput(VSOutput IN, PbrLightingOutput lightingOutput, float depth, float3 wsNormal)
+{
+	IOTBlendInput iotBlendInput;
+	iotBlendInput.m_diffuseColor        = lightingOutput.m_diffuseColor;
+	iotBlendInput.m_specularColor       = lightingOutput.m_specularColor;
+	iotBlendInput.m_transmittanceTint   = MaterialSrg::m_transmittanceTintForTransparent;
+	iotBlendInput.m_indexOfRefraction   = 1.0; // TODO
+	iotBlendInput.m_collimationFactor   = MaterialSrg::m_collimationFactor;
+	iotBlendInput.m_surfaceNormal       = wsNormal;
+	iotBlendInput.m_wsPos               = IN.m_position.xyz;
+	iotBlendInput.m_ssPos               = IN.m_ssUV;
+    iotBlendInput.m_thicknessToGap      = MaterialSrg::m_thicknessToGap;
+    iotBlendInput.m_worldPosition       = IN.m_worldPosition;
+    iotBlendInput.m_depth               = depth;
+    return iotBlendInput;
+}
+
+ForwardPassOutputWithDepth StandardPbr_ForwardPassPS(VSOutput IN, bool isFrontFace : SV_IsFrontFace)
+{
+    ForwardPassOutputWithDepth OUT;
+    float depth;
+    float3 wsNormal;
+
+    PbrLightingOutput lightingOutput = ForwardPassPS_Common(IN, isFrontFace, depth, wsNormal);
+	
+	IOTBlendOutput iotBlendOutput = IOTBlend(MakeIOTBlendInput(IN, lightingOutput, depth, wsNormal));
+    
+    OUT.m_alpha = iotBlendOutput.m_alpha;
+    OUT.m_beta.rgb = iotBlendOutput.m_beta;
+    OUT.m_beta.a = iotBlendOutput.m_diffusion;
+	OUT.m_test = iotBlendOutput.m_test;
+	
+    OUT.m_depth = depth;
+
+    return OUT;
+}
+
+[earlydepthstencil]
+ForwardPassOutput StandardPbr_ForwardPassPS_EDS(VSOutput IN, bool isFrontFace : SV_IsFrontFace)
+{
+    ForwardPassOutput OUT;
+    float depth;
+    float3 wsNormal;
+
+    PbrLightingOutput lightingOutput = ForwardPassPS_Common(IN, isFrontFace, depth, wsNormal);
+	
+	IOTBlendOutput iotBlendOutput = IOTBlend(MakeIOTBlendInput(IN, lightingOutput, depth, wsNormal));
+    
+    OUT.m_alpha = iotBlendOutput.m_alpha;
+    OUT.m_beta.rgb = iotBlendOutput.m_beta;
+    OUT.m_beta.a = iotBlendOutput.m_diffusion;
+	OUT.m_test = iotBlendOutput.m_test;
+
+    return OUT;
+}

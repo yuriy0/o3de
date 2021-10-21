@@ -12,6 +12,7 @@
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzFramework/Physics/Shape.h>
 #include <AzFramework/Physics/ShapeConfiguration.h>
+#include <AzCore/Serialization/std/VariantReflection.inl>
 
 namespace AzPhysics
 {

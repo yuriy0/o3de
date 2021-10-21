@@ -241,6 +241,17 @@ namespace AzToolsFramework
         int m_treeIndentation;
         int m_leafIndentation;
 
+
+        struct QueuedWidgetInvalidation
+        {
+            QWidget* m_userWidget;
+        };
+        AZStd::unordered_map<QWidget*, QueuedWidgetInvalidation> m_queuedWidgetInvalidations;
+
+        void QueueWidgetInvalidation(QWidget* focusWidget, QWidget* userWidget);
+        void onApplicationFocusChanged(QWidget* prevFocusWidget, QWidget* newFocusWidget);
+        AZStd::optional<QWidget*> PropertyRowIsEditing(PropertyRowWidget* propertyRow);
+
     private:
         AZStd::set<void*> CreateInstanceSet();
         bool Intersects(const AZStd::set<void*>& cachedInstanceSet);
@@ -349,6 +360,11 @@ namespace AzToolsFramework
         m_impl->m_autoResizeLabels = false;
 
         m_impl->m_hasFilteredOutNodes = false;
+
+        connect(qApp, &QApplication::focusChanged, this, [this](QWidget* prevFocusWidget, QWidget* newFocusWidget)
+        {
+            m_impl->onApplicationFocusChanged(prevFocusWidget, newFocusWidget);
+        });
     }
 
     ReflectedPropertyEditor::~ReflectedPropertyEditor()
@@ -1070,7 +1086,7 @@ namespace AzToolsFramework
 
     void ReflectedPropertyEditor::InvalidateAttributesAndValues()
     {
-        m_releasePrompt = true;
+        //m_releasePrompt = true;
 
         for (InstanceDataHierarchy& instance : m_impl->m_instances)
         {
@@ -1102,7 +1118,7 @@ namespace AzToolsFramework
     {
         AZ_PROFILE_FUNCTION(AzToolsFramework);
 
-        m_releasePrompt = true;
+        //m_releasePrompt = true;
 
         {
             AZ_PROFILE_SCOPE(AzToolsFramework, "ReflectedPropertyEditor::InvalidateValues:InstancesRefreshDataCompare");
@@ -1129,8 +1145,15 @@ namespace AzToolsFramework
                     PropertyRowWidget* pWidget = rowWidget->second;
                     if (pWidget->GetHandler())
                     {
-                        pWidget->GetHandler()->ReadValuesIntoGUI_Internal(it->first, rowWidget->first);
-                        pWidget->OnValuesUpdated();
+                        if (auto focusWidget = m_impl->PropertyRowIsEditing(pWidget))
+                        {
+                            m_impl->QueueWidgetInvalidation(*focusWidget, it->first);
+                        }
+                        else
+                        {
+                            pWidget->GetHandler()->ReadValuesIntoGUI_Internal(it->first, rowWidget->first);
+                            pWidget->OnValuesUpdated();
+                        }
                     }
                 }
             }
@@ -1344,6 +1367,69 @@ namespace AzToolsFramework
         }
 
         return widget->AutoExpand();
+    }
+
+    void ReflectedPropertyEditor::Impl::QueueWidgetInvalidation(QWidget* focusWidget, QWidget* userWidget)
+    {
+        auto& queuedInvalidation = m_queuedWidgetInvalidations[focusWidget];
+        queuedInvalidation.m_userWidget = userWidget;
+    }
+
+    void ReflectedPropertyEditor::Impl::onApplicationFocusChanged(QWidget* prevFocusWidget, QWidget*)
+    {
+        auto queuedInvalidationIt = m_queuedWidgetInvalidations.find(prevFocusWidget);
+        if (queuedInvalidationIt != m_queuedWidgetInvalidations.end())
+        {
+            const QueuedWidgetInvalidation& queuedInvalidation = queuedInvalidationIt->second;
+            m_queuedWidgetInvalidations.erase(queuedInvalidationIt);
+
+            // Lookup the widget again, in case it's been removed/hidden
+            auto userDataIt = m_userWidgetsToData.find(queuedInvalidation.m_userWidget);
+            if (userDataIt != m_userWidgetsToData.end())
+            {
+                auto rowWidgetIt = m_widgets.find(userDataIt->second);
+                if (rowWidgetIt != m_widgets.end())
+                {
+                    PropertyRowWidget* pWidget = rowWidgetIt->second;
+                    if (auto focusWidget = PropertyRowIsEditing(pWidget))
+                    {
+                        QueueWidgetInvalidation(*focusWidget, pWidget);
+                    }
+                    else if (pWidget->GetHandler())
+                    {
+                        pWidget->GetHandler()->ReadValuesIntoGUI_Internal(userDataIt->first, rowWidgetIt->first);
+                        pWidget->OnValuesUpdated();
+                    }
+                }
+            }
+        }
+    }
+
+    AZStd::optional<QWidget*> ReflectedPropertyEditor::Impl::PropertyRowIsEditing(PropertyRowWidget* propertyRow)
+    {
+        //if (propertyRow->hasFocus())
+        //{
+        //    return propertyRow;
+        //}
+
+        if (auto childWidget = propertyRow->GetChildWidget())
+        {
+            if (childWidget->hasFocus())
+            {
+                return childWidget;
+            }
+
+            const QWidgetList transitiveChildren = childWidget->findChildren<QWidget*>();
+            for (QWidget* transitiveChild : transitiveChildren)
+            {
+                if (transitiveChild->hasFocus())
+                {
+                    return transitiveChild;
+                }
+            }
+        }
+
+        return {};
     }
 
     AZStd::set<void*> ReflectedPropertyEditor::Impl::CreateInstanceSet()
@@ -2184,16 +2270,17 @@ namespace AzToolsFramework
             promptEditor->AddInstance(value, typeId);
             promptEditor->InvalidateAll();
             promptEditor->ExpandAll();
-            promptEditor->setFixedHeight(promptEditor->GetContentHeight() + 2);
+            promptEditor->setFixedHeight(AZ::GetMax(promptEditor->GetContentHeight() + 2, 30));
             layout->addWidget(promptEditor);
 
             QDialogButtonBox* buttonBox = new QDialogButtonBox;
             buttonBox->addButton(QDialogButtonBox::Ok);
             buttonBox->addButton(QDialogButtonBox::Cancel);
+
             // We cannot use exec here as it is modal and we need to be able to click in the viewport or drag entities onto the dislog
-            int dialogFlag = -1;
-            connect(buttonBox, &QDialogButtonBox::accepted, &dialog, [&dialogFlag]() {dialogFlag = 1; });
-            connect(buttonBox, &QDialogButtonBox::rejected, &dialog, [&dialogFlag]() {dialogFlag = 0; });
+            AZStd::optional<bool> dialogueResult;
+            connect(buttonBox, &QDialogButtonBox::accepted, &dialog, [&dialogueResult]() { dialogueResult = true; });
+            connect(buttonBox, &QDialogButtonBox::rejected, &dialog, [&dialogueResult]() { dialogueResult = false; });
             layout->addWidget(buttonBox);
 
             // Make sure the dialog stays on top ready for dropping onto
@@ -2203,11 +2290,11 @@ namespace AzToolsFramework
 
             m_releasePrompt = false;
 
-            while (dialogFlag < 0)
+            while (!dialogueResult)
             {
                 if (m_releasePrompt)
                 {
-                    dialogFlag = 0;
+                    dialogueResult = false;
                     dialog.reject();
                     break;
                 }
@@ -2215,7 +2302,7 @@ namespace AzToolsFramework
                 qApp->processEvents();
             }
 
-            return dialogFlag ? true : false;
+            return *dialogueResult;
         };
 
         AZStd::shared_ptr<void> keyToAdd(nullptr);

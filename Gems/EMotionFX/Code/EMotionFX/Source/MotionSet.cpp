@@ -421,7 +421,7 @@ namespace EMotionFX
         // Recursively ask the parent motion sets in case we haven't found the motion id in the current motion set.
         if (m_parentSet)
         {
-            return m_parentSet->FindMotionEntryById(motionId);
+            return m_parentSet->RecursiveFindMotionEntryById(motionId);
         }
 
         // Motion id not found.
@@ -479,16 +479,29 @@ namespace EMotionFX
 
     MotionSet* MotionSet::RecursiveFindMotionSetByName(const AZStd::string& motionSetName, bool isOwnedByRuntime) const
     {
+        auto motionSet = RecursiveFindMotionSetByName(motionSetName);
+        if (motionSet && motionSet->GetIsOwnedByRuntime() != isOwnedByRuntime)
+        {
+            return nullptr;
+        }
+        else
+        {
+            return motionSet;
+        }
+    }
+
+    MotionSet* EMotionFX::MotionSet::RecursiveFindMotionSetByName(const AZStd::string& motionSetName) const
+    {
         MCore::LockGuardRecursive lock(m_mutex);
-        
-        if (GetIsOwnedByRuntime() == isOwnedByRuntime && m_name == motionSetName)
+
+        if (m_name == motionSetName)
         {
             return const_cast<MotionSet*>(this);
         }
         MotionSet* motionSet = nullptr;
         for (const MotionSet* childMotionSet : m_childSets)
         {
-            motionSet = childMotionSet->RecursiveFindMotionSetByName(motionSetName, isOwnedByRuntime);
+            motionSet = childMotionSet->RecursiveFindMotionSetByName(motionSetName);
             if (motionSet)
             {
                 return motionSet;
@@ -501,6 +514,10 @@ namespace EMotionFX
     void MotionSet::SetMotionEntryId(MotionEntry* motionEntry, const AZStd::string& newMotionId)
     {
         const AZStd::string oldStringId = motionEntry->GetId();
+        AZ_Assert([&]() {
+            auto it = m_motionEntries.find(oldStringId);
+            return it == m_motionEntries.end() ?  false : it->second == motionEntry;
+        }(), "SetMotionEntryId called with a motion entry which doesn't belong to this motion set.");
 
         motionEntry->SetId(newMotionId);
 
@@ -745,10 +762,10 @@ namespace EMotionFX
         return foundChildSet != end(m_childSets) ? *foundChildSet : nullptr;
     }
 
-    void MotionSet::RecursiveGetMotionSets(AZStd::vector<const MotionSet*>& childMotionSets, bool isOwnedByRuntime) const
+    void MotionSet::RecursiveGetMotionSets(AZStd::vector<const MotionSet*>& childMotionSets, AZStd::optional<bool> isOwnedByRuntime) const
     {
         MCore::LockGuardRecursive lock(m_mutex);
-        if (GetIsOwnedByRuntime() == isOwnedByRuntime)
+        if (!isOwnedByRuntime || GetIsOwnedByRuntime() == *isOwnedByRuntime)
         {
             childMotionSets.push_back(this);
             for (MotionSet* childMotion : m_childSets)
@@ -756,6 +773,11 @@ namespace EMotionFX
                 childMotion->RecursiveGetMotionSets(childMotionSets, isOwnedByRuntime);
             }
         }
+    }
+
+    void MotionSet::RecursiveGetMotionSets(AZStd::vector<const MotionSet*>& childMotionSets, bool isOwnedByRuntime) const
+    {
+        RecursiveGetMotionSets(childMotionSets, AZStd::optional<bool>{ isOwnedByRuntime });
     }
 
     MotionSet* MotionSet::GetParentSet() const

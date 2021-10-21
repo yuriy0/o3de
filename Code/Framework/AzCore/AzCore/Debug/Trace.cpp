@@ -238,6 +238,39 @@ namespace AZ
     // Assert
     // [8/3/2009]
     //=========================================================================
+
+    template<class PrintFn>
+    static void PrintCallstack_Internal(PrintFn&& printLine, unsigned int suppressCount, void* nativeContext)
+    {
+        StackFrame frames[25];
+
+        // Without StackFrame explicit alignment frames array is aligned to 4 bytes
+        // which causes the stack tracing to fail.
+        //size_t bla = AZStd::alignment_of<StackFrame>::value;
+        //printf("Alignment value %d address 0x%08x : 0x%08x\n",bla,frames);
+        SymbolStorage::StackLine lines[AZ_ARRAY_SIZE(frames)];
+
+        if (!nativeContext)
+        {
+            suppressCount += 1; /// If we don't provide a context we will capture in the RecordFunction, so skip us (Trace::PrinCallstack).
+        }
+        unsigned int numFrames = StackRecorder::Record(frames, AZ_ARRAY_SIZE(frames), suppressCount, nativeContext);
+        if (numFrames)
+        {
+            SymbolStorage::DecodeFrames(frames, numFrames, lines);
+            for (unsigned int i = 0; i < numFrames; ++i)
+            {
+                if (lines[i][0] == 0)
+                {
+                    continue;
+                }
+
+                azstrcat(lines[i], AZ_ARRAY_SIZE(lines[i]), "\n");
+                printLine(lines[i]); // feed back into the trace system so that listeners can get it.
+            }
+        }
+    }
+
     void Trace::Assert(const char* fileName, int line, const char* funcName, const char* format, ...)
     {
         using namespace DebugInternal;
@@ -307,7 +340,10 @@ namespace AZ
             }
 
             Output(g_dbgSystemWnd, "------------------------------------------------\n");
-            PrintCallstack(g_dbgSystemWnd, 1);
+            PrintCallstack_Internal([](auto line)
+            {
+                Output(g_dbgSystemWnd, line);
+            }, 1, nullptr);
             Output(g_dbgSystemWnd, "==================================================================\n");
 
             char dialogBoxText[g_maxMessageLength];
@@ -549,33 +585,10 @@ namespace AZ
     void
     Trace::PrintCallstack(const char* window, unsigned int suppressCount, void* nativeContext)
     {
-        StackFrame frames[25];
-
-        // Without StackFrame explicit alignment frames array is aligned to 4 bytes
-        // which causes the stack tracing to fail.
-        //size_t bla = AZStd::alignment_of<StackFrame>::value;
-        //printf("Alignment value %d address 0x%08x : 0x%08x\n",bla,frames);
-        SymbolStorage::StackLine lines[AZ_ARRAY_SIZE(frames)];
-
-        if (!nativeContext)
+        PrintCallstack_Internal([window](auto line)
         {
-            suppressCount += 1; /// If we don't provide a context we will capture in the RecordFunction, so skip us (Trace::PrinCallstack).
-        }
-        unsigned int numFrames = StackRecorder::Record(frames, AZ_ARRAY_SIZE(frames), suppressCount, nativeContext);
-        if (numFrames)
-        {
-            SymbolStorage::DecodeFrames(frames, numFrames, lines);
-            for (unsigned int i = 0; i < numFrames; ++i)
-            {
-                if (lines[i][0] == 0)
-                {
-                    continue;
-                }
-
-                azstrcat(lines[i], AZ_ARRAY_SIZE(lines[i]), "\n");
-                AZ_Printf(window, "%s", lines[i]); // feed back into the trace system so that listeners can get it.
-            }
-        }
+            AZ_Printf(window, "%s", line);
+        }, suppressCount, nativeContext);
     }
 
     //=========================================================================

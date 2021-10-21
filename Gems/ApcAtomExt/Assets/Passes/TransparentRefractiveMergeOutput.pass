@@ -1,0 +1,43 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "TransparentRefractiveMergeOutputPassTemplate",
+            "PassClass": "FullScreenTriangle",
+            "Slots": [
+                {
+                    "Name": "Background",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ShaderInputName": "m_background"
+                },
+                {
+                    "Name": "Alpha",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ShaderInputName": "m_alpha"
+                },
+                {
+                    "Name": "BetaAndDiffusion",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ShaderInputName": "m_betaAndDiffusion"
+                },
+                {
+                    "Name": "Output",
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "RenderTarget"
+                }
+            ],
+            "PassData": {
+                "$type": "FullscreenTrianglePassData", 
+                "ShaderAsset": {
+                    "FilePath": "Shaders/TransparentRefractiveMergeOutput.shader"
+                },
+                "PipelineViewTag": "MainCamera"
+            }
+        }
+    }
+}

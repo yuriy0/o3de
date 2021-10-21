@@ -72,7 +72,6 @@ namespace EMotionFX
         AnimGraphReferenceNode* referenceNode = azdynamic_cast<AnimGraphReferenceNode*>(m_object);
         AZ_Assert(referenceNode, "Unique data linked to incorrect node type.");
 
-        MotionSet* motionSet = referenceNode->GetMotionSet();
         AnimGraphInstance* animGraphInstance = GetAnimGraphInstance();
         const AZ::Data::Asset<Integration::AnimGraphAsset> referenceAnimGraphAsset = referenceNode->GetReferencedAnimGraphAsset();
 
@@ -82,12 +81,7 @@ namespace EMotionFX
             SetHasError(hasCycles);
         }
 
-        MotionSet* animGraphInstanceMotionSet = motionSet;
-        if (!animGraphInstanceMotionSet)
-        {
-            // Use the parent's motion set
-            animGraphInstanceMotionSet = animGraphInstance->GetMotionSet();
-        }
+        m_overridenMotionSet.reset();
 
         if (!m_referencedAnimGraphInstance &&
             referenceAnimGraphAsset &&
@@ -95,6 +89,7 @@ namespace EMotionFX
             !hasCycles)
         {
             AnimGraph* referenceAnimGraph = referenceAnimGraphAsset.Get()->GetAnimGraph();
+            MotionSet* animGraphInstanceMotionSet = referenceNode->InitMotionSetForInstance(animGraphInstance, this);
 
             m_referencedAnimGraphInstance = AnimGraphInstance::Create(referenceAnimGraph,
                 animGraphInstance->GetActorInstance(),
@@ -369,6 +364,10 @@ namespace EMotionFX
                     data->SetTrajectoryDelta(referenceRootStateMachineData->GetTrajectoryDelta());
                     data->SetTrajectoryDeltaMirrored(referenceRootStateMachineData->GetTrajectoryDeltaMirrored());
                     data->GetEventBuffer().UpdateEmitters(this);
+
+                    // store a copy of the root's event buffer in the animgraph. This is necessary for 'Event' Motion conditions
+                    // to be able to trigger, as they read the motion event buffer of the anim graph instance
+                    referencedAnimGraphInstance->GetEventBufferForModify() = referenceRootStateMachineData->GetEventBuffer();
                 }
 
                 referenceStateMachine->DecreaseRefDataRef(referencedAnimGraphInstance);
@@ -397,11 +396,7 @@ namespace EMotionFX
 
     void AnimGraphReferenceNode::RecursiveOnChangeMotionSet(AnimGraphInstance* animGraphInstance, MotionSet* newMotionSet)
     {
-        MotionSet* motionSet = GetMotionSet();
-        if (!motionSet)
-        {
-            motionSet = newMotionSet;
-        }
+        MotionSet* motionSet = SetMotionSetForInstance(newMotionSet, animGraphInstance);
         AnimGraphNode::RecursiveOnChangeMotionSet(animGraphInstance, motionSet);
 
         AnimGraph* referencedAnimGraph = GetReferencedAnimGraph();
@@ -410,7 +405,7 @@ namespace EMotionFX
             UniqueData* uniqueData = static_cast<UniqueData*>(FindOrCreateUniqueNodeData(animGraphInstance));
             if (uniqueData->m_referencedAnimGraphInstance)
             {
-                referencedAnimGraph->GetRootStateMachine()->RecursiveOnChangeMotionSet(uniqueData->m_referencedAnimGraphInstance, motionSet);
+                uniqueData->m_referencedAnimGraphInstance->SetMotionSet(motionSet);
             }
         }
     }
@@ -590,11 +585,12 @@ namespace EMotionFX
         }
 
         serializeContext->Class<AnimGraphReferenceNode, AnimGraphNode>()
-            ->Version(1)
+            ->Version(2)
             ->Field("animGraphAsset", &AnimGraphReferenceNode::m_animGraphAsset)
             ->Field("motionSetAsset", &AnimGraphReferenceNode::m_motionSetAsset)
             ->Field("activeMotionSetName", &AnimGraphReferenceNode::m_activeMotionSetName)
             ->Field(sMaskedParameterNamesMember, &AnimGraphReferenceNode::m_maskedParameterNames)
+            ->Field("motionRemapping", &AnimGraphReferenceNode::m_motionRemapping)
             ;
 
 
@@ -621,9 +617,12 @@ namespace EMotionFX
             ->DataElement(AZ_CRC("AnimGraphParameterMask", 0x67dd0993), &AnimGraphReferenceNode::m_maskedParameterNames, "Parameter mask", "Parameters to be used as inputs. Parameters not selected as inputs are mapped.")
                 ->Attribute(AZ::Edit::Attributes::ContainerCanBeModified, false)
                 ->Attribute(AZ::Edit::Attributes::Visibility, AZ::Edit::PropertyVisibility::HideChildren)
+            ->DataElement(AZ::Edit::UIHandlers::Default, &AnimGraphReferenceNode::m_motionRemapping,
+                    "Motion remapping", "Remaps motions from the parent Anim Graph to the referenced Anim Graph")
+                ->Attribute(AZ::Edit::Attributes::Visibility, &AnimGraphReferenceNode::IsMotionRemappingVisible)
             ;
     }
-    
+
     void AnimGraphReferenceNode::ReleaseAnimGraphInstances()
     {
         // Inform the unique datas as well as other systems about the changed anim graph asset, destroy and nullptr the reference
@@ -742,7 +741,7 @@ namespace EMotionFX
     }
 
 
-    MotionSet* AnimGraphReferenceNode::GetMotionSet() const
+    MotionSet* AnimGraphReferenceNode::GetMotionSetOverride() const
     {
         MotionSet* motionSet = nullptr;
 
@@ -759,6 +758,105 @@ namespace EMotionFX
         }
 
         return motionSet;
+    }
+
+    MotionSet* AnimGraphReferenceNode::InitMotionSetForInstance(AnimGraphInstance* animGraphInstance, UniqueData* uniqueData)
+    {
+        if (MotionSet* motionSet = GetMotionSetOverride())
+        {
+            return motionSet;
+        }
+        else
+        {
+            return SetMotionSetForInstance(animGraphInstance->GetMotionSet(), animGraphInstance, uniqueData);
+        }
+    }
+
+    class RemappedMotionSet : public MotionSet
+    {
+    public:
+        // AZ_RTTI(RemappedMotionSet, "");
+        AZ_CLASS_ALLOCATOR(MotionSet, MotionAllocator, 0);
+
+        RemappedMotionSet() = default;
+        RemappedMotionSet(const char* name, MotionSet* parent = nullptr)
+            : MotionSet(name, parent)
+        {}
+        ~RemappedMotionSet() override = default;
+
+        void AddRemapping(const AZStd::string& from, const AZStd::string& to)
+        {
+            MotionSet* parentMotionSet = GetParentSet();
+            if (auto motionEntry = parentMotionSet->FindMotionEntryById(from))
+            {
+                auto* motion = motionEntry->GetMotion();
+                // If the motion `IsOwnedByRuntime' flag is false, the MotionEntry will try to destroy
+                // the motion in its destructor (by decreasing the refcount). If that's the case, we
+                // increase the refcount here so that destroying this motionset doesn't destroy the motion
+                if (motion && !motion->GetIsOwnedByRuntime())
+                {
+                    motion->IncreaseReferenceCount();
+                }
+                AddMotionEntry(aznew MotionSet::MotionEntry(motionEntry->GetFilename(), to, motion));
+            }
+        }
+    };
+
+    MotionSet* AnimGraphReferenceNode::SetMotionSetForInstance(MotionSet* newMotionSet, AnimGraphInstance* animGraphInstance, UniqueData* uniqueData)
+    {
+        if (MotionSet* motionSetOverride = GetMotionSetOverride())
+        {
+            return motionSetOverride;
+        }
+        else
+        {
+            // Check if there's any overrides to apply
+            if (m_motionRemapping.empty())
+            {
+                return newMotionSet;
+            }
+            else
+            {
+                if (!uniqueData)
+                {
+                    uniqueData = static_cast<UniqueData*>(animGraphInstance->FindOrCreateUniqueObjectData(this));
+                }
+
+                // Edgec case: motion set is null, can't override this. This occurs for example when EMFX is destroying motion set instances
+                // when removing a motion set from the 'motion sets' window in the animation editor.
+                if (!newMotionSet)
+                {
+                    uniqueData->m_overridenMotionSet.reset();
+                    return newMotionSet;
+                }
+
+                if (uniqueData->m_overridenMotionSet && uniqueData->m_overridenMotionSet->GetParentSet() == newMotionSet)
+                {
+                    // New motion set didn't actually change; not necessary to re-create the overrides
+                    return uniqueData->m_overridenMotionSet.get();
+                }
+
+                // Create a new child motion set
+                AZStd::unique_ptr<RemappedMotionSet> overridenMotionSet = AZStd::unique_ptr<RemappedMotionSet>(
+                    aznew RemappedMotionSet((newMotionSet->GetNameString() + "_overriden").c_str(), newMotionSet)
+                );
+
+                // Who knows what this really means???
+                overridenMotionSet->SetIsOwnedByRuntime(false);
+                overridenMotionSet->SetIsOwnedByAsset(false);
+
+                // Copy the overrides motion entries
+                for (const auto& kv : m_motionRemapping)
+                {
+                    overridenMotionSet->AddRemapping(kv.first, kv.second);
+                }
+
+                // give ownership of this motion set to the per-instance data
+                uniqueData->m_overridenMotionSet = AZStd::move(overridenMotionSet);
+
+                return uniqueData->m_overridenMotionSet.get();
+            }
+        }
     }
 
 
@@ -833,8 +931,6 @@ namespace EMotionFX
 
     void AnimGraphReferenceNode::OnMotionSetAssetReady()
     {
-        MotionSet* motionSet = GetMotionSet();
-
         const size_t numAnimGraphInstances = m_animGraph->GetNumAnimGraphInstances();
         for (size_t i = 0; i < numAnimGraphInstances; ++i)
         {
@@ -843,12 +939,7 @@ namespace EMotionFX
 
             if (uniqueData->m_referencedAnimGraphInstance)
             {
-                MotionSet* animGraphInstanceMotionSet = motionSet;
-                if (!animGraphInstanceMotionSet)
-                {
-                    // Use the parent's motion set
-                    animGraphInstanceMotionSet = animGraphInstance->GetMotionSet();
-                }
+                MotionSet* animGraphInstanceMotionSet = GetMotionSetOverride();
                 if (uniqueData->m_referencedAnimGraphInstance->GetMotionSet() != animGraphInstanceMotionSet)
                 {
                     uniqueData->m_referencedAnimGraphInstance->SetMotionSet(animGraphInstanceMotionSet);
@@ -1223,6 +1314,11 @@ namespace EMotionFX
                 valueParameter->AssignDefaultValueToAttribute(parameterValue);
             }
         }
+    }
+
+    bool AnimGraphReferenceNode::IsMotionRemappingVisible() const
+    {
+        return !HasMotionSetAsset();
     }
 
 }   // namespace EMotionFX

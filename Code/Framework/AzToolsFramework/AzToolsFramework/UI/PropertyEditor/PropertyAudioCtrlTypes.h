@@ -47,7 +47,18 @@ namespace AzToolsFramework
             if (auto serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
             {
                 serializeContext->Class<CReflectedVarAudioControl>()
-                    ->Version(1)
+                    ->Version(2, [](AZ::SerializeContext& sc, AZ::SerializeContext::DataElementNode& node)
+                    {
+                        if (node.GetVersion() < 2)
+                        {
+                            int propertyType_asInt = 0;
+                            node.FindSubElementAndGetData(AZ::Crc32("propertyType"), propertyType_asInt);
+                            node.RemoveElementByName(AZ::Crc32("propertyType"));
+                            node.AddElementWithData(sc, "propertyType", static_cast<AudioPropertyType>(propertyType_asInt));
+                        }
+
+                        return true;
+                    })
                     ->Field("controlName", &CReflectedVarAudioControl::m_controlName)
                     ->Field("propertyType", &CReflectedVarAudioControl::m_propertyType)
                     ;

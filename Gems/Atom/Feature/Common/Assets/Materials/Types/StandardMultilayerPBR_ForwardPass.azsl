@@ -372,6 +372,11 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
             }
         }
     }
+            
+    // ------- Disintegrate effect clip -------
+    DisintegrateClipParams disintegrateEffect;
+    disintegrateEffect.uv = IN.m_uv[MaterialSrg::m_parallaxUvIndex];
+    DisintegratePostClipState disintegrateState = ClipDisintegrateEffect(disintegrateEffect);
     
     // ------- Calculate Layer Blend Mask Values -------
     
@@ -447,10 +452,15 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     // [GFX TODO][ATOM-14591]: This will only work if the normal maps all use the same UV stream. We would need to add support for having them in different UV streams.
     surface.vertexNormal = normalize(IN.m_normal);
     surface.normal = normalize(TangentSpaceToWorld(normalTS, IN.m_normal, tangents[MaterialSrg::m_parallaxUvIndex], bitangents[MaterialSrg::m_parallaxUvIndex]));
-        
+    
     // ------- Combine Albedo, roughness, specular, roughness ---------
-
     float3 baseColor = BlendLayers(lightingInputLayer1.m_baseColor, lightingInputLayer2.m_baseColor, lightingInputLayer3.m_baseColor, blendWeights);
+    
+    
+    // ------- Disintegrate effect modify base color -------
+    float3 disintegrateEmissive = float3(0,0,0);
+    ModifySurfaceForDisintegrate(disintegrateState, baseColor, disintegrateEmissive);
+    
     float3 specularF0Factor = BlendLayers(lightingInputLayer1.m_specularF0Factor, lightingInputLayer2.m_specularF0Factor, lightingInputLayer3.m_specularF0Factor, blendWeights);
     float3 metallic = BlendLayers(lightingInputLayer1.m_metallic, lightingInputLayer2.m_metallic, lightingInputLayer3.m_metallic, blendWeights);
     
@@ -478,8 +488,14 @@ PbrLightingOutput ForwardPassPS_Common(VSOutput IN, bool isFrontFace, out float 
     lightingData.emissiveLighting = BlendLayers(lightingInputLayer1.m_emissiveLighting, lightingInputLayer2.m_emissiveLighting, lightingInputLayer3.m_emissiveLighting, blendWeights);
     lightingData.specularOcclusion = BlendLayers(lightingInputLayer1.m_specularOcclusion, lightingInputLayer2.m_specularOcclusion, lightingInputLayer3.m_specularOcclusion, blendWeights);
     lightingData.diffuseAmbientOcclusion = BlendLayers(lightingInputLayer1.m_diffuseAmbientOcclusion, lightingInputLayer2.m_diffuseAmbientOcclusion, lightingInputLayer3.m_diffuseAmbientOcclusion, blendWeights);
-
-    lightingData.ssao = PassSrg::m_ssaoTexture.Load(uint3(IN.m_position.x, IN.m_position.y, 0)).x;
+    
+    // ------- Disintegrate Emissive -------
+    lightingData.emissiveLighting += disintegrateEmissive;
+    
+    if (o_opacity_mode == OpacityMode::Opaque || o_opacity_mode == OpacityMode::Cutout)
+    {
+        lightingData.ssao = PassSrg::m_ssaoTexture.Load(uint3(IN.m_position.x, IN.m_position.y, 0)).x;
+    }
 
     lightingData.CalculateMultiscatterCompensation(surface.specularF0, o_specularF0_enableMultiScatterCompensation);
 

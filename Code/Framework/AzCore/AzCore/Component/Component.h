@@ -567,8 +567,8 @@ namespace AZ
          */
         void GetProvidedServices(ComponentDescriptor::DependencyArrayType& provided, const Component* instance) const override
         {
-            static_assert(!(typename HasComponentProvidedServices<ComponentClass>::value &&
-                               typename HasComponentMemberProvidedServices<ComponentClass>::value),
+            static_assert(!(HasComponentProvidedServices<ComponentClass>::value &&
+                               HasComponentMemberProvidedServices<ComponentClass>::value),
                              "Components using ComponentDescriptorDefault (AZ_COMPONENT macro) has both member and static GetProvidedServices function. Define only one in your class."
             );
             CallProvidedServices(provided, instance,
@@ -584,8 +584,8 @@ namespace AZ
          */
         void GetDependentServices(ComponentDescriptor::DependencyArrayType& dependent, const Component* instance) const override
         {
-            static_assert(!(typename HasComponentDependentServices<ComponentClass>::value &&
-                               typename HasComponentMemberDependentServices<ComponentClass>::value),
+            static_assert(!(HasComponentDependentServices<ComponentClass>::value &&
+                               HasComponentMemberDependentServices<ComponentClass>::value),
                              "Components using ComponentDescriptorDefault (AZ_COMPONENT macro) has both member and static GetDependentServices function. Define only one in your class."
             );
             CallDependentServices(dependent, instance,
@@ -601,8 +601,8 @@ namespace AZ
          */
         void GetRequiredServices(ComponentDescriptor::DependencyArrayType& required, const Component* instance) const override
         {
-            static_assert(!(typename HasComponentRequiredServices<ComponentClass>::value &&
-                               typename HasComponentMemberRequiredServices<ComponentClass>::value),
+            static_assert(!(HasComponentRequiredServices<ComponentClass>::value &&
+                               HasComponentMemberRequiredServices<ComponentClass>::value),
                              "Components using ComponentDescriptorDefault (AZ_COMPONENT macro) has both member and static GetRequiredServices function. Define only one in your class."
             );
             CallRequiredServices(required, instance,
@@ -618,8 +618,8 @@ namespace AZ
          */
         void GetIncompatibleServices(ComponentDescriptor::DependencyArrayType& incompatible, const Component* instance) const override
         {
-            static_assert(!(typename HasComponentIncompatibleServices<ComponentClass>::value &&
-                               typename HasComponentMemberIncompatibleServices<ComponentClass>::value),
+            static_assert(!(HasComponentIncompatibleServices<ComponentClass>::value &&
+                               HasComponentMemberIncompatibleServices<ComponentClass>::value),
                              "Components using ComponentDescriptorDefault (AZ_COMPONENT macro) has both member and static GetIncompatibleServices function. Define only one in your class."
             );
             CallIncompatibleServices(incompatible, instance,

@@ -237,8 +237,32 @@
                 "Path": "Passes/DepthToLinearDepth.pass"
             },
             {
-                "Name": "DeferredFogPassTemplate",
-                "Path": "Passes/DeferredFog.pass"
+                "Name": "DeferredFogParentPassTemplate",
+                "Path": "Passes/DeferredFogParent.pass"
+            },
+            {
+                "Name": "DeferredFogCombinePassTemplate",
+                "Path": "Passes/DeferredFogCombine.pass"
+            },
+            {
+                "Name": "DeferredFogLightingAccumPassTemplate",
+                "Path": "Passes/DeferredFogLightingAccum.pass"
+            },
+            {
+                "Name": "DeferredFogBlurHorizontalPassTemplate",
+                "Path": "Passes/DeferredFogBlurHorizontal.pass"
+            },
+            {
+                "Name": "DeferredFogBlurVerticalPassTemplate",
+                "Path": "Passes/DeferredFogBlurVertical.pass"
+            },
+            {
+                "Name": "DeferredFogCDFComputePassTemplate",
+                "Path": "Passes/DeferredFogCDFCompute.pass"
+            },
+            {
+                "Name": "DeferredFogVolumeBilinearBlurPassTemplate",
+                "Path": "Passes/DeferredFogVolumeBilinearBlur.pass"
             },
             {
                 "Name": "SubsurfaceScatteringPassTemplate",
@@ -491,18 +515,6 @@
             {
                 "Name": "UIParentTemplate",
                 "Path": "Passes/UIParent.pass"
-            },
-            {
-                "Name": "DistortionParentTemplate",
-                "Path": "Passes/DistortionParent.pass"
-            },
-            {
-                "Name": "DistortionPostProcessPassTemplate",
-                "Path": "Passes/DistortionPostProcess.pass"
-            },
-            {
-                "Name": "DistortionAccumulationPassTemplate",
-                "Path": "Passes/DistortionAccumulation.pass"
             },
             {
                 "Name": "LightAdaptationParentTemplate",

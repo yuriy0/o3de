@@ -249,14 +249,6 @@ namespace AZ::Render
         {
             return;
         }
-        displayMapperLut = it->second;
-    }
-
-    void AcesDisplayMapperFeatureProcessor::GetLutFromAssetLocation(DisplayMapperAssetLut& displayMapperAssetLut, const AZStd::string& assetPath)
-    {
-        Data::AssetId assetId = RPI::AssetUtils::GetAssetIdForProductPath(assetPath.c_str(), RPI::AssetUtils::TraceLevel::Error);
-        GetLutFromAssetId(displayMapperAssetLut, assetId);
-    }
 
         // Check first if this already exists
         auto it = m_assetLuts.find(assetId.ToString<AZStd::string>());
@@ -318,7 +310,7 @@ namespace AZ::Render
                     AZ::u64 red = lutAsset->m_values[assetIdx * 3 + 0];
                     AZ::u64 green = lutAsset->m_values[assetIdx * 3 + 1];
                     AZ::u64 blue = lutAsset->m_values[assetIdx * 3 + 2];
-                    
+
                     // The vertices in the file are given as a positive integer value in [0,..4095] and need to be normalized
                     constexpr float NormalizeValue = 4095.0f;
 

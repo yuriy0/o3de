@@ -137,7 +137,7 @@ namespace
             AzToolsFramework::PropertyAttributeReader reader(node->GetInstance(instIndex), attr);
             if (reader.Read<Type>(retVal))
             {
-                return retVal;
+                return AZ::Success(retVal);
             }
         }
 
@@ -956,7 +956,10 @@ namespace AzToolsFramework
             // Flag our new key node with our original instances for any future element modification
             if (showAsKeyValue)
             {
-                node->m_identifier = AZ::Crc32(label.c_str());
+                if (!label.empty())
+                {
+                    node->m_identifier = AZ::Crc32(label.c_str());
+                }
 
                 auto attribute = aznew AZ::AttributeContainerType<AZStd::vector<void*>>(AZStd::move(elementInstances));
                 m_supplementalEditData.back().m_attributes.emplace_back(attribute); // Ensure the attribute gets cleaned up

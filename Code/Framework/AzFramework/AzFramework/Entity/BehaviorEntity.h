@@ -275,6 +275,7 @@ namespace AzFramework
         static void Reflect(AZ::ReflectContext* context);
 
         BehaviorComponent() = default;
+        virtual ~BehaviorComponent() = default;
         explicit BehaviorComponent(AZ::Component* id);
         explicit BehaviorComponent(AZ::EntityId ent, AZ::ComponentId id);
         explicit BehaviorComponent(BehaviorEntity ent, AZ::ComponentId id);

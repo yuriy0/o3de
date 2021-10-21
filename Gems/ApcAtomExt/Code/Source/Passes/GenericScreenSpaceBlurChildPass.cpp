@@ -42,7 +42,7 @@ namespace AZ
             if (m_imageSize != size)
             {
                 m_imageSize = size;
-                m_outputScale = (m_passType == PassType::Vertical) ? pow(2.0f, m_mipLevel) : 1.0f;
+                m_outputScale = (m_passType == PassType::Vertical) ? powf(2.0f, static_cast<float>(m_mipLevel)) : 1.0f;
 
                 m_updateSrg = true;
             }

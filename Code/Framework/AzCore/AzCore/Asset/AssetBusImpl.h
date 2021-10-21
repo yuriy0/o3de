@@ -128,9 +128,9 @@ namespace AZ
                                 // We are about to remove this handler node, which would delete the handler lock,
                                 // but another thread may still be inside dispatch and might be holding this handler lock.
                                 // so take ownership of the lock now, before deleting the node
-                                handlersLockMutex.emplace(m_node.m_holder->m_handlerMutex);
+                                handlersLockMutex.emplace(HandlerBase::m_node.m_holder->m_handlerMutex);
 
-                                BusType::DisconnectInternal(*context, m_node);
+                                BusType::DisconnectInternal(*context, HandlerBase::m_node);
                             }
                         }
 
@@ -148,12 +148,12 @@ namespace AZ
                 public:
                     void BusDisconnect(const IdType& id)
                     {
-                        BusDisconnect_Impl([this, &id]() { return BusIsConnectedId(id); });
+                        BusDisconnect_Impl([this, &id]() { return HandlerBase::BusIsConnectedId(id); });
                     }
 
                     void BusDisconnect()
                     {
-                        BusDisconnect_Impl([this]() { return BusIsConnected(); });
+                        BusDisconnect_Impl([this]() { return HandlerBase::BusIsConnected(); });
                     }
                 };
 
@@ -168,8 +168,9 @@ namespace AZ
                         if (typename BusType::Context* context = BusType::GetContext())
                         {
                             AZStd::scoped_lock<decltype(context->m_contextMutex)> contextLock(context->m_contextMutex);
-                            auto nodeIt = m_handlerNodes.find(id);
-                            if (nodeIt != m_handlerNodes.end())
+                            auto& handlerNodes = MultiHandlerBase::m_handlerNodes;
+                            auto nodeIt = handlerNodes.find(id);
+                            if (nodeIt != handlerNodes.end())
                             {
                                 HandlerNode* handlerNode = nodeIt->second;
 
@@ -180,9 +181,9 @@ namespace AZ
                                 }
 
                                 BusType::DisconnectInternal(*context, *handlerNode);
-                                m_handlerNodes.erase(nodeIt);
+                                handlerNodes.erase(nodeIt);
                                 handlerNode->~HandlerNode();
-                                m_handlerNodes.get_allocator().deallocate(handlerNode, sizeof(HandlerNode), alignof(HandlerNode));
+                                handlerNodes.get_allocator().deallocate(handlerNode, sizeof(HandlerNode), alignof(HandlerNode));
                             }
                         }
 
@@ -200,11 +201,11 @@ namespace AZ
                         // Storage for the id handler mutexes
                         AZStd::vector<AssetBusHandlerIdHandlerMutexT> handlersLockMutexes;
 
-                        decltype(m_handlerNodes) handlerNodesToDisconnect;
+                        decltype(MultiHandlerBase::m_handlerNodes) handlerNodesToDisconnect;
                         if (typename BusType::Context* context = BusType::GetContext())
                         {
                             AZStd::scoped_lock<decltype(context->m_contextMutex)> contextLock(context->m_contextMutex);
-                            handlerNodesToDisconnect = AZStd::move(m_handlerNodes);
+                            handlerNodesToDisconnect = AZStd::move(MultiHandlerBase::m_handlerNodes);
 
                             // One mutex per handler, reserve space for them
                             handlersLockMutexes.reserve(handlerNodesToDisconnect.size());

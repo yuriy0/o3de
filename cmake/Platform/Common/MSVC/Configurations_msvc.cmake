@@ -44,19 +44,22 @@ ly_append_configurations_options(
         # Enabled warnings (that are disabled by default from /W4)
         ###################
         # https://docs.microsoft.com/en-us/cpp/preprocessor/compiler-warnings-that-are-off-by-default?view=vs-2019
-        /we4263 # 'function': member function does not override any base class virtual member function
-        /we4264 # 'virtual_function': no override available for virtual member function from base 'class'; function is hidden
-        /we4265 # 'class': class has virtual functions, but destructor is not virtual
-        /we4266 # 'function': no override available for virtual member function from base 'type'; function is hidden
-        /we4296 # 'operator': expression is always false
-        /we4426 # optimization flags changed after including header, may be due to #pragma optimize()
-        /we4437 # dynamic_cast from virtual base 'class1' to 'class2' could fail in some contexts
+        # /we4263 # 'function': member function does not override any base class virtual member function
+        # /we4264 # 'virtual_function': no override available for virtual member function from base 'class'; function is hidden
+        # /we4265 # 'class': class has virtual functions, but destructor is not virtual
+        # /we4266 # 'function': no override available for virtual member function from base 'type'; function is hidden
+        #/we4296 # 'operator': expression is always false
+        # /we4426 # optimization flags changed after including header, may be due to #pragma optimize()
+        # /we4437 # dynamic_cast from virtual base 'class1' to 'class2' could fail in some contexts
         #/we4619 # #pragma warning: there is no warning number 'number'. Unfortunately some versions of MSVC 16.X dont filter this warning coming from external headers and Qt has a bad warning in QtCore/qvector.h(340,12)
-        /we4774 # 'string' : format string expected in argument number is not a string literal
-        /we4777 # 'function' : format string 'string' requires an argument of type 'type1', but variadic argument number has type 'type2
-        /we5031 # #pragma warning(pop): likely mismatch, popping warning state pushed in different file
-        /we5032 # detected #pragma warning(push) with no corresponding #pragma warning(pop)
-        /we5233 # explicit lambda capture 'identifier' is not used
+        # /we4774 # 'string' : format string expected in argument number is not a string literal
+        # /we4777 # 'function' : format string 'string' requires an argument of type 'type1', but variadic argument number has type 'type2
+        #/we5031 # #pragma warning(pop): likely mismatch, popping warning state pushed in different file
+        #/we5032 # detected #pragma warning(push) with no corresponding #pragma warning(pop)
+        # /we5233 # explicit lambda capture 'identifier' is not used
+        
+        /wd4267 # conversion from 'X' to 'Y', possible loss of data (i.e. narrowing numeric conversion)
+        /wd4244 # conversion, possible loss of data
 
         /Zc:forScope    # Force Conformance in for Loop Scope
         /diagnostics:caret # Compiler diagnostic options: includes the column where the issue was found and places a caret (^) under the location in the line of code where the issue was detected.
@@ -150,13 +153,6 @@ else()
 endif()
 
 set(LY_BUILD_WITH_INCREMENTAL_LINKING_DEBUG FALSE CACHE BOOL "Indicates if incremental linking is used in debug configurations (default = FALSE)")
-if(LY_BUILD_WITH_INCREMENTAL_LINKING_DEBUG)
-    ly_append_configurations_options(
-        COMPILATION_DEBUG
-            /ZI         # Enable Edit/Continue
-    )
-
-
 
 if (NOT LY_OVERRIDE_DEBUG_SYMBOLS STREQUAL "Disable")
 	if(LY_BUILD_WITH_INCREMENTAL_LINKING_DEBUG)

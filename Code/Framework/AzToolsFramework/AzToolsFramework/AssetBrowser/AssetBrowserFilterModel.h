@@ -62,6 +62,34 @@ namespace AzToolsFramework
         public Q_SLOTS:
             void filterUpdatedSlot();
 
+        private:
+            bool filterAcceptsRowImpl(int source_row, const QModelIndex& source_parent) const;
+            AZStd::optional<bool> filterAcceptsRowCached(int source_row, const QModelIndex& source_parent) const;
+            void continueIncrementalFilterRebuild();
+
+            struct FilterKey
+            {
+                FilterKey() = default;
+                FilterKey(const QModelIndex& ix);
+
+                QPersistentModelIndex m_ix;
+
+                operator size_t() const;
+                bool operator==(const FilterKey& other) const;
+                bool operator!=(const FilterKey& other) const;
+                bool operator<(const FilterKey& other) const;
+            };
+
+            struct InvalidateFilterIncrementallyState
+            {
+                AZStd::unordered_map<FilterKey, bool> m_filterCache;
+                int m_remainingThisUpdate = 0;
+                bool m_active = false;
+            };
+
+        protected:
+            void invalidateFilter();
+
         protected:
             // Set for filtering columns
             // If the column is in the set the column is not filtered and is shown

@@ -719,7 +719,7 @@
                     "displayName": "Double-sided",
                     "description": "Whether to render back-faces or just front-faces.",
                     "type": "Bool"
-                }/*,
+                },
                 {
                     "name": "alphaAffectsSpecular",
                     "displayName": "Alpha affects specular",
@@ -732,7 +732,7 @@
                         "type": "ShaderInput",
                         "name": "m_opacityAffectsSpecularFactor"
                     }
-                }*/
+                }
             ],
             "uv": [
                 {

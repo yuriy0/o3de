@@ -52,8 +52,9 @@ namespace AZ
                     return;
                 }
 
-                serializeContext->Class<TangentsRule, DataTypes::IRule>()->Version(4)
-                    ->Field("tangentSpace", &TangentsRule::m_tangentSpace)
+                serializeContext->Class<TangentsRule, DataTypes::IRule>()->Version(5)
+                    ->Field("tangentSpace", &TangentsRule::m_generationMethod)
+                    ->Field("tSpaceMethod", &TangentsRule::m_tSpaceMethod)
                     ->Field("normalsSource", &TangentsRule::m_normalsSource)
                     ->Field("shouldRenormalizeNormals", &TangentsRule::m_shouldRenormalizeNormals)
                     ;
@@ -66,9 +67,9 @@ namespace AZ
                             ->Attribute("AutoExpand", true)
                             ->Attribute(AZ::Edit::Attributes::NameLabelOverride, "")
 
-                        ->DataElement(AZ::Edit::UIHandlers::ComboBox, &AZ::SceneAPI::SceneData::TangentsRule::m_tangentSpace, "Tangent space", "Specify the tangent space used for normal map baking. Choose 'From Fbx' to extract the tangents and bitangents directly from the Fbx file. When there is no tangents rule or the Fbx has no tangents stored inside it, the 'MikkT' option will be used with orthogonal tangents of unit length, so with the normalize option enabled, using the first UV set.")
-                            ->EnumAttribute(AZ::SceneAPI::DataTypes::TangentSpace::FromSourceScene, "From Source Scene")
-                            ->EnumAttribute(AZ::SceneAPI::DataTypes::TangentSpace::MikkT, "MikkT")
+                        ->DataElement(AZ::Edit::UIHandlers::ComboBox, &AZ::SceneAPI::SceneData::TangentsRule::m_generationMethod, "Tangent space", "Specify the tangent space used for normal map baking. Choose 'From Fbx' to extract the tangents and bitangents directly from the Fbx file. When there is no tangents rule or the Fbx has no tangents stored inside it, the 'MikkT' option will be used with orthogonal tangents of unit length, so with the normalize option enabled, using the first UV set.")
+                            ->EnumAttribute(AZ::SceneAPI::DataTypes::TangentGenerationMethod::FromSourceScene, "From Source Scene")
+                            ->EnumAttribute(AZ::SceneAPI::DataTypes::TangentGenerationMethod::MikkT, "MikkT")
                             ->Attribute(AZ::Edit::Attributes::ChangeNotify, AZ::Edit::PropertyRefreshLevels::EntireTree)
 
                         ->DataElement(AZ::Edit::UIHandlers::ComboBox, &AZ::SceneAPI::SceneData::TangentsRule::m_normalsSource,

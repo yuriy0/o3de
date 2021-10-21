@@ -47,9 +47,12 @@ namespace EMotionFX
 
             void Update() override;
 
+            bool HasSimulatedJoints() const;
+
         public:
             AZStd::vector<AZ::u8> m_simulatedJointStates; /** Flags indicating if the joint at the given index in the animation skeleton is added to the physics simulation by this node. Size is Skeleton::GetNumNodes(). */
             bool m_isRagdollRootNodeSimulated = false;
+            bool m_hasSimulatedJoints = false;
         };
 
         BlendTreeRagdollNode();
@@ -69,8 +72,6 @@ namespace EMotionFX
         AnimGraphPose* GetMainOutputPose(AnimGraphInstance* animGraphInstance) const override     { return GetOutputPose(animGraphInstance, OUTPUTPORT_POSE)->GetValue(); }
         bool GetHasOutputPose() const override                          { return true; }
 
-        void SetSimulatedJointNames(const AZStd::vector<AZStd::string>& simulatedJointNames) { m_simulatedJointNames = simulatedJointNames; }
-        AZStd::vector<AZStd::string>& GetSimulatedJointNames()          { return m_simulatedJointNames; }
         bool IsActivated(AnimGraphInstance* animGraphInstance) const;
 
         static void Reflect(AZ::ReflectContext* context);
@@ -79,5 +80,6 @@ namespace EMotionFX
         AZStd::string GetSimulatedJointName(int index) const;
 
         AZStd::vector<AZStd::string> m_simulatedJointNames;
+        AZStd::string m_simulatedJointsNodeGroup;
     };
 } // namespace EMotionFX

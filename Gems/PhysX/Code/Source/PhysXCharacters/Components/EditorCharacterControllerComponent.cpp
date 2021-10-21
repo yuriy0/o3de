@@ -14,6 +14,9 @@
 #include <PhysXCharacters/Components/CharacterControllerComponent.h>
 #include <LmbrCentral/Geometry/GeometrySystemComponentBus.h>
 
+#include <PhysXCharacters/Components/CharacterGameplayComponent.h>
+#include <PhysXCharacters/Components/EditorCharacterGameplayComponent.h>
+
 #include <System/PhysXSystem.h>
 
 namespace PhysX
@@ -257,6 +260,29 @@ namespace PhysX
                 AZStd::make_unique<Physics::CapsuleShapeConfiguration>(m_proxyShapeConfiguration.m_capsule));
             break;
         }
+
+        // APC BEGIN
+        // Collision layers/groups on the character controller do not work without the gameplay component
+        if (auto entity = GetEntity())
+        {
+            if (!entity->FindComponent<CharacterGameplayComponent>() && !entity->FindComponent<EditorCharacterGameplayComponent>())
+            {
+                if (auto gameplayComponent = gameEntity->CreateComponent<CharacterGameplayComponent>())
+                {
+                    // Configure the gameplay component to not apply gravity; we don't want to add any extra functionality
+                    // which the user didn't request.
+                    gameplayComponent->SetGravityMultiplier(0.f);
+                }
+                else
+                {
+                    AZ_Warning("EditorCharacterControllerComponent", false,
+                        "Could not add 'CharacterGameplayComponent' to entity '%s'; the character controller likely won't work",
+                        GetEntity() ? GetEntity()->GetName().c_str() : "<unknown>"
+                    );
+                }
+            }
+        }
+        // APC END
     }
 
     // editor change notifications

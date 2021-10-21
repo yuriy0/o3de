@@ -96,13 +96,16 @@ namespace AZ
                         // Get the stableId from the variant tree.
                         auto searchResult = shaderVariantTreeAsset->FindVariantStableId(
                             tupleItor->m_shaderAsset->GetShaderOptionGroupLayout(), tupleItor->m_shaderVariantId);
+
+                        // Record the request for metrics.
+                        ShaderMetricsSystem::Get()->RequestShaderVariant(tupleItor->m_shaderAsset.Get(), tupleItor->m_shaderVariantId, searchResult);
+
                         if (searchResult.IsRoot())
                         {
                             tupleItor = newShaderVariantPendingRequests.erase(tupleItor);
                             continue;
                         }
 
-                        // Record the request for metrics.
                         ShaderMetricsSystem::Get()->RequestShaderVariant(tupleItor->m_shaderAsset.Get(),  tupleItor->m_shaderVariantId, searchResult);
 
                         uint32_t shaderVariantProductSubId = ShaderVariantAsset::MakeAssetProductSubId(
@@ -240,13 +243,14 @@ namespace AZ
             // Find the stable id.
             ShaderVariantSearchResult searchResult =
                 shaderVariantTreeAsset->FindVariantStableId(shaderAsset->GetShaderOptionGroupLayout(), shaderVariantId);
+
+            // Record the request for metrics.
+            ShaderMetricsSystem::Get()->RequestShaderVariant(shaderAsset.Get(), shaderVariantId, searchResult);
+
             if (searchResult.IsRoot())
             {
                 return shaderAsset->GetRootVariant();
             }
-
-            // Record the request for metrics.
-            ShaderMetricsSystem::Get()->RequestShaderVariant(shaderAsset.Get(), shaderVariantId, searchResult);
 
             return GetShaderVariantAsset(shaderVariantTreeAsset.GetId(), searchResult.GetStableId(), supervariantIndex);
         }

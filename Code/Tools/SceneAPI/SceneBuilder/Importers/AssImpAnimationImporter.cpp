@@ -18,11 +18,6 @@
 #include <SceneAPI/SceneBuilder/Importers/AssImpAnimationImporter.h>
 #include <SceneAPI/SceneBuilder/Importers/AssImpImporterUtilities.h>
 #include <SceneAPI/SceneBuilder/Importers/Utilities/RenamedNodesMap.h>
-#include <SceneAPI/FbxSDKWrapper/FbxAnimCurveWrapper.h>
-#include <SceneAPI/FbxSDKWrapper/FbxAnimLayerWrapper.h>
-#include <SceneAPI/FbxSDKWrapper/FbxNodeWrapper.h>
-#include <SceneAPI/FbxSDKWrapper/FbxSceneWrapper.h>
-#include <SceneAPI/FbxSDKWrapper/FbxTimeSpanWrapper.h>
 #include <SceneAPI/SceneCore/Containers/Scene.h>
 #include <SceneAPI/SceneData/GraphData/AnimationData.h>
 #include <SceneAPI/SDKWrapper/AssImpNodeWrapper.h>

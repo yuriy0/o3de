@@ -54,6 +54,7 @@ namespace EMotionFX
         SkeletonModel* GetModel() override;
         void DataChanged(const QModelIndex& modelIndex) override;
         void DataListChanged(const QModelIndexList& modelIndexList) override;
+        AZStd::vector<Node*> GetSelectedRowNodes() override;
 
     private slots:
         void OnSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);

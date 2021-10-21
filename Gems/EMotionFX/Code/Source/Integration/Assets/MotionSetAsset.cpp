@@ -184,6 +184,12 @@ namespace EMotionFX
                 const EMotionFX::MotionSet::MotionEntry* motionEntry = item.second;
                 const char* motionFilename = motionEntry->GetFilename();
 
+                // Skip unassigned motions
+                if (AZStd::string_view(motionFilename).empty())
+                {
+                    continue;
+                }
+
                 // Find motion file in catalog and grab the asset.
                 // Jump on the AssetBus for the asset, and queue load.
                 AZ::Data::AssetId motionAssetId;

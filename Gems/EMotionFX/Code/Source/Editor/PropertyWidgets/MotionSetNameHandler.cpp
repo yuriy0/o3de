@@ -79,8 +79,7 @@ namespace EMotionFX
         {
             const AZStd::unique_ptr<EMotionFX::MotionSet>& emfxMotionSet = m_motionSetAsset->Get()->m_emfxMotionSet;
             AZStd::vector<const MotionSet*> motionSets;
-            const bool isOwnedByRutime = emfxMotionSet->GetIsOwnedByRuntime();
-            emfxMotionSet->RecursiveGetMotionSets(motionSets, isOwnedByRutime);
+            emfxMotionSet->RecursiveGetMotionSets(motionSets, AZStd::nullopt);
 
             for (const EMotionFX::MotionSet* motionSet : motionSets)
             {

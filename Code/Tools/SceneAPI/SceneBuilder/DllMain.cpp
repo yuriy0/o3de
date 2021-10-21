@@ -27,18 +27,6 @@
 #include <SceneAPI/SceneBuilder/Importers/AssImpBoneImporter.h>
 #include <SceneAPI/SceneBuilder/Importers/AssImpAnimationImporter.h>
 #include <SceneAPI/SceneBuilder/Importers/AssImpBlendShapeImporter.h>
-#include <SceneAPI/SceneBuilder/Importers/FbxAnimationImporter.h>
-#include <SceneAPI/SceneBuilder/Importers/FbxBlendShapeImporter.h>
-#include <SceneAPI/SceneBuilder/Importers/FbxBoneImporter.h>
-#include <SceneAPI/SceneBuilder/Importers/FbxColorStreamImporter.h>
-#include <SceneAPI/SceneBuilder/Importers/FbxTangentStreamImporter.h>
-#include <SceneAPI/SceneBuilder/Importers/FbxBitangentStreamImporter.h>
-#include <SceneAPI/SceneBuilder/Importers/FbxMaterialImporter.h>
-#include <SceneAPI/SceneBuilder/Importers/FbxMeshImporter.h>
-#include <SceneAPI/SceneBuilder/Importers/FbxSkinImporter.h>
-#include <SceneAPI/SceneBuilder/Importers/FbxSkinWeightsImporter.h>
-#include <SceneAPI/SceneBuilder/Importers/FbxTransformImporter.h>
-#include <SceneAPI/SceneBuilder/Importers/FbxUvMapImporter.h>
 
 namespace AZ
 {
@@ -62,18 +50,6 @@ namespace AZ
                     g_componentDescriptors.push_back(SceneImportRequestHandler::CreateDescriptor());
 
                     // Node and attribute importers
-                    g_componentDescriptors.push_back(FbxAnimationImporter::CreateDescriptor());
-                    g_componentDescriptors.push_back(FbxBlendShapeImporter::CreateDescriptor());
-                    g_componentDescriptors.push_back(FbxBoneImporter::CreateDescriptor());
-                    g_componentDescriptors.push_back(FbxColorStreamImporter::CreateDescriptor());
-                    g_componentDescriptors.push_back(FbxMaterialImporter::CreateDescriptor());
-                    g_componentDescriptors.push_back(FbxMeshImporter::CreateDescriptor());
-                    g_componentDescriptors.push_back(FbxSkinImporter::CreateDescriptor());
-                    g_componentDescriptors.push_back(FbxSkinWeightsImporter::CreateDescriptor());
-                    g_componentDescriptors.push_back(FbxTransformImporter::CreateDescriptor());
-                    g_componentDescriptors.push_back(FbxUvMapImporter::CreateDescriptor());
-                    g_componentDescriptors.push_back(FbxTangentStreamImporter::CreateDescriptor());
-                    g_componentDescriptors.push_back(FbxBitangentStreamImporter::CreateDescriptor());
                     g_componentDescriptors.push_back(AssImpBitangentStreamImporter::CreateDescriptor());
                     g_componentDescriptors.push_back(AssImpColorStreamImporter::CreateDescriptor());
                     g_componentDescriptors.push_back(AssImpMaterialImporter::CreateDescriptor());

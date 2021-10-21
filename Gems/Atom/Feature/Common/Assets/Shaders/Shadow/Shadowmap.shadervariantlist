@@ -1,0 +1,11 @@
+{
+    "Shader": "Shadowmap.shader",
+    "Variants": [
+        {
+            "StableId": 1,
+            "Options": {
+                "DefaultOption": "false"
+            }
+        }
+    ]
+}

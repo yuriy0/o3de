@@ -30,6 +30,7 @@ namespace EMotionFX
         virtual Node* GetSingleSelectedNode() { return nullptr; }
         virtual QModelIndex GetSingleSelectedModelIndex() { return QModelIndex(); }
         virtual AZ::Outcome<const QModelIndexList&> GetSelectedRowIndices() { return AZ::Failure(); }
+        virtual AZStd::vector<Node*> GetSelectedRowNodes() = 0;
         virtual SkeletonModel* GetModel() = 0;
 
         virtual void DataChanged([[maybe_unused]] const QModelIndex& modelIndex) {}

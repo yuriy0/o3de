@@ -9,6 +9,8 @@
 #include "DebugMap.h"
 
 #include <AzCore/Serialization/SerializeContext.h>
+#include <AzCore/Serialization/std/VariantReflection.inl>
+#include <AzCore/Script/std/VariantReflection.inl>
 
 #include <ScriptCanvas/Core/Nodeable.h>
 #include <ScriptCanvas/Grammar/AbstractCodeModel.h>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <AzCore/std/containers/variant.h>
 #include <AzCore/std/typetraits/decay.h>
 #include <AzCore/std/utils.h>
 

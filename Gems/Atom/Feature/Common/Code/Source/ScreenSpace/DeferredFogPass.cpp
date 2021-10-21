@@ -63,7 +63,7 @@ namespace AZ
         template<class Derived, class BasePass>
         const DeferredFogSettings* DeferredFogPass_tpl<Derived, BasePass>::GetPassFogSettings() const
         {
-            RPI::Scene* scene = GetScene();
+            RPI::Scene* scene = BasePass::GetScene();
             if (!scene)
             {
                 return nullptr;
@@ -87,7 +87,7 @@ namespace AZ
         template<class Derived, class BasePass>
         void DeferredFogPass_tpl<Derived, BasePass>::SetSrgBindIndices()
         {
-            Data::Instance<RPI::ShaderResourceGroup> srg = m_shaderResourceGroup.get();
+            Data::Instance<RPI::ShaderResourceGroup> srg = BasePass::m_shaderResourceGroup.get();
             
             // match and set all SRG constants' indices
 #define AZ_GFX_COMMON_PARAM(ValueType, FunctionName, MemberName, DefaultValue)                          \
@@ -110,7 +110,7 @@ namespace AZ
         template<class Derived, class BasePass>
         void DeferredFogPass_tpl<Derived, BasePass>::SetSrgConstants(const DeferredFogSettings& fogSettings)
         {
-            Data::Instance<RPI::ShaderResourceGroup> srg = m_shaderResourceGroup.get();
+            Data::Instance<RPI::ShaderResourceGroup> srg = BasePass::m_shaderResourceGroup.get();
 
             if (!m_srgBindIndicesInitialized)
             {   // Should be initialize before, but if not - this is a fail safe that will apply it once
@@ -164,7 +164,7 @@ namespace AZ
         bool DeferredFogPass_tpl<Derived, BasePass>::IsEnabled() const 
         {
             const DeferredFogSettings* fogSettings = GetPassFogSettings();
-            return Pass::IsEnabled() && (fogSettings ? fogSettings->GetEnabled() : false);
+            return BasePass::IsEnabled() && (fogSettings ? fogSettings->GetEnabled() : false);
         }
 
         template<class Derived, class BasePass>
@@ -175,7 +175,7 @@ namespace AZ
                 return x ? AZ::Name("true") : AZ::Name("false");
             };
 
-            RPI::ShaderOptionGroup shaderOption = m_shader->CreateShaderOptionGroup();
+            RPI::ShaderOptionGroup shaderOption = BasePass::m_shader->CreateShaderOptionGroup();
 
             static const AZ::Name o_enableFogLayer("o_enableFogLayer");
             static const AZ::Name o_useNoiseTexture("o_useNoiseTexture");
@@ -213,19 +213,19 @@ namespace AZ
         template<class Derived, class BasePass>
         void DeferredFogPass_tpl<Derived, BasePass>::UpdateDeferredFogPassSrg()
         {
-            if (!m_pipeline || !m_pipeline->GetScene()) return;
+            if (!BasePass::m_pipeline || !BasePass::m_pipeline->GetScene()) return;
 
             // If any change was made, make sure to bind it.
             if (const DeferredFogSettings* fogSettings = GetPassFogSettings())
             {
                 const bool fogIsEnabled = fogSettings->GetEnabled();
-                SetEnabled(fogIsEnabled);
+                BasePass::SetEnabled(fogIsEnabled);
 
                 if (fogIsEnabled)
                 {
                     // Update and set the per pass shader options - this will update the current required
                     // shader variant and if doesn't exist, it will be created via the compile stage
-                    if (m_shaderResourceGroup->HasShaderVariantKeyFallbackEntry())
+                    if (BasePass::m_shaderResourceGroup->HasShaderVariantKeyFallbackEntry())
                     {
                         UpdateShaderOptions(*fogSettings);
                     }
@@ -235,16 +235,16 @@ namespace AZ
             }
             else
             {
-                SetEnabled(false);
+                BasePass::SetEnabled(false);
             }
         }
 
         template<class Derived, class BasePass>
         void DeferredFogPass_tpl<Derived, BasePass>::CompileResources(const RHI::FrameGraphCompileContext& context)
         {
-            if (m_shaderResourceGroup->HasShaderVariantKeyFallbackEntry())
+            if (BasePass::m_shaderResourceGroup->HasShaderVariantKeyFallbackEntry())
             {
-                m_shaderResourceGroup->SetShaderVariantKeyFallbackValue(m_ShaderOptions);
+                BasePass::m_shaderResourceGroup->SetShaderVariantKeyFallbackValue(m_ShaderOptions);
             }
 
             BasePass::CompileResources(context);

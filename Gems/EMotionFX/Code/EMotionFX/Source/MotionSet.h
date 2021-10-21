@@ -255,7 +255,8 @@ namespace EMotionFX
         MotionEntry* FindMotionEntryById(const AZStd::string& motionId) const;
         MotionEntry* RecursiveFindMotionEntryById(const AZStd::string& motionId) const;
         Motion* RecursiveFindMotionById(const AZStd::string& motionId, bool loadOnDemand = true) const;
-        MotionSet* RecursiveFindMotionSetByName(const AZStd::string& motionSetName, bool isOwnedByRuntime = false) const;
+        MotionSet* RecursiveFindMotionSetByName(const AZStd::string& motionSetName, bool isOwnedByRuntime) const;
+        MotionSet* RecursiveFindMotionSetByName(const AZStd::string& motionSetName) const;
 
         /**
          * Set a new motion id for the given motion entry.
@@ -307,6 +308,7 @@ namespace EMotionFX
          * Every MotionSet* returned in childMotionSets will have directly or indirectly this MotionSet as a parent
          * @param[out] childMotionSets set where the child motion sets are returned.
          */
+        void RecursiveGetMotionSets(AZStd::vector<const MotionSet*>& childMotionSets, AZStd::optional<bool> isOwnedByRuntime) const;
         void RecursiveGetMotionSets(AZStd::vector<const MotionSet*>& childMotionSets, bool isOwnedByRuntime = false) const;
 
         /**

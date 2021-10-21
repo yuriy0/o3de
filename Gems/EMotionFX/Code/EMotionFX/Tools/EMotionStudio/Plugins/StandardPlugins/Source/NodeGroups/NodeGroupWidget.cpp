@@ -13,6 +13,7 @@
 #include <AzCore/std/limits.h>
 #include <EMotionFX/Source/NodeGroup.h>
 #include <MCore/Source/StringConversions.h>
+#include <Source/Editor/Plugins/SkeletonOutliner/SkeletonOutlinerBus.h>
 
 // include qt headers
 #include <QPushButton>
@@ -80,10 +81,12 @@ namespace EMStudio
         // create the selection buttons
         m_selectNodesButton  = new QPushButton();
         m_addNodesButton     = new QPushButton();
+        m_addNodesFromSkeletonOutlinerButton = new QPushButton();
         m_removeNodesButton  = new QPushButton();
 
         EMStudioManager::MakeTransparentButton(m_selectNodesButton, "Images/Icons/Plus.svg",   "Select nodes and replace the current selection");
         EMStudioManager::MakeTransparentButton(m_addNodesButton,    "Images/Icons/Plus.svg",   "Select nodes and add them to the current selection");
+        EMStudioManager::MakeTransparentButton(m_addNodesFromSkeletonOutlinerButton, "Images/Icons/Plus.svg", "Add selected nodes in the Skeleton Outliner to the current selection");
         EMStudioManager::MakeTransparentButton(m_removeNodesButton, "Images/Icons/Minus.svg",  "Remove selected nodes from the list");
 
         // create the buttons layout
@@ -92,6 +95,7 @@ namespace EMStudio
         buttonLayout->setAlignment(Qt::AlignLeft);
         buttonLayout->addWidget(m_selectNodesButton);
         buttonLayout->addWidget(m_addNodesButton);
+        buttonLayout->addWidget(m_addNodesFromSkeletonOutlinerButton);
         buttonLayout->addWidget(m_removeNodesButton);
 
         // create the layouts
@@ -118,6 +122,7 @@ namespace EMStudio
         connect(m_nodeTable, &QTableWidget::itemSelectionChanged, this, &NodeGroupWidget::OnItemSelectionChanged);
         connect(m_nodeSelectionWindow->GetNodeHierarchyWidget(), &NodeHierarchyWidget::OnSelectionDone, this, &NodeGroupWidget::NodeSelectionFinished);
         connect(m_nodeSelectionWindow->GetNodeHierarchyWidget(), &NodeHierarchyWidget::OnDoubleClicked, this, &NodeGroupWidget::NodeSelectionFinished);
+        connect(m_addNodesFromSkeletonOutlinerButton, &QPushButton::clicked, this, &NodeGroupWidget::AddNodesFromSkeletonOutlinerButtonPressed);
     }
 
 
@@ -323,12 +328,43 @@ namespace EMStudio
             return;
         }
 
+        AddSelectNodes(
+            selectionList,
+            [](const SelectionItem& item) { return item.GetNodeName(); },
+            m_nodeAction
+        );
+    }
+
+
+    void NodeGroupWidget::AddNodesFromSkeletonOutlinerButtonPressed()
+    {
+        AZStd::vector<EMotionFX::Node*> selectedNodes;
+        EMotionFX::SkeletonOutlinerRequestBus::BroadcastResult(
+            selectedNodes,
+            &EMotionFX::SkeletonOutlinerRequestBus::Events::GetSelectedRowNodes
+        );
+
+        if (selectedNodes.size() == 0)
+        {
+            return;
+        }
+
+        AddSelectNodes(
+            selectedNodes,
+            [](EMotionFX::Node* node) { return node->GetName(); },
+            CommandSystem::CommandAdjustNodeGroup::NodeAction::Add
+        );
+    }
+
+    template<class C, class Proj>
+    void NodeGroupWidget::AddSelectNodes(const C& nodes, Proj&& proj, CommandSystem::CommandAdjustNodeGroup::NodeAction action)
+    {
         // generate node list string
         AZStd::vector<AZStd::string> nodeList;
-        nodeList.reserve(selectionList.size());
-        AZStd::transform(begin(selectionList), end(selectionList), AZStd::back_inserter(nodeList), [](const auto& item)
+        nodeList.reserve(nodes.size());
+        AZStd::transform(begin(nodes), end(nodes), AZStd::back_inserter(nodeList), [&](const auto& item)
         {
-            return item.GetNodeName();
+            return proj(item);
         });
 
         AZStd::string outResult;
@@ -339,14 +375,13 @@ namespace EMStudio
             /*newName=*/ AZStd::nullopt,
             /*enabledOnDefault=*/ AZStd::nullopt,
             /*nodeNames=*/ AZStd::move(nodeList),
-            /*nodeAction=*/ m_nodeAction
+            /*nodeAction=*/ action
         );
         if (EMStudio::GetCommandManager()->ExecuteCommand(command, outResult) == false)
         {
             AZ_Error("EMotionFX", false, outResult.c_str());
         }
     }
-
 
     // handle item selection changes of the node table
     void NodeGroupWidget::OnItemSelectionChanged()
@@ -362,6 +397,7 @@ namespace EMStudio
         m_selectNodesButton->setDisabled(!enabled);
         m_addNodesButton->setDisabled(!enabled);
         m_removeNodesButton->setDisabled(!enabled);
+        m_addNodesFromSkeletonOutlinerButton->setDisabled(!enabled);
     }
 
 

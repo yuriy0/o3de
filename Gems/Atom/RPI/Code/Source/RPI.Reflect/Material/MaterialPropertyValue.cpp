@@ -11,6 +11,13 @@
 #include <AzCore/std/typetraits/is_same.h>
 #include <AzCore/Serialization/SerializeContext.h>
 
+#ifdef AZ_ENABLE_TRACING
+#include <AzCore/Component/ComponentApplicationBus.h>
+#endif
+
+#include <AzCore/Serialization/std/VariantReflection.inl>
+#include <AzCore/Script/std/VariantReflection.inl>
+
 namespace AZ
 {
     namespace RPI
@@ -139,9 +146,22 @@ namespace AZ
             }
             else
             {
-                AZ_Warning(
-                    "MaterialPropertyValue", false, "Cannot convert any to variant. Type in any is: %s.",
-                    value.get_type_info().m_id.ToString<AZStd::string>().data());
+                AZ_Error("MaterialPropertyValue", false, "Cannot convert any to variant. Type in any is: %s%s.",
+                    value.get_type_info().m_id.ToString<AZStd::string>().data(),
+                    [&]()
+                    {
+                        AZ::SerializeContext* sc = nullptr;
+                        EBUS_EVENT_RESULT(sc, AZ::ComponentApplicationBus, GetSerializeContext);
+                        if (sc)
+                        {
+                            if (auto* cd = sc->FindClassData(value.type()))
+                            {
+                                return AZStd::string::format("[%s]", cd->m_name);
+                            }
+                        }
+                        return AZStd::string();
+                    }().c_str()
+                );
             }
 
             return result;

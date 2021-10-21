@@ -550,6 +550,16 @@ namespace AZ::Render
         }
     }
 
+    void AreaLightComponentController::GetBoundingBoxes(Aabb* localBBox, Aabb* worldBBox) const
+    {
+        if (m_lightShapeDelegate)
+        {
+            Transform transform = Transform::CreateIdentity();
+            TransformBus::EventResult(transform, m_entityId, &TransformBus::Events::GetWorldTM);
+            m_lightShapeDelegate->GetBoundingBoxes(transform, localBBox, worldBBox);
+        }
+    }
+
     float AreaLightComponentController::GetEsmExponent() const
     {
         return m_configuration.m_esmExponent;

@@ -190,19 +190,8 @@ namespace AZ
             }
             else
             {
-                return nullptr;
+                return "";
             }
-        }
-
-        AZStd::string MaterialConverterSystemComponent::GetDefaultMaterialPath() const
-        {
-            if (m_settings.m_defaultMaterial.empty())
-            {
-                AZ_Error("MaterialConverterSystemComponent", m_settings.m_enable,
-                    "Material conversion is disabled but a default material not specified in registry /O3DE/SceneAPI/MaterialConverter/DefaultMaterial");
-            }
-
-            return m_settings.m_defaultMaterial;
         }
 
         AZStd::string MaterialConverterSystemComponent::GetDefaultMaterialPath() const
