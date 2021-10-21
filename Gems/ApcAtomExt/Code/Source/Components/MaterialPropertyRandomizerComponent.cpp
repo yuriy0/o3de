@@ -44,7 +44,7 @@ namespace ApcAtomExt
     void MaterialPropertyRandomizerComponentConfig::Reflect(AZ::ReflectContext* context)
     {
         MaterialPropertyValue::Reflect(context);
-        decltype(randomChoices)::Reflect(context);
+        // decltype(randomChoices)::Reflect(context);
 
         if (AZ::SerializeContext* serialize = azrtti_cast<AZ::SerializeContext*>(context))
         {
@@ -53,7 +53,7 @@ namespace ApcAtomExt
                 ->Field("propertyName", &MaterialPropertyRandomizerComponentConfig::propertyName)
                 ->Field("submaterials", &MaterialPropertyRandomizerComponentConfig::submaterials)
                 ->Field("sameChoiceForEachSubmaterial", &MaterialPropertyRandomizerComponentConfig::sameChoiceForEachSubmaterial)
-                ->Field("randomChoices", &MaterialPropertyRandomizerComponentConfig::randomChoices)
+                // ->Field("randomChoices", &MaterialPropertyRandomizerComponentConfig::randomChoices)
                 ;
 
             if (AZ::EditContext* ec = serialize->GetEditContext())
@@ -71,8 +71,8 @@ namespace ApcAtomExt
                     ->DataElement(0, &MaterialPropertyRandomizerComponentConfig::sameChoiceForEachSubmaterial,
                         "Same choice for each submaterial?", "If true, pick the same random choice for each submaterial")
 
-                    ->DataElement(0, &MaterialPropertyRandomizerComponentConfig::randomChoices,
-                        "Random choices", "The random choices")
+                    // ->DataElement(0, &MaterialPropertyRandomizerComponentConfig::randomChoices,
+                        // "Random choices", "The random choices")
                     ;
             }
         }
@@ -134,8 +134,9 @@ namespace ApcAtomExt
         std::random_device rng;
         const auto ChooseRandomProperty = [&]() -> AZStd::any
         {
-            const auto& val = m_config.randomChoices.GetOptions()[m_config.randomChoices.GetRandomOption(rng)].val.m_value;
-            return AZStd::visit([](const auto& tval) { return AZStd::any(tval); }, val);
+            return AZStd::any();
+            // const auto& val = m_config.randomChoices.GetOptions()[m_config.randomChoices.GetRandomOption(rng)].val.m_value;
+            // return AZStd::visit([](const auto& tval) { return AZStd::any(tval); }, val);
         };
 
         // Get a random choice

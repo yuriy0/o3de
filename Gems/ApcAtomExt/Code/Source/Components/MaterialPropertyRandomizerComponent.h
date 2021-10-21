@@ -3,7 +3,7 @@
 #include <AzCore/Component/Component.h>
 #include <Atom/RPI.Reflect/Image/StreamingImageAsset.h>
 
-#include <ApcUtilities/DataStructures/DiscreteDistribution.h>
+// #include <ApcUtilities/DataStructures/DiscreteDistribution.h>
 
 namespace ApcAtomExt
 {
@@ -33,7 +33,7 @@ namespace ApcAtomExt
         AZStd::string propertyName;
         AZStd::vector<AZStd::string> submaterials;
         bool sameChoiceForEachSubmaterial = false;
-        ApcUtilities::DiscreteDistribution<MaterialPropertyValue> randomChoices;
+        // ApcUtilities::DiscreteDistribution<MaterialPropertyValue> randomChoices;
     };
 
     class MaterialPropertyRandomizerComponent

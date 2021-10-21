@@ -84,7 +84,7 @@ ly_add_target(
 			${DHS_GAME_GEM_BUILD_DEPENDENCIES}
 )
 
-ly_add_project_dependencies(
+ly_add_target_dependencies(
     PROJECT_NAME
         Deadhaus_Sonata
     TARGETS 
@@ -157,7 +157,7 @@ if (PAL_TRAIT_BUILD_HOST_TOOLS)
 				${DHS_EDITOR_GEM_BUILD_DEPENDENCIES}
     )
 	
-    ly_add_project_dependencies(
+    ly_add_target_dependencies(
         PROJECT_NAME
             Deadhaus_Sonata
         TARGETS
